@@ -1,4 +1,3 @@
-import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { CartProvider } from "@/context/Cart";
 import type { Metadata } from "next";
@@ -23,7 +22,6 @@ export default function RootLayout({
         <CartProvider>
           <Header />
           <main >{children}</main>
-          <Footer />
         </CartProvider>
       </body>
     </html>

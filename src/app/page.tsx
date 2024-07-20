@@ -1,4 +1,5 @@
 import Banner from "@/components/Banner";
+import Footer from "@/components/Footer";
 import Navegation from "@/components/Navegation";
 import ProductCard from "@/components/ProductCard";
 import { cardapio } from "@/data";
@@ -28,6 +29,8 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      <Footer />
     </main>
   );
 }
