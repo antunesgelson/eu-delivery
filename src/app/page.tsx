@@ -6,7 +6,7 @@ import { cardapio } from "@/data";
 
 export default function Home() {
   return (
-    <main className="overflow-x-hidden">
+    <main className="overflow-x-hidden mt-14">
       <section className="flex flex-col justify-center items-center h-[50vh] bg-white bg-custom ">
         <h1>Emporio Urubici</h1>
         <h2>abriremos as 18:30</h2>

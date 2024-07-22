@@ -5,6 +5,7 @@ import * as React from "react";
 import { IoCheckmarkSharp, IoCloseSharp } from "react-icons/io5"; // Importar IoCheckmarkSharp para a variante 'add'
 
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 
 // Adicionando a prop 'variant' ao tipo de props
 interface CheckboxProps extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
@@ -31,9 +32,26 @@ const Checkbox = React.forwardRef<
       {...props}
     >
       <CheckboxPrimitive.Indicator
-        className={cn("flex items-center justify-center text-current")}
-      >
-        {variant === 'add' ? <IoCheckmarkSharp className="h-5 w-5 text-white" /> : <IoCloseSharp className="h-5 w-5" />}
+        className={cn("flex items-center justify-center text-current")}>
+        <AnimatePresence>
+          {variant === 'add' && props.checked &&
+            <motion.div
+              initial={{ opacity: 0, scale: 0, rotate: '100deg' }}
+              animate={{ opacity: 1, scale: 1, rotate: '0deg' }}>
+              <IoCheckmarkSharp className="h-5 w-5 text-white" />
+            </motion.div>
+          }
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {variant === 'remove' && props.checked &&
+            <motion.div
+              initial={{ opacity: 0, scale: 0, }}
+              animate={{ opacity: 1, scale: 1, }}>
+              <IoCloseSharp className="h-5 w-5" />
+            </motion.div>
+          }
+        </AnimatePresence>
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

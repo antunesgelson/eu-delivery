@@ -18,9 +18,9 @@ export default function Header() {
     const router = useRouter()
 
     return (
-        <header className="bg-primary text-white h-14 px-4  fixed top-0 bottom-0 left-0 right-0 z-10">
+        <header className="bg-primary text-white h-14 px-4  fixed top-0 bottom-0 left-0 right-0 z-10 pb-14">
 
-            {pathname === '/' &&
+            {(!pathname.includes('/productdetails') && !pathname.includes('/deliveryaddress/add') && !pathname.includes('/deliveryaddress/edit') ) &&
                 <div className="flex justify-between items-center  h-14">
                     <Button variant={'icon'} onClick={() => setOpen(!open)}>
                         <MdOutlineRestaurantMenu size={33} />
@@ -29,7 +29,7 @@ export default function Header() {
                 </div>
             }
 
-            {pathname !== '/' &&
+            {(pathname.includes('/productdetails') || pathname.includes('/deliveryaddress/')) &&
                 <AnimatePresence>
                     <motion.div
                         className="flex justify-between items-center  h-14"
@@ -40,7 +40,7 @@ export default function Header() {
                         <span
                             className="font-semibold text-lg flex items-center "
                             onClick={() => router.back()}>
-                            <IoIosArrowRoundBack size={20}/>
+                            <IoIosArrowRoundBack size={20} />
                             VOLTAR
                         </span>
                     </motion.div>

@@ -63,7 +63,7 @@ export default function Navegation() {
 
             {!showSearch && // Navegação do cardápio
                 <AnimatePresence>
-                    <ScrollArea className=" whitespace-nowrap rounded-none bg-white h-14  ">
+                    <ScrollArea scrollY={false} className=" whitespace-nowrap rounded-none bg-white h-14   ">
                         <motion.div
                             initial={{ opacity: 0, }}
                             animate={{ opacity: 1, }}

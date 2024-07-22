@@ -4,6 +4,7 @@ import Thumb from '@/assets/products/thumb.jpg';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -49,7 +50,11 @@ export default function ProductorDetails() {
     };
 
     return (
-        <main className="mt-16 overflow-x-hidden ">
+        <motion.main
+            className="mt-16 overflow-x-hidden "
+            initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        >
 
             <div className='bg-white p-4'>
                 <div className='flex justify-center'>
@@ -71,9 +76,7 @@ export default function ProductorDetails() {
             </div>
 
             <div className='p-4 leading-3'>
-                <h2 className="uppercase text-xl font-bold ">
-                    deseja remover algo?
-                </h2>
+                <h2 className="uppercase text-xl font-bold ">deseja remover algo?</h2>
                 <span className='text-[12px]'>Selecione os itens que você <strong>NÃO</strong> quer no seu produto.</span>
             </div>
 
@@ -87,9 +90,7 @@ export default function ProductorDetails() {
             </div>
 
             <div className='p-4 leading-3 relative'>
-                <h2 className="uppercase text-xl font-bold ">
-                    adicionais
-                </h2>
+                <h2 className="uppercase text-xl font-bold ">adicionais</h2>
                 <span className='text-[12px]'>Que tal turbinar seu pedido?</span>
 
                 <div className='absolute top-18 right-3 bg-gray-400 text-white rounded-xl p-1 font-semibold text-sm'>
@@ -99,7 +100,7 @@ export default function ProductorDetails() {
 
             <div className='bg-white p-4 flex flex-col gap-5'>
                 {addItems.map((item, index) => (
-                    <div key={index} className='flex items-center gap-2  text-sm' onClick={() => handleClick(index, 'add')}>
+                    <div key={index} className={`flex items-center gap-2  text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleClick(index, 'add')}>
                         <Checkbox variant='add' checked={!!addSelectedItems[index]} onChange={() => { }} />
                         <span>{item.name} + <strong>R$ {item.price.toFixed(2)}</strong></span>
                     </div>
@@ -108,21 +109,17 @@ export default function ProductorDetails() {
 
 
             <div className='p-4 leading-3'>
-                <h2 className="uppercase text-xl font-bold ">
-                    observação
-                </h2>
+                <h2 className="uppercase text-xl font-bold ">observação</h2>
                 <span className='text-[12px]'>Utilize somente para observações.</span>
             </div>
 
             <div className='bg-white p-4 flex flex-col gap-5'>
-                <div>
-                    <Textarea placeholder="Digite sua mensagem aqui." />
-                </div>
+                <Textarea placeholder="Digite sua mensagem aqui." />
             </div>
 
             <div className='flex  justify-center w-full px-4 mb-6'>
                 <Button className='w-full h-12 '>Adicionar ao carrinho</Button>
             </div>
-        </main>
+        </ motion.main>
     )
 }

@@ -33,7 +33,7 @@ export default function Footer() {
                     <h4 className="font-bold text-2xl">Pagamento</h4>
                     <span className="text-sm">Confira as formas de pagamento que aceitamos:</span>
                 </div>
-                <div className="grid grid-cols-2 mt-4">
+                <div className="grid grid-cols-2 mt-4  ">
                     {payments.map((payment) => (
                         <div key={payment.name} className="flex justify-start items-center gap-2">
                             <img src={`/assets/payments/${payment.icon}`} alt={payment.name} className="w-10 h-10 " />
@@ -44,27 +44,29 @@ export default function Footer() {
 
                 <Separator className="w-full my-5" />
 
-                <div className="text-center">
+                <div className="text-center flex flex-col">
                     <h4 className="font-bold text-2xl">Contato</h4>
                     <span className="text-sm">Está com alguma dúvida ou precisa de ajuda?</span>
 
-                    <button className="grid grid-cols-8 bg-[#00c669] rounded-lg text-white p-2 mt-2">
-                        <div className="flex justify-center items-center w-full h-full">
-                            <FaWhatsapp size={40} />
-                        </div>
-                        <div className="col-span-6">
-                            <span className="uppercase "> clique aqui para chamar a gente no <strong>whatsapp</strong></span>
-                        </div>
-                    </button>
+                    <div className="mx-auto">
+                        <button className="grid grid-cols-8 bg-[#00c669] rounded-lg text-white p-2 mt-2 lg:min-h-14 ">
+                            <div className="flex justify-center items-center w-full h-full">
+                                <FaWhatsapp size={40} />
+                            </div>
+                            <div className="col-span-6">
+                                <span className="uppercase "> clique aqui para chamar a gente no <strong>whatsapp</strong></span>
+                            </div>
+                        </button>
 
-                    <button className="grid grid-cols-8 bg-muted rounded-lg text-white p-2 mt-2">
-                        <div className="flex justify-center items-center w-full h-full">
-                            <FaPhone size={30} />
-                        </div>
-                        <div className="col-span-6">
-                            <span className="uppercase "> ou se preferir, nos ligue: <strong>(48)99175-8185</strong></span>
-                        </div>
-                    </button>
+                        <button className="grid grid-cols-8 bg-muted rounded-lg text-white p-2 mt-2 lg:min-h-14 w-full">
+                            <div className="flex justify-center items-center w-full h-full">
+                                <FaPhone size={30} />
+                            </div>
+                            <div className="col-span-6">
+                                <span className="uppercase "> ou se preferir, nos ligue: <strong>(48)99175-8185</strong></span>
+                            </div>
+                        </button>
+                    </div>
                 </div>
 
                 <Separator className="w-full my-5" />
