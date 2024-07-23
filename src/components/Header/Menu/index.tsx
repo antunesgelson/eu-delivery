@@ -1,3 +1,4 @@
+'use client'
 import useCart from "@/hook/useCart";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
 import { cardapio } from "@/data";
 
+import { signIn, signOut, useSession } from "next-auth/react";
 import { FaArrowRight } from "react-icons/fa6";
 
 type Props = {
@@ -17,8 +19,11 @@ type Props = {
 }
 export function Menu({ onClose, open }: Props) {
     const pathname = usePathname()
+    const { data: session } = useSession()
+
     const { setSelectedItemId, selectedItemId } = useCart();
-    const isAuthenticate = true;
+
+    const isAuthenticate = session?.user?.name ? true : false;
 
     const handleSectionClick = (secaoId: string) => {
         setSelectedItemId(secaoId);
@@ -41,7 +46,7 @@ export function Menu({ onClose, open }: Props) {
             <SheetContent side={'left'} className="bg-primary border-0 ">
                 <SheetHeader >
                     {!isAuthenticate &&
-                        <Button className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
+                        <Button onClick={() => signIn('google')} className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
                             entre ou cadastre-se!
                         </Button>
                     }
@@ -88,8 +93,8 @@ export function Menu({ onClose, open }: Props) {
                                 <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/historic'}>últimos pedidos </Link>
                                 </li>
-                                <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/profile'}> sair</Link>
+                                <li onClick={() => signOut()} className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/'}> sair</Link>
                                 </li>
                             </ul>
                         }

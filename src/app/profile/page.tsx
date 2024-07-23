@@ -3,8 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 
 export default function Profile() {
+
+    const { data: session } = useSession()
+
     return (
         <motion.main className="mt-12"
             initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
@@ -19,7 +23,7 @@ export default function Profile() {
                 <form className="space-y-4">
                     <div>
                         <Label className="uppercase" htmlFor="terms">nome</Label>
-                        <Input defaultValue={'Gelson Antunes'} />
+                        <Input defaultValue={session?.user?.name ?? ''} />
                     </div>
 
                     <div>
@@ -29,7 +33,7 @@ export default function Profile() {
 
                     <div>
                         <Label className="uppercase" htmlFor="terms">email</Label>
-                        <Input type="email" defaultValue={'gelsonantunesv@hotmail.com'} />
+                        <Input type="email" defaultValue={session?.user?.email ?? ''} />
                         <p className="text-[11px] leading-3 text-muted-foreground my-2">Fique tranquilo. Não enviamos spam e nunca compartilharemos seu email com ninguém.</p>
                     </div>
 
