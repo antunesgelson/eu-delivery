@@ -1,10 +1,17 @@
+'use client'
 import Banner from "@/components/Banner";
 import Footer from "@/components/Footer";
 import Navegation from "@/components/Navegation";
+import OrderSummaryBar from "@/components/OrderSummaryBar";
 import ProductCard from "@/components/ProductCard";
+import PromoSection from "@/components/PromoSection";
 import { cardapio } from "@/data";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
+  const { data: session } = useSession()
+  const isAutenticate = session?.user?.name ? true : false
+
   return (
     <main className="overflow-x-hidden mt-14">
       <section className="flex flex-col justify-center items-center h-[50vh] bg-white bg-custom ">
@@ -12,6 +19,7 @@ export default function Home() {
         <h2>abriremos as 18:30</h2>
       </section>
 
+      {isAutenticate && <PromoSection />}
       <Navegation />
       <Banner />
 
@@ -29,7 +37,7 @@ export default function Home() {
           </div>
         ))}
       </section>
-
+      <OrderSummaryBar />
       <Footer />
     </main>
   );

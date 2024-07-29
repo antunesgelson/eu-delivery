@@ -1,13 +1,11 @@
 'use client'
 
 import Thumb from '@/assets/products/thumb.jpg';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useState } from 'react';
-
 
 const removeItems = [
     'Alface',
@@ -35,6 +33,7 @@ export default function ProductorDetails() {
     const [removeSelectedItems, setRemoveSelectedItems] = useState<Record<number, boolean>>({});
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
 
+
     const handleClick = (index: number, type: string) => {
         // Atualiza o estado para alternar a seleção do item clicado
         switch (type) {
@@ -51,7 +50,7 @@ export default function ProductorDetails() {
 
     return (
         <motion.main
-            className="mt-16 overflow-x-hidden "
+            className="mt-14 overflow-x-hidden "
             initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         >
@@ -114,12 +113,13 @@ export default function ProductorDetails() {
             </div>
 
             <div className='bg-white p-4 flex flex-col gap-5'>
-                <Textarea placeholder="Digite sua mensagem aqui." />
+                <Textarea 
+                placeholder="Digite sua mensagem aqui."
+                rows={4}
+                />
             </div>
 
-            <div className='flex  justify-center w-full px-4 mb-6'>
-                <Button className='w-full h-12 '>Adicionar ao carrinho</Button>
-            </div>
-        </ motion.main>
+
+        </motion.main>
     )
 }

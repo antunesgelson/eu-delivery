@@ -46,7 +46,6 @@ export default function Navegation() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3 }}>
                         <Input
-                            type="search"
                             placeholder="Buscar.."
                             className="bg-white placeholder:text-muted rounded-none border-0 w-full h-14 px-4 "
                         />

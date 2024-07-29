@@ -76,3 +76,25 @@
   @apply bg-cover bg-center;
   /* Aplica cobertura e centralização do background */
 }
+
+/* Estilo para a barra de rolagem */
+::-webkit-scrollbar {
+  width: 10px;
+
+}
+
+/* Estilo para a trilha (background) da barra de rolagem */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Estilo para o manipulador (thumb) da barra de rolagem */
+::-webkit-scrollbar-thumb {
+  background: #141414;
+  border-radius: 10px;
+}
+
+/* Estilo para o manipulador (thumb) da barra de rolagem ao passar o mouse */
+::-webkit-scrollbar-thumb:hover {
+  background: #141414cc
+}

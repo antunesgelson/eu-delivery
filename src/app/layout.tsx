@@ -27,8 +27,10 @@ export default async function RootLayout({
       <body className={inter.className}>
         <CartProvider>
           <SessionProvider session={session}>
-          <Header />
+            <Header />
             <main >{children}</main>
+
+       
           </SessionProvider>
         </CartProvider>
       </body>

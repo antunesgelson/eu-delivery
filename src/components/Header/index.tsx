@@ -30,7 +30,7 @@ export default function Header() {
                         <MdOutlineRestaurantMenu size={33} />
                     </Button>
 
-                    {session?.user?.name && <span className="font-semibold text-lg">Olá, {session.user.name.split(' ')[0]}</span>}
+                    {session?.user?.name && <span className="font-semibold text-lg">Olá {session.user.name.split(' ')[0]},</span>}
                     {!session?.user?.name &&
                         <Button
                             className="font-semibold text-lg"
