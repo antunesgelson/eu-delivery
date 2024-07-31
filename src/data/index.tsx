@@ -133,15 +133,41 @@ export const cardapio = [
         itens: [
             {
                 id: '1001',
-                titulo: "Café Expresso",
-                descricao: "Café expresso tradicional.",
-                valor: 4.50,
+                titulo: "Café [P]",
+                descricao: "Este box de café é uma opção completa e personalizada para os amantes de um bom café.",
+                valor: 100.00,
                 img: Thumb.src,
-                desconto: 0 // Sem desconto
+                desconto: 0, // Sem desconto
+                limitItens: 10,
+                igredientes: [
+                    { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
+                    { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '4', nome: "geleia", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '5', nome: "pate", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '6', nome: "bolinho", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '7', nome: "bolachinha", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '8', nome: "frutas", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '9', nome: "suco integral", valor: 5.80, removivel: true, quantia: 1 },
+                    { id: '10', nome: "drip coffe", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '11', nome: "açucar sache", valor: 1.00, removivel: true, quantia: 1 },
+                ],
+                adicionais: [
+                    { id: '1', nome: "baguete", valor: 5.00 },
+                    { id: '2', nome: "salame italiano", valor: 4.00 },
+                    { id: '3', nome: "queijo", valor: 5.40 },
+                    { id: '4', nome: "geleia", valor: 2.50 },
+                    { id: '5', nome: "pate", valor: 2.50 },
+                    { id: '6', nome: "bolinho", valor: 5.00 },
+                    { id: '7', nome: "bolachinha", valor: 5.00 },
+                    { id: '8', nome: "frutas", valor: 5.00 },
+                    { id: '9', nome: "suco integral", valor: 5.80 },
+                    { id: '10', nome: "drip coffe", valor: 5.40 },
+                    { id: '11', nome: "açucar sache", valor: 1.00 },
+                ]
             }
         ]
     },
-
 
 ];
 

@@ -3,7 +3,7 @@ import { FaChevronRight } from "react-icons/fa";
 import { FaCircleQuestion, FaLocationDot, FaMotorcycle, FaPiggyBank } from "react-icons/fa6";
 export default function PromoSection() {
     return (
-        <div className="w-11/12 mx-auto mt-2 space-y-2 ">
+        <div className="w-11/12 mx-auto my-2 space-y-2 ">
             <div className=" border-dashed border-[2px]  border-muted rounded-lg bg-white p-2 flex justify-between items-center">
                 <div>
                     <FaPiggyBank size={27} />

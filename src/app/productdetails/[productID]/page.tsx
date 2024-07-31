@@ -1,8 +1,10 @@
 'use client'
 
 import Thumb from '@/assets/products/thumb.jpg';
+import { ModalSubstituir } from '@/components/Modal/Substituir';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { cardapio } from '@/data';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -16,28 +18,19 @@ const removeItems = [
     'Pão de brioche',
 ]
 
-const addItems = [
-    { name: 'Bacon', price: 2.5 },
-    { name: 'Cheese', price: 1.5 },
-    { name: 'Avocado', price: 2.0 },
-    { name: 'Tomato', price: 0.75 },
-    { name: 'Lettuce', price: 0.5 },
-    { name: 'Onion', price: 0.25 },
-    { name: 'Pickles', price: 0.3 },
-    { name: 'Mushrooms', price: 1.0 },
-    { name: 'Egg', price: 1.2 },
-    { name: 'Jalapenos', price: 0.9 },
-    { name: 'Sriracha Sauce', price: 0.6 },
-]
+
 export default function ProductorDetails() {
     const [removeSelectedItems, setRemoveSelectedItems] = useState<Record<number, boolean>>({});
+    const [removeItem, setRemoveItem] = useState('');
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
+    const [openModal, setOpenModal] = useState(false);
 
 
-    const handleClick = (index: number, type: string) => {
+    const handleClick = (index: number, type: string,) => {
         // Atualiza o estado para alternar a seleção do item clicado
         switch (type) {
             case 'remove':
+                setOpenModal(true)
                 setRemoveSelectedItems(prev => ({ ...prev, [index]: !prev[index] }));
                 break;
             case 'add':
@@ -48,24 +41,42 @@ export default function ProductorDetails() {
         }
     };
 
+    const suggestionsForItem = (item: string) => {
+        switch (item) {
+            case 'Alface':
+                return ['Rúcula', 'Espinafre', 'Couve'];
+            case 'Tomate':
+                return ['Pimentão', 'Pepino', 'Beterraba'];
+            case 'Queijo':
+                return ['Cream Cheese', 'Requeijão', 'Catupiry'];
+            case 'Picles':
+                return ['Azeitonas', 'Cebola Roxa', 'Pimentões'];
+            case 'Molho especial':
+                return ['Ketchup', 'Mostarda', 'Barbecue'];
+            case 'Pão de brioche':
+                return ['Pão Integral', 'Pão Francês', 'Pão Australiano'];
+            default:
+                return [];
+        }
+    };
+
     return (
         <motion.main
-            className="mt-14 overflow-x-hidden "
+            className="mt-14 overflow-x-hidden"
             initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         >
-
             <div className='bg-white p-4'>
                 <div className='flex justify-center'>
                     <Image
-                        className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px]  max-h-[200px] lg:max-h-none  "
+                        className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px] max-h-[200px] lg:max-h-none"
                         width={500}
                         height={500}
                         src={Thumb.src}
                         alt={`product-details`}
                     />
                 </div>
-                <h1 className="uppercase font-semibold my-1 ">Product-Details</h1>
+                <h1 className="uppercase font-semibold my-1">Product-Details</h1>
                 <p className="text-[12px]">
                     Lorem ipsum dolor sit amet consectetur adipisicing elit. Suscipit,
                     neque pariatur. Quis repellendus exercitationem natus asperiores
@@ -75,21 +86,34 @@ export default function ProductorDetails() {
             </div>
 
             <div className='p-4 leading-3'>
-                <h2 className="uppercase text-xl font-bold ">deseja remover algo?</h2>
+                <h2 className="uppercase text-xl font-bold">deseja remover algo?</h2>
                 <span className='text-[12px]'>Selecione os itens que você <strong>NÃO</strong> quer no seu produto.</span>
             </div>
 
             <div className='bg-white p-4 flex flex-col gap-5'>
-                {removeItems.map((item, index) => (
-                    <div key={index} className={`flex items-center gap-2 text-sm duraton-300  ${removeSelectedItems[index] && 'line-through text-red-700'}  `} onClick={() => handleClick(index, 'remove')}>
-                        <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
-                        <span>Remover {item}</span>
+
+                {cardapio[9].itens[0]?.igredientes.filter(item => item.removivel !== false).map((item, index) => (
+                    <div key={index} className="flex flex-col gap-2 text-sm duration-300">
+                        <div className={`flex items-center gap-2 ${removeSelectedItems[index] && 'line-through text-red-700'}`} onClick={() => { handleClick(index, 'remove'), setRemoveItem(item.nome) }}>
+                            <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
+                            <span className='capitalize'>Remover {item.nome}</span>
+                        </div>
+                        {/* {removeSelectedItems[index] && (
+                            <div className="ml-6">
+                                <p className="text-sm text-gray-500">Sugestões para trocar:</p>
+                                <ul className="list-disc list-inside">
+                                    {suggestionsForItem(item).map((suggestion, idx) => (
+                                        <li key={idx} className="text-sm text-blue-500">{suggestion}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )} */}
                     </div>
                 ))}
             </div>
 
             <div className='p-4 leading-3 relative'>
-                <h2 className="uppercase text-xl font-bold ">adicionais</h2>
+                <h2 className="uppercase text-xl font-bold">adicionais</h2>
                 <span className='text-[12px]'>Que tal turbinar seu pedido?</span>
 
                 <div className='absolute top-18 right-3 bg-gray-400 text-white rounded-xl p-1 font-semibold text-sm'>
@@ -98,28 +122,35 @@ export default function ProductorDetails() {
             </div>
 
             <div className='bg-white p-4 flex flex-col gap-5'>
-                {addItems.map((item, index) => (
-                    <div key={index} className={`flex items-center gap-2  text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleClick(index, 'add')}>
+                {cardapio[9].itens[0]?.igredientes.map((item, index) => (
+                    <div key={index} className={`flex items-center gap-2 text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleClick(index, 'add')}>
                         <Checkbox variant='add' checked={!!addSelectedItems[index]} onChange={() => { }} />
-                        <span>{item.name} + <strong>R$ {item.price.toFixed(2)}</strong></span>
+                        <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
                     </div>
                 ))}
             </div>
 
 
+
+
             <div className='p-4 leading-3'>
-                <h2 className="uppercase text-xl font-bold ">observação</h2>
+                <h2 className="uppercase text-xl font-bold">observação</h2>
                 <span className='text-[12px]'>Utilize somente para observações.</span>
             </div>
 
             <div className='bg-white p-4 flex flex-col gap-5'>
-                <Textarea 
-                placeholder="Digite sua mensagem aqui."
-                rows={4}
+                <Textarea
+                    placeholder="Digite sua mensagem aqui."
+                    rows={4}
                 />
             </div>
 
-
+            <ModalSubstituir
+                open={openModal}
+                onClose={() => setOpenModal(false)}
+                product={removeItem}
+                removeItems={removeItems}
+            />
         </motion.main>
     )
 }
