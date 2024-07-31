@@ -29,8 +29,7 @@ export function OrderDetails({ id, date, time, items, subtotal, deliveryFee, tot
                             <motion.div
                             initial={{ opacity: 0, x: 100,  }}
                             animate={{ opacity: 1, x: 0,   }}
-                            transition={{ duration: 0.3 }}
-                            >
+                            transition={{ duration: 0.3 }}>
                                 <Button
                                     size={'sm'}
                                     variant={'warning'}>
@@ -44,7 +43,7 @@ export function OrderDetails({ id, date, time, items, subtotal, deliveryFee, tot
                     <h1 className="text-center font-bold">ITEMS DO PEDIDO</h1>
                     <div className="space-y-2 mt-3 ">
                         {items.map((item,) => (
-                            <div key={item.name} className="flex justify-between items-center border-t pt-2 gap-4">
+                            <div key={item.name} className="flex justify-between items-center border-t pt-3 gap-4 relative">
                                 <span className="font-bold">{item.quantity}x</span>
                                 <div className="flex flex-col leading-3  w-full">
                                     <span className="font-semibold uppercase ">{item.name}</span>
@@ -56,8 +55,11 @@ export function OrderDetails({ id, date, time, items, subtotal, deliveryFee, tot
                                         ))}
                                 </div>
                                 <div className="text-[11px] whitespace-nowrap">R$  <span className="text-base">{item.price.toFixed(2)}</span></div>
+
+                              
                             </div>
                         ))}
+                        
                     </div>
 
                     <div className="flex flex-col items-end gap-1 mt-8 text-base  ">
@@ -78,7 +80,7 @@ export function OrderDetails({ id, date, time, items, subtotal, deliveryFee, tot
                         </div>
                     </div>
 
-                    <div className="w-full border-dashed border-t-[2px]  my-4 px-52 mx-[-1rem] border-primary" />
+                    <div className="w-full border-dashed border-t-[1px] my-4 px-52 mx-[-1rem] border-muted" />
 
                     <div className="py-1">
                         <h2 className="text-center font-bold">FORMA DE PAGAMENTO</h2>

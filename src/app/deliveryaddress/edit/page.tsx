@@ -14,7 +14,7 @@ export default function EditAddress() {
             animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
         >
             <div className='p-4 leading-3'>
-                <h1 className="uppercase text-2xl font-bold ">complete o seu endereço</h1>
+                <h1 className="uppercase text-2xl font-bold whitespace-nowrap ">complete o seu endereço</h1>
                 <span className='text-[12px]'>Preencha todos os detalhes do seu endereço para garantir que seu pedido chegue rapidinho!</span>
             </div>
 

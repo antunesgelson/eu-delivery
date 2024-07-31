@@ -11,7 +11,12 @@ import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { cardapio } from "@/data";
 
 import { signIn, signOut, useSession } from "next-auth/react";
-import { FaArrowRight } from "react-icons/fa6";
+import { BiSolidFoodMenu } from "react-icons/bi";
+import { BsPersonVcardFill } from "react-icons/bs";
+import { FaMapMarkedAlt } from "react-icons/fa";
+import { FaArrowRight, FaDoorOpen } from "react-icons/fa6";
+import { HiHome } from "react-icons/hi";
+import { PiListChecksFill } from "react-icons/pi";
 
 type Props = {
     open: boolean
@@ -43,7 +48,7 @@ export function Menu({ onClose, open }: Props) {
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent side={'left'} className="bg-primary border-0 ">
+            <SheetContent side={'left'} className="bg-primary border-0 p-4 ">
                 <SheetHeader >
                     {!isAuthenticate &&
                         <Button onClick={() => signIn('google')} className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
@@ -55,11 +60,12 @@ export function Menu({ onClose, open }: Props) {
                 <ScrollArea className="h-[80vh]  w-full rounded-md   ">
                     <nav className="space-y-4">
                         <ul className="text-white uppercase font-bold space-y-4 ">
-                            <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/'}>início</Link>
+                            <li className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                                <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/'}><HiHome /> início</Link>
                             </li>
-                            <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/'}>cardápio</Link>
+                            <li className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                            
+                                <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/'}><BiSolidFoodMenu /> cardápio</Link>
                             </li>
 
                         </ul>
@@ -80,21 +86,21 @@ export function Menu({ onClose, open }: Props) {
 
                         {isAuthenticate &&
                             <ul className="text-white uppercase font-bold space-y-4 mt-4 ">
-                                <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/profile'}>meu cadastro </Link>
+                                <li className="flex items-center w-wfull h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/profile'}><BsPersonVcardFill /> meu cadastro </Link>
                                 </li>
 
                                 {(pathname.includes('/profile') || pathname.includes('/historic') || pathname.includes('/deliveryaddress')) &&
-                                    <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                        <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/deliveryaddress'}>endereços de entrega</Link>
+                                    <li className=" w-full  h-8 flex items-center hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                                       <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/deliveryaddress'}>    <FaMapMarkedAlt /> endereços de entrega</Link>
                                     </li>
                                 }
 
-                                <li className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/historic'}>últimos pedidos </Link>
+                                <li className=" w-full  h-8 flex items-center hover:bg-white  hover:text-primary rounded-md  duration-300 group">
+                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/historic'}> <PiListChecksFill />  últimos pedidos </Link>
                                 </li>
-                                <li onClick={() => signOut()} className="flex   items-center  w-56  h-8  hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300" href={'/'}> sair</Link>
+                                <li onClick={() => signOut()} className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/'}><FaDoorOpen /> sair</Link>
                                 </li>
                             </ul>
                         }

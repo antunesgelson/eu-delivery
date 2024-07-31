@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 export default function OrderSummaryBar() {
@@ -43,12 +44,12 @@ export default function OrderSummaryBar() {
                     initial={{ y: 100 }}
                     animate={{ y: 0 }}
                     exit={{ y: 100 }}
-                    transition={{ duration: 0.5 }}
-                >
+                    transition={{ duration: 0.5 }}>
 
-                    <Button className='w-full flex justify-between p-2 text-lg h-12' variant={'success'}>
-                        
-                        <span className='ml-3 flex items-center gap-2'> <IoMdCheckmarkCircleOutline size={25} /> Finalizar Pedido</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ 18.52</div>
+                    <Button asChild className='w-full flex justify-between p-2 text-lg h-12' variant={'success'}>
+                        <Link href={'/checkout'}>
+                            <span className='ml-3 flex items-center gap-2'> <IoMdCheckmarkCircleOutline size={25} /> Finalizar Pedido</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ 18.52</div>
+                        </Link>
                     </Button>
                 </motion.div>
             }

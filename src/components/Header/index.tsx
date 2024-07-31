@@ -24,9 +24,9 @@ export default function Header() {
     return (
         <header className="bg-primary text-white h-14 px-4  fixed top-0 bottom-0 left-0 right-0 z-10 pb-14">
 
-            {(!pathname.includes('/productdetails') && !pathname.includes('/deliveryaddress/add') && !pathname.includes('/deliveryaddress/edit')) &&
+            {(!pathname.includes('/productdetails') && !pathname.includes('/deliveryaddress/add') && !pathname.includes('/deliveryaddress/edit') && !pathname.includes('/cashback') && !pathname.includes('/checkout') ) &&
                 <div className="flex justify-between items-center  h-14">
-                    <Button variant={'icon'} onClick={() => setOpen(!open)}>
+                    <Button variant={'icon'} onClick={() => setOpen(!open)} className="-ml-4">
                         <MdOutlineRestaurantMenu size={33} />
                     </Button>
 
@@ -40,7 +40,7 @@ export default function Header() {
                     }
                 </div>}
 
-            {(pathname.includes('/productdetails') || pathname.includes('/deliveryaddress/')) &&
+            {(pathname.includes('/productdetails') || pathname.includes('/deliveryaddress/') || pathname.includes('/cashback') || pathname.includes('/checkout')) &&
                 <AnimatePresence>
                     <motion.div
                         className="flex justify-between items-center  h-14"

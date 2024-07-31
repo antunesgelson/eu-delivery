@@ -2,144 +2,207 @@ import Thumb from '@/assets/products/thumb.jpg';
 
 export const cardapio = [
     {
-        id: '1',
-        secao: "Novidades",
-        itens: [
-            {
-                id: '101',
-                titulo: "Burger Costela",
-                descricao: "Hambúrguer de costela bovina, molho barbecue, cebola caramelizada, queijo cheddar em um pão de brioche.",
-                valor: 29.90,
-                img: Thumb.src,
-                desconto: 10 // 10% de desconto
-            }
-        ]
-    },
-    {
-        id: '2',
-        secao: "Combos",
-        itens: [
-            {
-                id: '201',
-                titulo: "Combo Clássico",
-                descricao: "Burger clássico, batatas fritas médias e refrigerante.",
-                valor: 39.90,
-                img: Thumb.src,
-                desconto: 5 // 5% de desconto
-            }
-        ]
-    },
-    {
-        id: '3',
-        secao: "Burgers",
-        itens: [
-            {
-                id: '301',
-                titulo: "Cheeseburger",
-                descricao: "Hambúrguer de carne bovina, queijo cheddar, alface, tomate, cebola, picles e molho especial em um pão de brioche.",
-                valor: 22.90,
-                img: Thumb.src,
-                desconto: 0 // Sem desconto
-            }
-        ]
-    },
-    {
-        id: '4',
-        secao: "Batatas Fritas",
-        itens: [
-            {
-                id: '401',
-                titulo: "Batatas Fritas com Cheddar e Bacon",
-                descricao: "Porção de batatas fritas cobertas com cheddar derretido e pedaços de bacon crocante.",
-                valor: 18.90,
-                img: Thumb.src,
-                desconto: 10 // 10% de desconto
-            }
-        ]
-    },
-    {
-        id: '5',
-        secao: "Bebidas",
-        itens: [
-            {
-                id: '501',
-                titulo: "Refrigerante Lata",
-                descricao: "Escolha entre Coca-Cola, Fanta, Sprite ou Guaraná.",
-                valor: 4.90,
-                img: Thumb.src,
-                desconto: 0 // Sem desconto
-            }
-        ]
-    },
-    {
-        id: '6',
-        secao: "Sobremesas",
-        itens: [
-            {
-                id: '601',
-                titulo: "Sundae",
-                descricao: "Sorvete de baunilha com calda de chocolate ou morango e chantilly.",
-                valor: 9.90,
-                img: Thumb.src,
-                desconto: 5 // 5% de desconto
-            }
-        ]
-    },
-    {
-        id: '7',
-        secao: "Vegetarianos",
-        itens: [
-            {
-                id: '701',
-                titulo: "Burger Vegetariano",
-                descricao: "Hambúrguer de grão-de-bico, alface, tomate, cebola roxa, picles e molho tahine em um pão de brioche.",
-                valor: 27.90,
-                img: Thumb.src,
-                desconto: 0 // Sem desconto
-            }
-        ]
-    },
-    {
-        id: '8',
-        secao: "Frango Crocante",
-        itens: [
-            {
-                id: '801',
-                titulo: "Sanduíche de Frango Crocante",
-                descricao: "Peito de frango empanado e frito, alface, tomate e maionese em um pão de brioche.",
-                valor: 24.90,
-                img: Thumb.src,
-                desconto: 10 // 10% de desconto
-            }
-        ]
-    },
-    {
-        id: '9',
-        secao: "Milkshakes",
-        itens: [
-            {
-                id: '901',
-                titulo: "Milkshake de Oreo",
-                descricao: "Milkshake de baunilha com pedaços de biscoito Oreo.",
-                valor: 14.90,
-                img: Thumb.src,
-                desconto: 5 // 5% de desconto
-            }
-        ]
-    },
-    {
         id: '10',
         secao: "Cafés",
         itens: [
             {
-                id: '1001',
+                id: '01',
                 titulo: "Café [P]",
+                descricao: "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Molestias magni architecto culpa sapiente, harum totam in inventore unde aperiam ipsum nostrum illo esse, sit quam cum ea quo, eligendi doloribus?",
+                valor: 100.00,
+                img: Thumb.src,
+                desconto: 0, // Sem desconto
+                limitItens: 10,
+                servingSize: 2,
+                ingredientes: [
+                    { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
+                    { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '4', nome: "geleia", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '5', nome: "pate", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '6', nome: "bolinho", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '7', nome: "bolachinha", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '8', nome: "frutas", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '9', nome: "suco integral", valor: 5.80, removivel: true, quantia: 1 },
+                    { id: '10', nome: "drip coffe", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '11', nome: "açucar sache", valor: 1.00, removivel: true, quantia: 1 },
+                ],
+                adicionais: [
+                    { id: '1', nome: "baguete", valor: 5.00 },
+                    { id: '2', nome: "salame italiano", valor: 4.00 },
+                    { id: '3', nome: "queijo", valor: 5.40 },
+                    { id: '4', nome: "geleia", valor: 2.50 },
+                    { id: '5', nome: "pate", valor: 2.50 },
+                    { id: '6', nome: "bolinho", valor: 5.00 },
+                    { id: '7', nome: "bolachinha", valor: 5.00 },
+                    { id: '8', nome: "frutas", valor: 5.00 },
+                    { id: '9', nome: "suco integral", valor: 5.80 },
+                    { id: '10', nome: "drip coffe", valor: 5.40 },
+                    { id: '11', nome: "açucar sache", valor: 1.00 },
+                ]
+            },
+
+            {
+                id: '02',
+                titulo: "Café [M]",
                 descricao: "Este box de café é uma opção completa e personalizada para os amantes de um bom café.",
                 valor: 100.00,
                 img: Thumb.src,
                 desconto: 0, // Sem desconto
                 limitItens: 10,
-                igredientes: [
+                servingSize: 2,
+                ingredientes: [
+                    { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
+                    { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '4', nome: "geleia", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '5', nome: "pate", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '6', nome: "bolinho", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '7', nome: "bolachinha", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '8', nome: "frutas", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '9', nome: "suco integral", valor: 5.80, removivel: true, quantia: 1 },
+                    { id: '10', nome: "drip coffe", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '11', nome: "açucar sache", valor: 1.00, removivel: true, quantia: 1 },
+                ],
+                adicionais: [
+                    { id: '1', nome: "baguete", valor: 5.00 },
+                    { id: '2', nome: "salame italiano", valor: 4.00 },
+                    { id: '3', nome: "queijo", valor: 5.40 },
+                    { id: '4', nome: "geleia", valor: 2.50 },
+                    { id: '5', nome: "pate", valor: 2.50 },
+                    { id: '6', nome: "bolinho", valor: 5.00 },
+                    { id: '7', nome: "bolachinha", valor: 5.00 },
+                    { id: '8', nome: "frutas", valor: 5.00 },
+                    { id: '9', nome: "suco integral", valor: 5.80 },
+                    { id: '10', nome: "drip coffe", valor: 5.40 },
+                    { id: '11', nome: "açucar sache", valor: 1.00 },
+                ]
+            },
+            {
+                id: '03',
+                titulo: "Café [G]",
+                descricao: "Este box de café é uma opção completa e personalizada para os amantes de um bom café.",
+                valor: 100.00,
+                img: Thumb.src,
+                desconto: 0, // Sem desconto
+                limitItens: 10,
+                servingSize: 2,
+                ingredientes: [
+                    { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
+                    { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '4', nome: "geleia", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '5', nome: "pate", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '6', nome: "bolinho", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '7', nome: "bolachinha", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '8', nome: "frutas", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '9', nome: "suco integral", valor: 5.80, removivel: true, quantia: 1 },
+                    { id: '10', nome: "drip coffe", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '11', nome: "açucar sache", valor: 1.00, removivel: true, quantia: 1 },
+                ],
+                adicionais: [
+                    { id: '1', nome: "baguete", valor: 5.00 },
+                    { id: '2', nome: "salame italiano", valor: 4.00 },
+                    { id: '3', nome: "queijo", valor: 5.40 },
+                    { id: '4', nome: "geleia", valor: 2.50 },
+                    { id: '5', nome: "pate", valor: 2.50 },
+                    { id: '6', nome: "bolinho", valor: 5.00 },
+                    { id: '7', nome: "bolachinha", valor: 5.00 },
+                    { id: '8', nome: "frutas", valor: 5.00 },
+                    { id: '9', nome: "suco integral", valor: 5.80 },
+                    { id: '10', nome: "drip coffe", valor: 5.40 },
+                    { id: '11', nome: "açucar sache", valor: 1.00 },
+                ]
+            }
+        ]
+    },
+    {
+        id: '11',
+        secao: "Frios",
+        itens: [
+            {
+                id: '1001',
+                titulo: "Frios [P]",
+                descricao: "Este box de café é uma opção completa e personalizada para os amantes de um bom café.",
+                valor: 100.00,
+                img: Thumb.src,
+                desconto: 0, // Sem desconto
+                limitItens: 10,
+                servingSize: 2,
+                ingredientes: [
+                    { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
+                    { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '4', nome: "geleia", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '5', nome: "pate", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '6', nome: "bolinho", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '7', nome: "bolachinha", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '8', nome: "frutas", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '9', nome: "suco integral", valor: 5.80, removivel: true, quantia: 1 },
+                    { id: '10', nome: "drip coffe", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '11', nome: "açucar sache", valor: 1.00, removivel: true, quantia: 1 },
+                ],
+                adicionais: [
+                    { id: '1', nome: "baguete", valor: 5.00 },
+                    { id: '2', nome: "salame italiano", valor: 4.00 },
+                    { id: '3', nome: "queijo", valor: 5.40 },
+                    { id: '4', nome: "geleia", valor: 2.50 },
+                    { id: '5', nome: "pate", valor: 2.50 },
+                    { id: '6', nome: "bolinho", valor: 5.00 },
+                    { id: '7', nome: "bolachinha", valor: 5.00 },
+                    { id: '8', nome: "frutas", valor: 5.00 },
+                    { id: '9', nome: "suco integral", valor: 5.80 },
+                    { id: '10', nome: "drip coffe", valor: 5.40 },
+                    { id: '11', nome: "açucar sache", valor: 1.00 },
+                ]
+            },
+
+            {
+                id: '1003',
+                titulo: "Frios [M]",
+                descricao: "Este box de café é uma opção completa e personalizada para os amantes de um bom café.",
+                valor: 100.00,
+                img: Thumb.src,
+                desconto: 10, // Sem desconto
+                limitItens: 10,
+                servingSize: 2,
+                ingredientes: [
+                    { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
+                    { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '4', nome: "geleia", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '5', nome: "pate", valor: 2.50, removivel: true, quantia: 1 },
+                    { id: '6', nome: "bolinho", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '7', nome: "bolachinha", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '8', nome: "frutas", valor: 5.00, removivel: true, quantia: 1 },
+                    { id: '9', nome: "suco integral", valor: 5.80, removivel: true, quantia: 1 },
+                    { id: '10', nome: "drip coffe", valor: 5.40, removivel: true, quantia: 1 },
+                    { id: '11', nome: "açucar sache", valor: 1.00, removivel: true, quantia: 1 },
+                ],
+                adicionais: [
+                    { id: '1', nome: "baguete", valor: 5.00 },
+                    { id: '2', nome: "salame italiano", valor: 4.00 },
+                    { id: '3', nome: "queijo", valor: 5.40 },
+                    { id: '4', nome: "geleia", valor: 2.50 },
+                    { id: '5', nome: "pate", valor: 2.50 },
+                    { id: '6', nome: "bolinho", valor: 5.00 },
+                    { id: '7', nome: "bolachinha", valor: 5.00 },
+                    { id: '8', nome: "frutas", valor: 5.00 },
+                    { id: '9', nome: "suco integral", valor: 5.80 },
+                    { id: '10', nome: "drip coffe", valor: 5.40 },
+                    { id: '11', nome: "açucar sache", valor: 1.00 },
+                ]
+            },
+            {
+                id: '1002',
+                titulo: "Frios [G]",
+                descricao: "Este box de café é uma opção completa e personalizada para os amantes de um bom café.",
+                valor: 100.00,
+                img: Thumb.src,
+                desconto: 0, // Sem desconto
+                limitItens: 10,
+                servingSize: 2,
+                ingredientes: [
                     { id: '1', nome: "baguete", valor: 5.00, removivel: true, quantia: 1 },
                     { id: '2', nome: "salame italiano", valor: 4.00, removivel: true, quantia: 1 },
                     { id: '3', nome: "queijo", valor: 5.40, removivel: true, quantia: 1 },

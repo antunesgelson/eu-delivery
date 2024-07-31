@@ -1,31 +1,42 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-
+import { FaPeopleGroup } from "react-icons/fa6";
 type Props = {
     titulo: string,
     descricao: string,
     valor: number,
     img: string,
-    desconto: number
+    desconto: number,
+    servingSize: number
 }
-export default function ProductCard({ titulo, descricao, img, valor, desconto }: Props) {
+export default function ProductCard({ titulo, descricao, img, valor, desconto, servingSize }: Props) {
     const sale = valor - (valor * desconto / 100)
 
     const originalPrice = (
-        <p className='uppercase text-muted font-semibold text-sm'>
-            A partir de: <span className='text-primary font-semibold text-base ml-1'>R$ {valor.toFixed(2)}</span>
-        </p>
+        <div className='flex justify-between items-center mt-3'>
+            <p className='uppercase text-muted font-semibold text-sm'>
+                A partir de: <span className='text-primary font-semibold text-base ml-1'>R$ {valor.toFixed(2)}</span>
+            </p>
+
+            <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted'> <FaPeopleGroup size={20} />  {servingSize}</span>
+
+        </div>
     );
 
     const discountedPrice = (
-        <div className='flex flex-col'>
+        <div className='flex flex-col  mt-3'>
             <p className='uppercase text-muted font-semibold text-sm'>
                 De: <del className='text-red-700'>R$ {valor.toFixed(2)}</del>
             </p>
-            <p className='uppercase text-muted font-semibold text-sm'>
-                Por a partir de: <span className='text-primary font-semibold text-base ml-1'>R$ {sale.toFixed(2)}</span>
-            </p>
+            <div className='flex items-center justify-between'>
+                <p className='uppercase text-muted font-semibold text-sm'>
+                    Por a partir de: <span className='text-primary font-semibold text-base ml-1'>R$ {sale.toFixed(2)}</span>
+                </p>
+                <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted'> <FaPeopleGroup size={20} />  {servingSize}</span>
+
+            </div>
+
         </div>
     );
 
@@ -34,7 +45,7 @@ export default function ProductCard({ titulo, descricao, img, valor, desconto }:
             <div className="bg-white grid grid-cols-2 p-2 rounded-md">
                 <div className='px-1'>
                     <h3 className="uppercase font-semibold my-1">{titulo}</h3>
-                    <p className="text-[12px]">{descricao}</p>
+                    <p className="text-[12px] line-clamp-6 ">{descricao}</p>
                 </div>
 
                 <div className="relative">

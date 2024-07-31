@@ -10,8 +10,7 @@ export default function Historic() {
     return (
         <motion.main className="mt-12"
             initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        >
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} >
             <div className='p-4 leading-3'>
                 <h2 className="uppercase text-2xl font-bold ">últimos pedidos </h2>
                 <span className='text-[12px]'>Você pode coferir todos os pedidos realizados em nosso site, e também pode refazer eles de forma rápida e prática!</span>
