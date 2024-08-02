@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { Inter } from "next/font/google";
 
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -30,7 +31,9 @@ export default async function RootLayout({
             <Header />
             <main >{children}</main>
 
-       
+            <Toaster
+              position="top-right"
+            />
           </SessionProvider>
         </CartProvider>
       </body>

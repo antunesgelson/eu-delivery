@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
 import { cardapio } from "@/data";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { BiSolidFoodMenu } from "react-icons/bi";
 import { BsPersonVcardFill } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
@@ -51,8 +51,10 @@ export function Menu({ onClose, open }: Props) {
             <SheetContent side={'left'} className="bg-primary border-0 p-4 ">
                 <SheetHeader >
                     {!isAuthenticate &&
-                        <Button onClick={() => signIn('google')} className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
-                            entre ou cadastre-se!
+                        <Button asChild className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
+                            <Link href={'/signin'}>
+                                entre ou cadastre-se!
+                            </Link>
                         </Button>
                     }
                 </SheetHeader>
@@ -64,7 +66,7 @@ export function Menu({ onClose, open }: Props) {
                                 <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/'}><HiHome /> início</Link>
                             </li>
                             <li className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                            
+
                                 <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/'}><BiSolidFoodMenu /> cardápio</Link>
                             </li>
 
@@ -92,15 +94,15 @@ export function Menu({ onClose, open }: Props) {
 
                                 {(pathname.includes('/profile') || pathname.includes('/historic') || pathname.includes('/deliveryaddress')) &&
                                     <li className=" w-full  h-8 flex items-center hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                       <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/deliveryaddress'}>    <FaMapMarkedAlt /> endereços de entrega</Link>
+                                        <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/deliveryaddress'}>    <FaMapMarkedAlt /> endereços de entrega</Link>
                                     </li>
                                 }
 
                                 <li className=" w-full  h-8 flex items-center hover:bg-white  hover:text-primary rounded-md  duration-300 group">
-                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/historic'}> <PiListChecksFill />  últimos pedidos </Link>
+                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/historic'}> <PiListChecksFill />  últimos pedidos </Link>
                                 </li>
                                 <li onClick={() => signOut()} className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
-                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/'}><FaDoorOpen /> sair</Link>
+                                    <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/'}><FaDoorOpen /> sair</Link>
                                 </li>
                             </ul>
                         }

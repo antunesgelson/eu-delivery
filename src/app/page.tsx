@@ -7,13 +7,36 @@ import ProductCard from "@/components/ProductCard";
 import PromoSection from "@/components/PromoSection";
 import { cardapio } from "@/data";
 import { useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
-export default function Home() {
+type Props = {
+  searchParams?: { firstLogin?: string }
+}
+export default function Home({ searchParams }: Props) {
   const { data: session } = useSession()
   const isAutenticate = session?.user?.name ? true : false
 
+
+  useEffect(() => {
+    if (searchParams?.firstLogin === 'true') {
+      setTimeout(() => {
+        toast.success(`Bem-Vindo(a) ${session?.user?.name} 🥰`, {
+          description: "Estamos felizes em tê-lo conosco! Para aproveitar ao máximo nossos serviços, conecte-se ao Google Calendário e receba notificações de entrega diretamente em sua agenda.",
+          descriptionClassName: 'text-muted-foreground text-[11px]',
+          actionButtonStyle: { backgroundColor: '#141414', color: '#fff' },
+          duration: 9000, // Duração da notificação em milissegundos
+          action: {
+            label: 'Ok!',
+            onClick: () => { },
+          },
+        })
+      }, 50);
+    }
+  }, [searchParams]);
   return (
     <main className="overflow-x-hidden mt-14">
+
       <section className="flex flex-col justify-center items-center h-[50vh] bg-white bg-custom ">
         <h1>Emporio Urubici</h1>
         <h2>abriremos as 18:30</h2>
