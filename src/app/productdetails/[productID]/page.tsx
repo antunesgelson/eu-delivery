@@ -63,7 +63,7 @@ export default function ProductorDetails() {
                     mollitia cumque officia, perferendis numquam minus!
                 </p>
 
-                <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted mt-2'>serve até: <FaPeopleGroup size={20} />  {cardapio[0].itens[0].servingSize}</span>
+                <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted mt-2'><FaPeopleGroup size={20} /> serve até:   {cardapio[0].itens[0].servingSize}</span>
             </div>
 
             <div className='p-4 leading-3 -mt-3'>

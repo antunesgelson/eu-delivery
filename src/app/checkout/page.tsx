@@ -1,8 +1,10 @@
 'use client'
+import { ModalAgendarEntrega } from "@/components/Modal/AgendarEntrega";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 import { BsBasket2Fill } from "react-icons/bs";
 import { FaMapMarkedAlt, FaPiggyBank } from "react-icons/fa";
@@ -12,6 +14,9 @@ import { IoWallet } from "react-icons/io5";
 import { MdAccessTimeFilled } from "react-icons/md";
 import { PiTrash } from "react-icons/pi";
 export default function Checkout() {
+    const [openModal, setOpenModal] = useState(false);
+
+
     return (
         <motion.main className="mt-12"
             initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
@@ -41,7 +46,7 @@ export default function Checkout() {
             </div>
 
             <section className="bg-white p-4 space-y-8">
-                <div className="flex items-center ">
+                <div className="flex items-center ">   {/* ENDEREÇO DE ENTREGA */}
                     <FaMapMarkedAlt size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
@@ -52,18 +57,23 @@ export default function Checkout() {
                     </div>
                 </div>
 
-                <div className="flex items-center ">
+                <div className="flex items-center "> {/* AGENDAR HORÁRIO DE ENTREGA */}
                     <MdAccessTimeFilled size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
                             <span className="font-semibold">Horário:</span>
                             <span className="text-muted-foreground text-sm">Entregar dia 02/12 as 08:00</span>
                         </div>
-                        <Button size={'sm'} variant={'destructive'}>Alterar</Button>
+                        <Button
+                            size={'sm'}
+                            variant={'destructive'}
+                            onClick={() => setOpenModal(true)}>
+                            Agendar
+                        </Button>
                     </div>
                 </div>
 
-                <div className="flex items-center ">
+                <div className="flex items-center "> {/* CUPOM */}
                     <HiTicket size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
@@ -75,7 +85,7 @@ export default function Checkout() {
                 </div>
 
                 <div className="">
-                    <div className="flex items-center ">
+                    <div className="flex items-center "> {/* CASHBACK */}
                         <FaPiggyBank size={25} className="text-muted-foreground" />
                         <div className="flex justify-between items-center w-full ">
                             <div className="flex flex-col items-start leading-4 ml-3">
@@ -88,7 +98,7 @@ export default function Checkout() {
                     <span className=" bg-muted-foreground text-white text-[12px] rounded-md p-0.5 ml-8">Após essa compra, sobrará R$ 7,64</span>
                 </div>
 
-                <div className="flex items-center ">
+                <div className="flex items-center "> {/* FORMA DE PAGAMENTO */}
                     <IoWallet size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
@@ -100,8 +110,8 @@ export default function Checkout() {
                 </div>
 
                 <Separator />
-
-                <div className="flex flex-col items-end gap-1 mt-8 text-base   ">
+                {/* RESUMO DO PEDIDO */}
+                <div className="flex flex-col items-end gap-1 mt-8 text-base">
                     <span>Subtotal: R$ 39,90</span>
                     <strong className="text-emerald-600">Desconto do Cupom: R$ 39,90</strong>
                     <span>Taxa de Entrega: <strong className="text-emerald-600">Grátis!</strong></span>
@@ -114,6 +124,11 @@ export default function Checkout() {
                     </Button>
                 </div>
             </section>
+
+            <ModalAgendarEntrega
+                open={openModal}
+                onClose={() => setOpenModal(false)}
+            />
 
             <footer className="text-[12px] flex justify-center p-1 items-center text-muted-foreground gap-2 t"><FaCoins /> Você ganhará <strong>R$ 3,59</strong> de cashback com essa compra.</footer>
         </motion.main>
