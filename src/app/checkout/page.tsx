@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 
 import { BsBasket2Fill } from "react-icons/bs";
@@ -78,9 +79,16 @@ export default function Checkout() {
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
                             <span className="font-semibold">Cupom Aplicado:</span>
-                            <span className="text-muted-foreground text-sm">#MEUCUPOM (desconto de 10%)</span>
+                            <span className="text-muted-foreground text-sm tracking-tight">#MEUCUPOM (desconto de 10%)</span>
                         </div>
-                        <Button size={'sm'} variant={'destructive'}>Alterar</Button>
+                        <Button
+                            asChild
+                            size={'sm'}
+                            variant={'success'}>
+                            <Link href={'/cupom'}>
+                                Selecionar
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 
@@ -105,7 +113,14 @@ export default function Checkout() {
                             <span className="font-semibold">Pagamento:</span>
                             <span className="text-muted-foreground text-sm">Escolha a forma de pagamento</span>
                         </div>
-                        <Button size={'sm'} variant={'success'}>Escolher</Button>
+                        <Button
+                            asChild
+                            size={'sm'}
+                            variant={'success'}>
+                            <Link href={'/formofpayment'} >
+                                Escolher
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 

@@ -9,11 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 
 import { cardapio } from '@/data';
 
-import Thumb from '@/assets/products/thumb.jpg';
+import Thumb from '@/assets/products/box.png';
 import { IngredientesDTO } from '@/dto/productDTO';
 import { FaPeopleGroup } from 'react-icons/fa6';
 
 export default function ProductorDetails() {
+    const desconto = 0
+
     const [removeSelectedItems, setRemoveSelectedItems] = useState<Record<number, boolean>>({});
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
     const [removeItem, setRemoveItem] = useState<IngredientesDTO>({} as IngredientesDTO);
@@ -46,7 +48,7 @@ export default function ProductorDetails() {
             initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}>
             <div className='bg-white p-4'>
-                <div className='flex justify-center'>
+                {/* <div className='flex justify-center'>
                     <Image
                         className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px] max-h-[200px] lg:max-h-none"
                         width={500}
@@ -54,7 +56,28 @@ export default function ProductorDetails() {
                         src={Thumb.src}
                         alt={`product-details`}
                     />
+                </div> */}
+                <div className='relative'>
+                    <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />
+
+
+                    <div className="relative">
+                        {desconto > 0 &&
+                            <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
+                                <span className="font-bold mr-14 ml-2 ">-{desconto}%</span>
+                                <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
+                            </div>
+                        }
+                        <Image
+                            className="rounded-lg object-cover object-center lg:max-h-none    "
+                            width={500}
+                            height={500}
+                            src={Thumb.src}
+                            alt={`product-details`}
+                        />
+                    </div>
                 </div>
+
                 <h1 className="uppercase font-semibold my-1">Product-Details</h1>
                 <p className="text-[12px]">
                     Lorem ipsum dolor sit amet consectetur adipisicing elit. Suscipit,

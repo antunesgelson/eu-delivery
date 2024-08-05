@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle
@@ -63,33 +62,30 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className=" min-h-[530px] h-[530px] w-11/12 mx-auto rounded-md ">
-                <DialogHeader>
+            <DialogContent className=" min-h-[530px]  h-[530px] w-11/12 mx-auto rounded-md ">
+                <DialogHeader className="h-16 -mb-14">
                     <DialogTitle className=" uppercase text-xl font-bold flex justify-center items-center  ">
                         <h1 className=" flex items-center gap-2 "> <BsCalendarDate />Agendar Entrega</h1>
                     </DialogTitle>
-                    <DialogDescription className="text-start text-[12px] leading-3 ">
-                        {step === 1 && 'Selecione o dia que deseja receber o produto.'}
-                        {step === 2 && 'Selecione o horário que deseja receber o produto.'}
-                    </DialogDescription>
+
+                    <MultiStep size={2} currentStep={step} />
                 </DialogHeader>
 
-                <MultiStep size={2} currentStep={step} />
-
-
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence initial={false} mode="popLayout">
                     {step === 1 &&
                         <motion.div
-                            initial={{ opacity: 0, x: 10 }}
+                            className=""
+                            initial={{ opacity: 0, x: 35 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 10 }}
+                            exit={{ opacity: 0, x: 35 }}
                             transition={{ duration: 0.2, }} >
                             <h2 className="text-center font-bold">Horários Disponíveis</h2>
+                            <p className="text-center text-[12px] text-muted-foreground">Escola o dia que deseja receber o produto.</p>
                             <Calendar
                                 mode="single"
                                 selected={date}
                                 onSelect={setDate}
-                                className="w-full mt-2"
+                                className="  flex justify-center items-center w-full"
                                 disabled={(date) =>
                                     date < new Date()
                                 } />
@@ -97,14 +93,17 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                     }
                 </AnimatePresence>
 
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence initial={false} mode="popLayout">
                     {step === 2 &&
                         <motion.div
-                            initial={{ opacity: 0, x: -10 }}
+                            className=""
+                            initial={{ opacity: 0, x: -35 }}
                             animate={{ opacity: 1, x: -0 }}
-                            exit={{ opacity: 0, x: -10 }}
+                            exit={{ opacity: 0, x: -35 }}
                             transition={{ duration: 0.2, }} >
                             <h2 className="text-center font-bold">Horários Disponíveis</h2>
+                            <p className="text-center text-[12px] text-muted-foreground">Selecione o horário desejado para receber o produto.</p>
+
                             <div className="grid grid-cols-4 gap-2 mt-2">
                                 {times.map((time) => (
                                     <button
@@ -124,14 +123,14 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
 
 
 
-                <DialogFooter className=" ">
+                <DialogFooter className=" fixed bottom-4 right-4 left-4  ">
                     <div className="flex justify-center items-center ">
                         <Button
                             variant={'success'}
                             onClick={() => setStep((prev) => step === 1 ? prev + 1 : prev - 1)}
                             className="w-full flex items-center justify-center gap-1">
                             {step === 1 ? 'Próximo passo' : 'Voltar'}
-                            <IoIosArrowRoundForward size={20} className={`${step == 2 && ` rotate-`}`} />
+                            <IoIosArrowRoundForward size={20} className={`${step == 2 && ` rotate-180`}`} />
                         </Button>
                     </div>
                 </DialogFooter>

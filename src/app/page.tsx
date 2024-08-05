@@ -1,14 +1,22 @@
 'use client'
+import { useEffect } from "react";
+
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+
 import Banner from "@/components/Banner";
 import Footer from "@/components/Footer";
 import Navegation from "@/components/Navegation";
 import OrderSummaryBar from "@/components/OrderSummaryBar";
 import ProductCard from "@/components/ProductCard";
 import PromoSection from "@/components/PromoSection";
+
 import { cardapio } from "@/data";
-import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
+
+import Background from "@/assets/background/background.jpg";
+import Logotipo from "@/assets/logo/logotipo.jpg";
 
 type Props = {
   searchParams?: { firstLogin?: string }
@@ -17,9 +25,15 @@ export default function Home({ searchParams }: Props) {
   const { data: session } = useSession()
   const isAutenticate = session?.user?.name ? true : false
 
+  const background = {
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${Background.src})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
+
 
   useEffect(() => {
-    if (searchParams?.firstLogin === 'true') {
+    if (searchParams?.firstLogin) {
       setTimeout(() => {
         toast.success(`Bem-Vindo(a) ${session?.user?.name} 🥰`, {
           description: "Estamos felizes em tê-lo conosco! Para aproveitar ao máximo nossos serviços, conecte-se ao Google Calendário e receba notificações de entrega diretamente em sua agenda.",
@@ -34,12 +48,26 @@ export default function Home({ searchParams }: Props) {
       }, 50);
     }
   }, [searchParams]);
+
   return (
     <main className="overflow-x-hidden mt-14">
-
-      <section className="flex flex-col justify-center items-center h-[50vh] bg-white bg-custom ">
-        <h1>Emporio Urubici</h1>
-        <h2>abriremos as 18:30</h2>
+      <section
+        style={background}
+        className="flex flex-col justify-center items-center h-[40vh] ">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+          animate={{ opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
+          whileTap={{ scale: 1.2 }}
+          exit={{ opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+          transition={{ duration: 0.8 }} >
+          <Image
+            src={Logotipo}
+            alt="Emporio Urubici"
+            className="rounded-full  drop-shadow-2xl  shadow-2xl brightness-90  "
+            width={200}
+            height={200}
+          />
+        </motion.div>
       </section>
 
       {isAutenticate && <PromoSection />}

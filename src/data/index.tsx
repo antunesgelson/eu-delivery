@@ -1,4 +1,4 @@
-import Thumb from '@/assets/products/thumb.jpg';
+import Thumb from '@/assets/products/box.png';
 
 export const cardapio = [
     {

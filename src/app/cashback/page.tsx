@@ -14,7 +14,6 @@ export default function CashBack() {
                 <h1 className="uppercase text-2xl font-bold"> programa de cashback</h1>
             </div>
 
-
             <section className="bg-white p-4 text-sm">
                 <h2 className="font-bold text-xl flex items-center gap-1"><FaPiggyBank  />Regras:</h2>
                 <p className=" ">Você receberá <strong>10% </strong> de volta em compras realizadas no <strong>Emporio Urubici</strong>.</p>
@@ -22,10 +21,6 @@ export default function CashBack() {
                 <p>O valor do cashback será creditado em até 24 horas após a finalização do pedido. </p>
                 <p>Você não poderá utilizar cupos de desconto no mesmo pedido em que realizar o resgate do cashback.</p>
             </section>
-
-
-
-
         </motion.main>
     )
 }

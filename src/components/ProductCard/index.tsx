@@ -48,21 +48,27 @@ export default function ProductCard({ titulo, descricao, img, valor, desconto, s
                     <p className="text-[12px] line-clamp-6 ">{descricao}</p>
                 </div>
 
-                <div className="relative">
-                    {desconto > 0 &&
-                        <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
-                            <span className="font-bold mr-14 ml-2 ">-{desconto}%</span>
-                            <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
-                        </div>
-                    }
-                    <Image
-                        className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px] h-[150px] max-h-[200px] lg:max-h-none  "
-                        width={200}
-                        height={200}
-                        src={img}
-                        alt={titulo}
-                    />
+                <div className='relative'>
+                    <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />
+
+
+                    <div className="relative">
+                        {desconto > 0 &&
+                            <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
+                                <span className="font-bold mr-14 ml-2 ">-{desconto}%</span>
+                                <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
+                            </div>
+                        }
+                        <Image
+                            className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px] h-[150px] max-h-[200px] lg:max-h-none    "
+                            width={200}
+                            height={200}
+                            src={img}
+                            alt={titulo}
+                        />
+                    </div>
                 </div>
+
 
                 <div className=' col-span-2'>
                     {desconto == 0 ? originalPrice : discountedPrice}
