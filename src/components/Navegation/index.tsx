@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-import { cardapio } from "@/data";
+import { CategoriaCardapioDTO } from "@/dto/cardapioDTO";
 import useCart from "@/hook/useCart";
+import { api } from "@/service/api";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { BsSearch } from "react-icons/bs";
 import { IoIosCloseCircle } from "react-icons/io";
+import { toast } from "sonner";
 
 export default function Navegation() {
     const { setSelectedItemId, selectedItemId } = useCart();
@@ -26,6 +29,21 @@ export default function Navegation() {
             });
         }
     };
+
+
+
+    const { data: cardapio } = useQuery({
+        queryKey: ['list-categories'],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get('/categoria/listar')
+                return data
+            } catch (error: any) {
+                console.log(error)
+                toast.error(error.response.data.message)
+            }
+        },
+    });
 
     return (
         <div className="flex items-center w-full bg-white">
@@ -69,11 +87,11 @@ export default function Navegation() {
                             transition={{ duration: 0.5 }}>
                             <nav>
                                 <ul className="flex w-max space-x-10 px-10 p-4 uppercase text-muted">
-                                    {cardapio.map((produto, index) => (
-                                        <li key={index}
-                                            className={`cursor-pointer duration-300 lg:hover:text-primary border-b-2  lg:hover:border-primary ${selectedItemId === produto.id ? 'border-primary text-primary' : 'border-transparent'}`}
-                                            onClick={() => handleSectionClick(produto.id)}>
-                                            <span>{produto.secao}</span>
+                                    {cardapio?.map((categoria: CategoriaCardapioDTO) => (
+                                        <li key={categoria.id}
+                                            className={`cursor-pointer duration-300 lg:hover:text-primary border-b-2  lg:hover:border-primary ${selectedItemId === categoria.id ? 'border-primary text-primary' : 'border-transparent'}`}
+                                            onClick={() => handleSectionClick(categoria.id)}>
+                                            <span>{categoria.titulo}</span>
                                         </li>
                                     ))}
                                 </ul>

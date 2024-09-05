@@ -11,12 +11,15 @@ import OrderSummaryBar from "@/components/OrderSummaryBar";
 import ProductCard from "@/components/ProductCard";
 import PromoSection from "@/components/PromoSection";
 
-import { cardapio } from "@/data";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 import Background from "@/assets/background/background.jpg";
 import Logotipo from "@/assets/logo/logotipo.jpg";
+import { CardapioDTO } from "@/dto/cardapioDTO";
+import useAuth from "@/hook/useAuth";
+import { api } from "@/service/api";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -30,14 +33,29 @@ const background = {
 export default function Home({ searchParams }: Props) {
   const router = useRouter();
   const { data: session } = useSession()
-  const isAutenticate = session?.user?.name ? true : false
+  const { isAuthenticated } = useAuth();
+  const userName = session?.user?.name ? session?.user?.name : 'Visitante'
 
 
+  const { data: cardapio } = useQuery({
+    queryKey: ['list-categories-details'],
+    queryFn: async () => {
+      try {
+        const { data } = await api.get('/categoria/lista/detalhes')
+
+        console.log(data)
+        return data
+      } catch (error: any) {
+        console.log(error)
+        toast.error(error.response.data.message)
+      }
+    },
+  });
 
   useEffect(() => {
     if (searchParams?.firstLogin) {
       setTimeout(() => {
-        toast.success(`Bem-Vindo(a) ${session?.user?.name} 🥰`, {
+        toast.success(`Bem-Vindo(a) ${userName} 🥰`, {
           description: "Estamos felizes em tê-lo conosco! Para aproveitar ao máximo nossos serviços, conecte-se ao Google Calendário e receba notificações de entrega diretamente em sua agenda.",
           descriptionClassName: 'text-muted-foreground text-[11px]',
           actionButtonStyle: { backgroundColor: '#141414', color: '#fff' },
@@ -55,7 +73,7 @@ export default function Home({ searchParams }: Props) {
       }, 50);
     }
   }, [searchParams, session, router]);
-  
+
   return (
     <main className="overflow-x-hidden mt-14">
       <section
@@ -77,19 +95,19 @@ export default function Home({ searchParams }: Props) {
         </motion.div>
       </section>
 
-      {isAutenticate && <PromoSection />}
+      {isAuthenticated && <PromoSection />}
       <Navegation />
       <Banner />
 
       <section className="w-11/12 mx-auto">
-        {cardapio.map((produto) => (
-          <div id={`section-${produto.id}`} key={produto.secao}>
+        {cardapio?.map((produto: CardapioDTO) => (
+          <div id={`section-${produto.id}`} key={produto.titulo}>
             <h2 className="uppercase text-2xl font-bold mt-6 mb-2">
-              {produto.secao}
+              {produto.titulo}
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {produto.itens.map((item) => (
-                <ProductCard key={item.titulo} {...item} />
+              {produto.produtos.map((item) => (
+                <ProductCard key={item.id} {...item} />
               ))}
             </div>
           </div>

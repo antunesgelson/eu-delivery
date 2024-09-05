@@ -9,7 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
 import { cardapio } from "@/data";
-import { signOut, useSession } from "next-auth/react";
+import useAuth from "@/hook/useAuth";
+import { signOut } from "next-auth/react";
 import { destroyCookie } from 'nookies';
 import { BiSolidFoodMenu } from "react-icons/bi";
 import { BsPersonVcardFill } from "react-icons/bs";
@@ -24,11 +25,10 @@ type Props = {
 }
 export function Menu({ onClose, open }: Props) {
     const pathname = usePathname()
-    const { data: session } = useSession()
-
+    const { isAuthenticated } = useAuth();
     const { setSelectedItemId, selectedItemId } = useCart();
 
-    const isAuthenticate = session?.user?.name ? true : false;
+
 
     const handleSectionClick = (secaoId: string) => {
         setSelectedItemId(secaoId);
@@ -57,7 +57,7 @@ export function Menu({ onClose, open }: Props) {
         <Sheet open={open} onOpenChange={onClose}>
             <SheetContent side={'left'} className="bg-primary border-0 p-4 ">
                 <SheetHeader >
-                    {!isAuthenticate &&
+                    {!isAuthenticated &&
                         <Button asChild className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
                             <Link href={'/signin'}>
                                 entre ou cadastre-se!
@@ -93,7 +93,7 @@ export function Menu({ onClose, open }: Props) {
                             </ul>
                         }
 
-                        {isAuthenticate &&
+                        {isAuthenticated &&
                             <ul className="text-white uppercase font-bold space-y-4 mt-4 ">
                                 <li className="flex items-center w-wfull h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center " href={'/profile'}><BsPersonVcardFill /> meu cadastro </Link>

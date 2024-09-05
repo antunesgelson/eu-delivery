@@ -64,8 +64,8 @@ export default function Signin({ searchParams }: Props) {
             })
             return data
         },
-        onSuccess: () => {
-            toast.success('Código enviado com sucesso!')
+        onSuccess: (data) => {
+            toast.success(data.message)
             router.push(`/signin/getcode?tel=${cellPhone.replace(/\D/g, '')}`);
         },
         onError(error: any) {

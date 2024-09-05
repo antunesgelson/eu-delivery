@@ -1,18 +1,28 @@
 'use client'
-import { Button } from "@/components/ui/button";
-import {
-    InputOTP,
-    InputOTPGroup,
-    InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { api } from "@/service/api";
-import { useMutation } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot, } from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
+
+import { api } from "@/service/api";
+import { useMutation } from "@tanstack/react-query";
+
+import { motion } from "framer-motion";
+import { JwtPayload, decode } from 'jsonwebtoken';
+import { setCookie } from "nookies";
 import { toast } from "sonner";
 
+export type DecodedToken = JwtPayload & {
+    sub: number,
+    email: string,
+    nome: string,
+    tel: string,
+    isAdmin: boolean,
+    iat: number,
+    exp: number
+}
 
 type Props = {
     searchParams?: { tel?: string }
@@ -21,6 +31,7 @@ export default function GetCode({ searchParams }: Props) {
     const [code, setCode] = useState('');
     const [time, setTime] = useState(60);  // Começa com 60 segundos
     const router = useRouter();
+
 
     const { mutateAsync: handleVerifyCode } = useMutation({
         mutationKey: ['auth-verifyCode'],
@@ -32,12 +43,23 @@ export default function GetCode({ searchParams }: Props) {
             return data;
         },
         onSuccess(data, variables, context) {
+            const userToken = decode(data.token) as DecodedToken;
+            const maxAgeToken = userToken?.exp - userToken?.iat
+
+            const maxAge = [{ name: '@eu:token', maxAge: maxAgeToken, token: data.token }]
+            maxAge.map(({ name, maxAge, token }) => (
+                setCookie(undefined, name, token, {
+                    maxAge: maxAge,
+                    path: "/",
+
+                })
+            ))
             toast.success('Código verificado com sucesso!');
-            console.log(data);
-            // router.push(`/?firstLogin=true`);
+            router.push(`/?firstLogin=true`);
         },
 
         onError(error: any) {
+            console.log(error)
             console.log(error.response.data.message)
             toast.error(error.response.data.message)
         },
@@ -53,8 +75,9 @@ export default function GetCode({ searchParams }: Props) {
             setTime(60)  // Reinicia o cronômetro
             return data
         },
-        onSuccess: () => {
-            toast.success('Código enviado com sucesso!')
+        onSuccess: (data) => {
+            toast.success(data.message)
+            setCode('')
         },
         onError(error: any) {
             console.log(error.response.data.message)
@@ -107,6 +130,7 @@ export default function GetCode({ searchParams }: Props) {
                         Você poderá solicitar um novo código em {time} segundos
                     </span>
                     <Button
+                        className={time == 0 ? 'animate-pulse' : ''}
                         loading={isPending}
                         disabled={time > 0}
                         onClick={() => handleGetCodeWP()}>

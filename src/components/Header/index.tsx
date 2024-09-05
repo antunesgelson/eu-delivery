@@ -1,4 +1,5 @@
 'use client'
+import Link from "next/link";
 import { memo, useState } from "react";
 
 import { IoIosArrowRoundBack } from "react-icons/io";
@@ -9,31 +10,32 @@ import { Menu } from "./Menu";
 
 import { AnimatePresence, motion } from "framer-motion";
 
+import useAuth from "@/hook/useAuth";
 import { useSession } from 'next-auth/react';
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 
-
-type PropsDefaultHeader = {
+type Props = {
     open: boolean;
     setOpen: (open: boolean) => void;
-    session: any;
 }
-const DefaultHeader = memo(({ open, setOpen, session }: PropsDefaultHeader) => (
-    <div className="flex justify-between items-center h-14">
-        <Button variant={'icon'} onClick={() => setOpen(!open)} className="-ml-4">
-            <MdOutlineRestaurantMenu size={33} />
-        </Button>
+const DefaultHeader = memo(({ open, setOpen }: Props) => {
+    const { data: session } = useSession()
+    const { isAuthenticated } = useAuth();
+    return (
+        <div className="flex justify-between items-center h-14">
+            <Button variant={'icon'} onClick={() => setOpen(!open)} className="-ml-4">
+                <MdOutlineRestaurantMenu size={33} />
+            </Button>
 
-        {session?.user?.name && <span className="font-semibold text-lg">Olá {session.user.name.split(' ')[0]},</span>}
-        {!session?.user?.name &&
-            <Button asChild className="font-semibold text-lg -mr-4">
-                <Link href={"/signin"}>Entrar</Link>
-            </Button>}
-    </div>
-));
-
+            {isAuthenticated && <span className="font-semibold text-lg">Olá {session?.user?.name ? session.user.name.split(' ')[0] : 'Visitante'},</span>}
+            {!isAuthenticated &&
+                <Button asChild className="font-semibold text-lg -mr-4">
+                    <Link href={"/signin"}>Entrar</Link>
+                </Button>}
+        </div>
+    )
+});
 
 const SpecialHeader = memo(() => {
     const router = useRouter();
@@ -72,13 +74,11 @@ const isSpecialPath = (pathname: string) => {
 
 const Header = () => {
     const pathname = usePathname()
-    const { data: session } = useSession()
     const [open, setOpen] = useState(false)
-
 
     return (
         <header className="bg-primary text-white h-14 px-4  fixed top-0 bottom-0 left-0 right-0 z-10 pb-14">
-            {!isSpecialPath(pathname) && <DefaultHeader open={open} setOpen={setOpen} session={session} />}
+            {!isSpecialPath(pathname) && <DefaultHeader open={open} setOpen={setOpen} />}
             {isSpecialPath(pathname) && <SpecialHeader />}
             <Menu open={open} onClose={setOpen} />
         </header >
