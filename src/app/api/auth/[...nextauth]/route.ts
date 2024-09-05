@@ -15,7 +15,7 @@ export const authOptions = {
     ],
 
     callbacks: {
-        async signIn({ account }: any) {
+        async signIn({ account }: any) { // se não tiver as permissões necessárias do google calendario, redireciona para a página de erro
             if (!account.scope.includes('https://www.googleapis.com/auth/calendar')) {
                 return '/signin/?error=permissions';
             }

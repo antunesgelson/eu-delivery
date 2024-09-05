@@ -9,8 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
 import { cardapio } from "@/data";
-
 import { signOut, useSession } from "next-auth/react";
+import { destroyCookie } from 'nookies';
 import { BiSolidFoodMenu } from "react-icons/bi";
 import { BsPersonVcardFill } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
@@ -41,6 +41,13 @@ export function Menu({ onClose, open }: Props) {
             });
         }
     };
+
+
+    async function handleSignOut() {
+        destroyCookie(undefined, "@eu:token");
+        await signOut();
+    }
+
 
     React.useEffect(() => {
         onClose(false)
@@ -101,7 +108,7 @@ export function Menu({ onClose, open }: Props) {
                                 <li className=" w-full  h-8 flex items-center hover:bg-white  hover:text-primary rounded-md  duration-300 group">
                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/historic'}> <PiListChecksFill />  últimos pedidos </Link>
                                 </li>
-                                <li onClick={() => signOut()} className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
+                                <li onClick={handleSignOut} className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">
                                     <Link className="group-hover:translate-x-2 group-hover:underline underline-offset-4  duration-300 flex gap-2 items-center" href={'/'}><FaDoorOpen /> sair</Link>
                                 </li>
                             </ul>

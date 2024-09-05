@@ -42,12 +42,15 @@ export default function Cupom() {
 
             <div className='p-4 leading-3'>
                 <h2 className="uppercase text-base text-center my-1 font-bold"> ou informe o código do seu cupom:</h2>
-                <div className="flex items-center gap-2">
-                    <Input
-                        placeholder="código do cupom"
-                        className="bg-white border-[2px] border-dashed uppercase text-muted"
-                    />
-                    <Button variant={'success'}>
+                <div className="grid grid-cols-6 gap-2">
+                    <div className="col-span-4">
+                        <Input
+                            placeholder="código do cupom"
+                            className=" bg-white border-[2px] border-dashed uppercase text-muted"
+                        />
+                    </div>
+
+                    <Button className="w-full col-span-2" variant={'success'}>
                         Aplicar
                     </Button>
                 </div>

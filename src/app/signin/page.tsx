@@ -1,6 +1,5 @@
 'use client'
 import { signIn } from "next-auth/react";
-import Link from "next/link";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,14 @@ import z from 'zod';
 
 import { AnimatePresence, motion } from "framer-motion";
 
+import { api } from "@/service/api";
 import { BsWhatsapp } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { LuUnplug } from "react-icons/lu";
 import { toast } from "sonner";
+
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 
 const schemaSignIn = z.object({
@@ -32,8 +35,7 @@ export default function Signin({ searchParams }: Props) {
     const { watch, setValue, register, formState: { errors } } = useForm<SignInForm>({
         resolver: zodResolver(schemaSignIn)
     })
-
-
+    const router = useRouter()
     const cellPhone = watch('cellPhone');
 
     const cellPhoneFormat = (phone: string) => {
@@ -50,15 +52,32 @@ export default function Signin({ searchParams }: Props) {
         if (cleaned.length >= 8) {
             formatted += `-${cleaned.substring(7, 11)}`;
         }
-
         return formatted;
     };
+
+    const { mutateAsync: handleGetCodeWP, isPending } = useMutation({
+        mutationKey: ['auth-wp'],
+        mutationFn: async () => {
+            const tel = cellPhone.replace(/\D/g, '');
+            const { data } = await api.post('/auth/wp', {
+                tel: `55${tel}`
+            })
+            return data
+        },
+        onSuccess: () => {
+            toast.success('Código enviado com sucesso!')
+            router.push(`/signin/getcode?tel=${cellPhone.replace(/\D/g, '')}`);
+        },
+        onError(error: any) {
+            console.log(error.response.data.message)
+            toast.error(error.response.data.message)
+        }
+    })
+
 
     useEffect(() => {
         setValue('cellPhone', cellPhoneFormat(cellPhone));
     }, [cellPhone, setValue]);
-
-
 
     useEffect(() => {
         if (searchParams?.error === 'permissions') {
@@ -122,18 +141,17 @@ export default function Signin({ searchParams }: Props) {
                         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
                         transition={{ duration: 0.4 }}>
-                        <h3 className="text-[10px] text-muted-foreground text-center">Escola a melhor forma para você receber o código de autenticação.</h3>
+                        <h3 className="text-[10px] text-muted-foreground text-center">
+                            Escola a melhor forma para você receber o código de autenticação.
+                        </h3>
                         <div className="flex gap-2 items-center justify-center  py-2">
-                            <Button asChild variant={'outline'} className="bg-muted flex gap-1 items-center ">
-                                <Link href={'/signin/getcode'}>
-                                    SMS
-                                </Link>
-                            </Button>
-                            <Button asChild className="w-full flex gap-1 items-center uppercase" variant={'success'}>
-                                <Link href={'/signin/getcode'}>
-                                    <BsWhatsapp size={15} />
-                                    whatsapp
-                                </Link>
+                            <Button
+                                variant={'success'}
+                                loading={isPending}
+                                className="w-full flex gap-1 items-center uppercase"
+                                onClick={() => handleGetCodeWP()}>
+                                <BsWhatsapp size={15} />
+                                whatsapp
                             </Button>
                         </div>
                     </motion.div>
@@ -142,3 +160,5 @@ export default function Signin({ searchParams }: Props) {
         </motion.div>
     )
 }
+
+

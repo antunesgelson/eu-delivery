@@ -17,19 +17,21 @@ import { toast } from "sonner";
 
 import Background from "@/assets/background/background.jpg";
 import Logotipo from "@/assets/logo/logotipo.jpg";
+import { useRouter } from "next/navigation";
 
 type Props = {
   searchParams?: { firstLogin?: string }
 }
+const background = {
+  backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${Background.src})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
 export default function Home({ searchParams }: Props) {
+  const router = useRouter();
   const { data: session } = useSession()
   const isAutenticate = session?.user?.name ? true : false
 
-  const background = {
-    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${Background.src})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-  };
 
 
   useEffect(() => {
@@ -42,13 +44,18 @@ export default function Home({ searchParams }: Props) {
           duration: 9000, // Duração da notificação em milissegundos
           action: {
             label: 'Ok!',
-            onClick: () => { },
+            onClick: () => {
+              // Remover o parâmetro ?firstLogin=true da URL
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.delete('firstLogin');
+              router.replace(newUrl.toString());
+            },
           },
-        })
+        });
       }, 50);
     }
-  }, [searchParams]);
-
+  }, [searchParams, session, router]);
+  
   return (
     <main className="overflow-x-hidden mt-14">
       <section
