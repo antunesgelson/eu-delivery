@@ -36,14 +36,11 @@ export default function Home({ searchParams }: Props) {
   const { isAuthenticated } = useAuth();
   const userName = session?.user?.name ? session?.user?.name : 'Visitante'
 
-
   const { data: cardapio } = useQuery({
     queryKey: ['list-categories-details'],
     queryFn: async () => {
       try {
         const { data } = await api.get('/categoria/lista/detalhes')
-
-        console.log(data)
         return data
       } catch (error: any) {
         console.log(error)

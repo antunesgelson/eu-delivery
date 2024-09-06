@@ -32,7 +32,6 @@ export default function GetCode({ searchParams }: Props) {
     const [time, setTime] = useState(60);  // Começa com 60 segundos
     const router = useRouter();
 
-
     const { mutateAsync: handleVerifyCode } = useMutation({
         mutationKey: ['auth-verifyCode'],
         mutationFn: async () => {
@@ -60,11 +59,9 @@ export default function GetCode({ searchParams }: Props) {
 
         onError(error: any) {
             console.log(error)
-            console.log(error.response.data.message)
             toast.error(error.response.data.message)
         },
     })
-
 
     const { mutateAsync: handleGetCodeWP, isPending } = useMutation({
         mutationKey: ['auth-wp'],
@@ -84,7 +81,6 @@ export default function GetCode({ searchParams }: Props) {
             toast.error(error.response.data.message)
         }
     })
-
 
     useEffect(() => {// useEffect para começar a contagem regressiva
         let timer: NodeJS.Timeout | null = null;
@@ -138,7 +134,6 @@ export default function GetCode({ searchParams }: Props) {
                     </Button>
                 </div>
             </div>
-
         </motion.div>
     )
 }
