@@ -54,7 +54,8 @@ export default function GetCode({ searchParams }: Props) {
                 })
             ))
             toast.success('Código verificado com sucesso!');
-            router.push(`/?firstLogin=true`);
+            window.location.href = '/?firstLogin=true';
+            // router.push(`/?firstLogin=true`);
         },
 
         onError(error: any) {

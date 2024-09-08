@@ -1,7 +1,7 @@
 'use client'
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,14 @@ import { BsSave } from "react-icons/bs";
 import { MdEditLocationAlt } from "react-icons/md";
 
 import { api } from "@/service/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import zod, { z } from "zod";
 
 type Props = {
-    searchParams?: { addressID?: number }
+    params?: { addressID?: number }
 }
 
 const CompleteAddressSchema = zod.object({
@@ -36,9 +36,8 @@ const CompleteAddressSchema = zod.object({
 export type CompleteAddressForm = z.infer<typeof CompleteAddressSchema>
 
 
-const CompleteAddress = ({ searchParams }: Props) => {
+const CompleteAddress = ({ params }: Props) => {
     const router = useRouter();
-    const [address, setAddress] = useState('');
     const { handleSubmit, register, reset, formState: { errors } } = useForm<CompleteAddressForm>({
         resolver: zodResolver(CompleteAddressSchema)
     })
@@ -46,15 +45,17 @@ const CompleteAddress = ({ searchParams }: Props) => {
     const { mutateAsync: handleEditAddress, isPending } = useMutation({
         mutationKey: ['editAddress'],
         mutationFn: async ({ apelido, bairro, cep, complemento, numero, referencia, rua }: CompleteAddressForm) => {
+            const addressID = params?.addressID ? parseInt(params.addressID.toString(), 10) : 0;
             const { data } = await api.put('/endereco', {
-                id: searchParams?.addressID,
+                id: addressID,
+                favorite: false,
                 apelido: apelido,
+                rua: rua,
                 bairro: bairro,
                 cep: cep,
-                complemento: complemento,
                 numero: numero,
+                complemento: complemento,
                 referencia: referencia,
-                rua: rua,
             })
             return data
         }, onSuccess(data) {
@@ -68,19 +69,36 @@ const CompleteAddress = ({ searchParams }: Props) => {
     })
 
 
+    const { data: address } = useQuery({
+        queryKey: ['deliveryaddress-ID'],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get(`/endereco/${params?.addressID}`)
+                return data
+            } catch (error) {
+                console.log(error)
+                toast.error('Erro ao buscar endereço')
+                throw new Error('Erro ao buscar endereço')
+            }
+        }
+    })
 
 
     useEffect(() => {
-        if (address) {
-            const parsed = ''
+        if (!address) return
+        address.map((address: CompleteAddressForm) => (
             reset({
-                // rua: parsed.rua ?? '',
-                // numero: parsed.numero ?? '',
-                // bairro: parsed.bairro ?? '',
-                // cep: parsed.cep ?? '',
+                apelido: address.apelido ?? '',
+                rua: address.rua ?? '',
+                numero: address.numero ?? '',
+                bairro: address.bairro ?? '',
+                cep: address.cep ?? '',
+                complemento: address.complemento ?? '',
+                referencia: address.referencia ?? '',
             })
-        }
-    }, []);
+        ))
+    }, [address]);
+
 
     return (
         <motion.main className="mt-12"
