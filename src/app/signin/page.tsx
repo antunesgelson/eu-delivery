@@ -18,6 +18,7 @@ import { FcGoogle } from "react-icons/fc";
 import { LuUnplug } from "react-icons/lu";
 import { toast } from "sonner";
 
+import useFormatters from "@/hook/useFormatters";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -36,24 +37,9 @@ export default function Signin({ searchParams }: Props) {
         resolver: zodResolver(schemaSignIn)
     })
     const router = useRouter()
+    const { cellPhoneFormat } = useFormatters()
     const cellPhone = watch('cellPhone');
 
-    const cellPhoneFormat = (phone: string) => {
-        if (!phone) return phone;
-        const cleaned = phone.replace(/\D/g, '');
-        let formatted = cleaned;
-
-        if (cleaned.length > 0) {
-            formatted = `(${cleaned.substring(0, 2)}`;
-        }
-        if (cleaned.length >= 3) {
-            formatted += `) ${cleaned.substring(2, 7)}`;
-        }
-        if (cleaned.length >= 8) {
-            formatted += `-${cleaned.substring(7, 11)}`;
-        }
-        return formatted;
-    };
 
     const { mutateAsync: handleGetCodeWP, isPending } = useMutation({
         mutationKey: ['auth-wp'],

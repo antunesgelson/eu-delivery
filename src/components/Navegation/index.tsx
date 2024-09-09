@@ -1,5 +1,6 @@
 'use client'
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +11,9 @@ import useCart from "@/hook/useCart";
 import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
+
 import { BsSearch } from "react-icons/bs";
 import { IoIosCloseCircle } from "react-icons/io";
-import { toast } from "sonner";
 
 export default function Navegation() {
     const { setSelectedItemId, selectedItemId } = useCart();
