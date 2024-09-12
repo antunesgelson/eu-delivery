@@ -1,7 +1,7 @@
 'use client'
 import { LocationDTO } from "@/dto/addressDTO";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const SearchLocation = ({ setLocation, setStep }: Props) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-    function handlePlaceChanged() {
+    const handlePlaceChanged = useCallback(() => {
         if (autocompleteRef.current) {
             const place = autocompleteRef.current.getPlace();
             if (place.geometry?.location) {
@@ -36,8 +36,8 @@ const SearchLocation = ({ setLocation, setStep }: Props) => {
                 setStep(2);
             }
         }
-    };
-
+    }, [setLocation, setStep]);
+    
     function handleGetCurrentLocation() {
         setLoading(true);
         const MIN_LOADING_TIME = 2000; // Tempo mínimo de carregamento em milissegundos
@@ -81,7 +81,7 @@ const SearchLocation = ({ setLocation, setStep }: Props) => {
             });
             autocompleteRef.current.addListener("place_changed", handlePlaceChanged);
         }
-    }, []);
+    }, [handlePlaceChanged]);
 
     return (
         <motion.main className="mt-12"

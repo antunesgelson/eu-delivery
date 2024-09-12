@@ -97,7 +97,7 @@ const CompleteAddress = ({ params }: Props) => {
                 referencia: address.referencia ?? '',
             })
         ))
-    }, [address]);
+    }, [address, reset]);
 
 
     return (

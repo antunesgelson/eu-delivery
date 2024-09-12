@@ -93,7 +93,7 @@ export default function GetCode({ searchParams }: Props) {
 
     useEffect(() => {
         if (code.length === 6) handleVerifyCode();
-    }, [code]);
+    }, [code, handleVerifyCode]);
 
     return (
         <motion.div

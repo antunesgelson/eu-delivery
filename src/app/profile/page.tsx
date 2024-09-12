@@ -71,7 +71,6 @@ export default function Profile() {
 
     useEffect(() => {
         if (!data) return
-        console.log(data)
         data.map((item: UserDTO) => {
             reset({
                 nome: item.nome,
@@ -81,7 +80,7 @@ export default function Profile() {
                 cpf: item.cpf,
             })
         })
-    }, [data]);
+    }, [data, reset]);
 
     useEffect(() => {
         if (!cpf) return;
@@ -92,7 +91,7 @@ export default function Profile() {
         if (!tel) return;
         setValue('telefone', cellPhoneFormat(tel));
         console.log(tel?.length)
-    }, [tel, setValue]);
+    }, [tel, setValue, cellPhoneFormat]);
 
     return (
         <motion.main className="mt-12"

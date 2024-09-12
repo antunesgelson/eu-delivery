@@ -63,7 +63,7 @@ export default function Signin({ searchParams }: Props) {
 
     useEffect(() => {
         setValue('cellPhone', cellPhoneFormat(cellPhone));
-    }, [cellPhone, setValue]);
+    }, [cellPhone, setValue, cellPhoneFormat]);
 
     useEffect(() => {
         if (searchParams?.error === 'permissions') {

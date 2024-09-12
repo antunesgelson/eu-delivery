@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { AnimatePresence, motion } from "framer-motion"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { FaMinusCircle } from "react-icons/fa"
 import { FaCirclePlus } from "react-icons/fa6"
 
@@ -16,8 +16,8 @@ export default function LayoutProductDetails({ children }: Props) {
     const [showMenu, setShowMenu] = useState<boolean>(true);
     const [lastScrollY, setLastScrollY] = useState<number>(0);
 
-    
-    const controlMenu = () => {
+
+    const controlMenu = useCallback(() => {
         if (typeof window !== 'undefined') {
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
                 // If the user has reached the bottom of the page, show the menu
@@ -31,7 +31,7 @@ export default function LayoutProductDetails({ children }: Props) {
             }
             setLastScrollY(window.scrollY); // Remember current page location to use in the next move
         }
-    };
+    }, [setShowMenu, setLastScrollY, lastScrollY]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -42,7 +42,7 @@ export default function LayoutProductDetails({ children }: Props) {
                 window.removeEventListener('scroll', controlMenu);
             };
         }
-    }, [lastScrollY]);
+    }, [lastScrollY, controlMenu]);
 
     return (
         <div className="relative">

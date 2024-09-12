@@ -51,7 +51,7 @@ export function Menu({ onClose, open }: Props) {
 
     React.useEffect(() => {
         onClose(false)
-    }, [pathname]);
+    }, [pathname, onClose]);
 
     return (
         <Sheet open={open} onOpenChange={onClose}>

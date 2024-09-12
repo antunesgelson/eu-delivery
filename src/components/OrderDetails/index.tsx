@@ -48,8 +48,8 @@ export function OrderDetails({ id, date, time, items, subtotal, deliveryFee, tot
                                 <div className="flex flex-col leading-3  w-full">
                                     <span className="font-semibold uppercase ">{item.name}</span>
                                     {item.customizations &&
-                                        item.customizations.map((customization) => (
-                                            <div>
+                                        item.customizations.map((customization, index) => (
+                                            <div key={index}>
                                                 <span className="text-muted-foreground text-[10px]">{customization}</span>
                                             </div>
                                         ))}

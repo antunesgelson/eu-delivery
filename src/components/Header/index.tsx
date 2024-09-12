@@ -36,6 +36,9 @@ const DefaultHeader = memo(({ open, setOpen }: Props) => {
         </div>
     )
 });
+// Adicionando displayName ao componente DefaultHeader
+DefaultHeader.displayName = 'DefaultHeader';
+
 
 const SpecialHeader = memo(() => {
     const router = useRouter();
@@ -57,6 +60,9 @@ const SpecialHeader = memo(() => {
         </AnimatePresence>
     );
 });
+
+// Adicionando displayName ao componente SpecialHeader
+SpecialHeader.displayName = 'SpecialHeader';
 
 const specialPaths = [
     '/productdetails',

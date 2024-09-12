@@ -1,16 +1,17 @@
 'use client'
 
 import { Button } from "@/components/ui/button";
+
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
+
 export default function OrderSummaryBar() {
     const [showMenu, setShowMenu] = useState<boolean>(true);
     const [lastScrollY, setLastScrollY] = useState<number>(0);
 
-
-    const controlMenu = () => {
+    const controlMenu = useCallback(() => {
         if (typeof window !== 'undefined') {
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
                 // If the user has reached the bottom of the page, show the menu
@@ -24,18 +25,15 @@ export default function OrderSummaryBar() {
             }
             setLastScrollY(window.scrollY); // Remember current page location to use in the next move
         }
-    };
+    }, [setShowMenu, setLastScrollY, lastScrollY]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             window.addEventListener('scroll', controlMenu);
-
-            // cleanup function
-            return () => {
+            return () => {    // cleanup function
                 window.removeEventListener('scroll', controlMenu);
-            };
-        }
-    }, [lastScrollY]);
+            }}
+    }, [lastScrollY, controlMenu]);
     return (
         <AnimatePresence>
             {showMenu &&

@@ -2,7 +2,7 @@
 import axios from "axios";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ const CompleteAddress = ({ location }: Props) => {
         mutationFn: async ({ apelido, bairro, cep, complemento, numero, referencia, rua }: CompleteAddressForm) => {
             const { data } = await api.post('/endereco', {
                 apelido: apelido,
+                favorite: true,
                 bairro: bairro,
                 cep: cep,
                 complemento: complemento,
@@ -68,7 +69,7 @@ const CompleteAddress = ({ location }: Props) => {
         },
     })
 
-    async function handleReverseGeocode(lat: number, lng: number) {
+    const handleReverseGeocode = useCallback(async (lat: number, lng: number) => {
         try {
             const { data } = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${key}`);
             if (data.status === 'OK') {
@@ -83,10 +84,11 @@ const CompleteAddress = ({ location }: Props) => {
             console.error('Erro ao converter lat/lng em endereço:', error);
             throw error;
         }
-    };
+    }, [key]);
 
 
-    function parseAddress(address: string) {
+
+    const parseAddress = useCallback((address: string) => {
         const addressParts = address.split(',');
         const numberAndNeighborhood = addressParts[1]?.split('-')
         const cityAndState = addressParts[2]?.split('-')
@@ -97,7 +99,6 @@ const CompleteAddress = ({ location }: Props) => {
         const cidade = cityAndState[0]?.trim()
         const estado = cityAndState[1]?.trim()
         const cep = addressParts[3]?.trim()
-
         return {
             rua,
             numero,
@@ -106,14 +107,14 @@ const CompleteAddress = ({ location }: Props) => {
             estado,
             cep
         }
-    }
+    }, []);
 
     useEffect(() => {
         const { lat, lng } = location;
         if (lat && lng) {
             handleReverseGeocode(lat, lng);
         }
-    }, []);
+    }, [handleReverseGeocode, location]);
 
     useEffect(() => {
         if (address) {
@@ -126,7 +127,7 @@ const CompleteAddress = ({ location }: Props) => {
 
             })
         }
-    }, [address]);
+    }, [address, reset, parseAddress]);
 
     return (
         <motion.main className="mt-12"

@@ -1,11 +1,12 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-export const authOptions = {
+
+export const authOptions: NextAuthOptions = {
     providers: [
         GoogleProvider({
-            clientId: process.env.GOOGLE_ID!,
-            clientSecret: process.env.GOOGLE_SECRET!,
+            clientId: process.env.NEXT_PUBLIC_GOOGLE_ID!,
+            clientSecret: process.env.NEXT_PUBLIC_GOOGLE_SECRET!,
             authorization: {
                 params: {
                     scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar',
@@ -15,16 +16,18 @@ export const authOptions = {
     ],
 
     callbacks: {
-        async signIn({ account }: any) { // se não tiver as permissões necessárias do google calendario, redireciona para a página de erro
+        async signIn({ account }: any) {
             if (!account.scope.includes('https://www.googleapis.com/auth/calendar')) {
                 return '/signin/?error=permissions';
             }
-
-            return true
+            return true;
         }
     }
 }
-export const hander = NextAuth(authOptions);
 
-export { hander as GET, hander as POST };
+// const handler = NextAuth(authOptions);
+
+// export { handler as GET, handler as POST };
+export default NextAuth(authOptions);
+
 

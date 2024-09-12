@@ -14,12 +14,14 @@ import { TiEdit } from "react-icons/ti";
 
 import { AddressDTO } from "@/dto/addressDTO";
 import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export default function DeliveryAddress() {
     const [favorite, setFavorite] = useState(false);
     const [openModal, setOpenModal] = useState(false);
     const [address, setAddress] = useState<AddressDTO>({} as AddressDTO);
+
+
 
     const { data: addressList, refetch } = useQuery({
         queryKey: ['deliveryaddress-list'],
@@ -35,10 +37,32 @@ export default function DeliveryAddress() {
         }
     })
 
+
     function handleRemoveAddress(address: AddressDTO) {
         setOpenModal(true)
         setAddress(address)
     }
+
+
+
+    const { mutateAsync: handleEditAddress } = useMutation({
+        mutationKey: ['editAddress-favorite'],
+        mutationFn: async (address: AddressDTO) => {
+            const { data } = await api.put('/endereco', {
+                id: address.id,
+                favorite: !address.favorite,
+            })
+            return data
+        }, onSuccess(data) {
+            refetch()
+            console.log(data)
+            // toast.success('Endereço editado com sucesso!')
+        }, onError(error: any) {
+            console.error('Erro ao editar endereço:', error);
+            toast.error(error.response.data.message)
+            throw error;
+        },
+    })
 
 
     return (
@@ -72,8 +96,8 @@ export default function DeliveryAddress() {
                                 </Button>
                                 {/* Favoritar */}
                                 {address.favorite
-                                    ? <FaStar onClick={() => setFavorite(!favorite)} className="text-amber-500" />
-                                    : <FaRegStar onClick={() => setFavorite(!favorite)} />
+                                    ? <FaStar onClick={() => handleEditAddress(address)} className="text-amber-500" />
+                                    : <FaRegStar onClick={() => handleEditAddress(address)} />
                                 }
                             </div>
                         </div>

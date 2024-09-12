@@ -69,7 +69,7 @@ export default function Home({ searchParams }: Props) {
         });
       }, 50);
     }
-  }, [searchParams, session, router]);
+  }, [searchParams, session, router, userName]);
 
   return (
     <main className="overflow-x-hidden mt-14">
