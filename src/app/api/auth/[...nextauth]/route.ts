@@ -1,33 +1,6 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import { authOptions } from "@/utils/authOptions";
+import NextAuth from "next-auth/next";
 
+const handler = NextAuth(authOptions);
 
-export const authOptions: NextAuthOptions = {
-    providers: [
-        GoogleProvider({
-            clientId: process.env.NEXT_PUBLIC_GOOGLE_ID!,
-            clientSecret: process.env.NEXT_PUBLIC_GOOGLE_SECRET!,
-            authorization: {
-                params: {
-                    scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar',
-                }
-            },
-        }),
-    ],
-
-    callbacks: {
-        async signIn({ account }: any) {
-            if (!account.scope.includes('https://www.googleapis.com/auth/calendar')) {
-                return '/signin/?error=permissions';
-            }
-            return true;
-        }
-    }
-}
-
-// const handler = NextAuth(authOptions);
-
-// export { handler as GET, handler as POST };
-export default NextAuth(authOptions);
-
-
+export { handler as GET, handler as POST };
