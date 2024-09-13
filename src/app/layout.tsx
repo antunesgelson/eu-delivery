@@ -25,13 +25,14 @@ export default async function RootLayout({
 }>) {
 
   const session = await getServerSession();
+  const isDefaultRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   return (
     <html lang="pt-br">
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>
           <CartProvider>
             <SessionProvider session={session}>
-              <Header />
+              {isDefaultRoute && <Header />}
               <main >{children}</main>
               <Toaster position="top-right" />
             </SessionProvider>
