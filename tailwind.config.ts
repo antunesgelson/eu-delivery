@@ -58,9 +58,10 @@ const config = {
 					off: '#F6F6F7'
 				},
 				dark: {
-					900: '#141414',
-					800: '#181818',
-					400: '#272727',
+					'400': '#272727',
+					'700': '#161616',
+					'800': '#181818',
+					'900': '#141414'
 				}
 			},
 			borderRadius: {
@@ -69,21 +70,13 @@ const config = {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			keyframes: {
-				'accordion-down': {
-					from: {
-						width: '0'
-					},
-					to: {
-						width: 'var(--radix-accordion-content-height)'
-					}
+				"accordion-down": {
+					from: { height: "0" },
+					to: { height: "var(--radix-accordion-content-height)" },
 				},
-				'accordion-up': {
-					from: {
-						width: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						width: '0'
-					}
+				"accordion-up": {
+					from: { height: "var(--radix-accordion-content-height)" },
+					to: { height: "0" },
 				},
 				'caret-blink': {
 					'0%,70%,100%': {
@@ -93,12 +86,11 @@ const config = {
 						opacity: '0'
 					}
 				}
-
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'caret-blink': 'caret-blink 1.25s ease-out infinite',
+				'caret-blink': 'caret-blink 1.25s ease-out infinite'
 			}
 		}
 	},

@@ -22,7 +22,6 @@ export default function ThemeToggle() {
             document.documentElement.classList.remove('dark');
             localStorage.setItem('theme', 'light');
         }
-
     }, [darkMode]);
     return (
         <div className="relative w-16 h-8 flex items-center shadow-sm drop-shadow-lg

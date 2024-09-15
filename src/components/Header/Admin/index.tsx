@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { usePathname } from 'next/navigation';
 import { IoChevronBackOutline, IoChevronDownCircle, IoChevronDownOutline, IoChevronForward } from "react-icons/io5";
 const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -17,22 +18,35 @@ const HeaderAdmin = () => {
     const [year, setYear] = useState(new Date().getFullYear());
     const [month, setMonth] = useState(months[new Date().getMonth()]);
     const [showCalendar, setShowCalendar] = useState(false);
+    const [isDashboard, setIsDashboard] = useState(false);
+    const path = usePathname();
 
+    useEffect(() => {
+        if (path === '/admin/dashboard') {
+            setIsDashboard(true)
+            console.log('path', path)
+        } else {
+            setIsDashboard(false)
+            console.log('path', path)
+
+        }
+    }, [path]);
     return (
         <header className="w-full  p-10 relative z-20">
             <div className="flex justify-between">
-                <div>
+                {/* Thema*/}
+                <div className={isDashboard ? 'visible' : 'invisible'}>
                     <ThemeToggle />
                 </div>
-
-                <div> {/* Calendario*/}
+                {/* Calendario*/}
+                <div className={isDashboard ? 'visible' : 'invisible'}>
                     <button className="bg-white dark:bg-dark-900 shadow-sm drop-shadow-lg lowercase border dark:border-dark-400 px-4 py-1 rounded-full flex items-center gap-2 duration-300 hover:opacity-70 "
                         onClick={() => setShowCalendar(!showCalendar)}>
                         {month}
                         <IoChevronDownOutline className={`duration-300 cursor-pointer  text-muted ${showCalendar && 'rotate-180'}`} />
                     </button>
                 </div>
-
+                {/* Perfil*/}
                 <div className="flex items-center gap-2">
                     <Avatar className="shadow-sm drop-shadow-2xl">
                         <AvatarImage src="https://github.com/antunesgelson.png" />
@@ -42,7 +56,6 @@ const HeaderAdmin = () => {
                     <IoChevronDownCircle className="cursor-pointer" />
                 </div>
             </div>
-
 
             <AnimatePresence>
                 {showCalendar && (
@@ -94,7 +107,7 @@ const Calendar = ({ months, onClose, currentMonth }: CalendarProps) => {
     }
     return (
         <>
-            <div className="fixed top-0 bottom-0 left-0 right-0 drop-shadow-2xl  backdrop-blur-sm bg-[#1414143d]" />
+            <div onClick={onClose} className="fixed top-0 bottom-0 left-0 right-0 drop-shadow-2xl  backdrop-blur-sm bg-[#1414143d] cursor-pointer" />
             <div className="bg-dark-900 rounded-2xl mt-10 w-[300px] border dark:border-dark-400 shadow-sm drop-shadow-2xl mx-auto ">
                 <div className=" w-full h-14 flex items-center justify-between p-4">
                     <Button

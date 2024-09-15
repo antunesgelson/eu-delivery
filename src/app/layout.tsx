@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-import Header from "@/components/Header";
+import ClientWrapper from "@/components/ClientWrapper";
 import SessionProvider from '@/components/SessionProvider';
 import { Toaster } from "@/components/ui/sonner";
 
@@ -25,15 +25,16 @@ export default async function RootLayout({
 }>) {
 
   const session = await getServerSession();
-  const isDefaultRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
   return (
     <html lang="pt-br">
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>
           <CartProvider>
             <SessionProvider session={session}>
-              {isDefaultRoute && <Header />}
-              <main >{children}</main>
+              <ClientWrapper>
+                <main>{children}</main>
+              </ClientWrapper>
               <Toaster position="top-right" />
             </SessionProvider>
           </CartProvider>
