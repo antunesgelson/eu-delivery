@@ -4,19 +4,28 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { IoIosSearch } from "react-icons/io"
+import { Label } from "./label"
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string
   error?: string
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, type, ...props }, ref) => {
+  ({ className, error, label, type, ...props }, ref) => {
     return (
       <div className="relative">
+        {label &&
+          <Label className="text-xs text-muted">
+            {label}
+          </Label>
+        }
         <input
           type={type}
           className={cn(
-            `flex h-9 w-full rounded-md border  bg-transparent  px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted focus-visible:outline-none  focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted ${error ? 'border-red-500' : 'border-input'} ${type === 'search' && 'pl-8'}`,
+            `flex h-9 w-full rounded-md border   bg-transparent  px-3 py-1 text-base shadow-sm transition-colors dark:file:text-muted file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted focus-visible:outline-none  focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted ${error ? 'border-red-500' : 'border-input'} ${type === 'search' && 'pl-8'}
+            dark:border-dark-700 dark:bg-dark-800 dark:text-white
+            `,
             className
           )}
           ref={ref}

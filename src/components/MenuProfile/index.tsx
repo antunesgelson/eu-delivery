@@ -1,10 +1,4 @@
 'use client'
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
 import { CardapioDTO } from "@/dto/cardapioDTO";
 import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
@@ -14,15 +8,9 @@ import { FaCoffee } from "react-icons/fa";
 import { MdSaveAlt } from "react-icons/md";
 import { TbSquareRoundedPlus } from "react-icons/tb";
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -42,21 +30,17 @@ const MenuProfile = () => {
             }
         },
     });
-
-
     return (
-        <div className="min-h-screen h-full dark:bg-dark-400 bg-white 2xl:w-64 lg:w-52 fixed top-0 bottom-0 ml-0.5 p-4">
-
+        <div className="min-h-screen h-full dark:bg-dark-400 bg-white 2xl:w-64 lg:w-52 p-4">
             <div className="flex justify-between items-center p-2">
                 <div className="text-start ">
                     <h1 className="text-white text-md font-bold leading-5">Cardápio</h1>
                     <p className="text-muted text-xs leading-4 italic">Natal</p>
                 </div>
                 <div className="flex justify-center items-center h-14">
-                    <img src="https://www.tailwind-kit.com/images/person/1.jpg" className="h-14 w-14 rounded-full" />
+                    <img src="https://github.com/antunesgelson.png" className="h-14 w-14 rounded-full" />
                 </div>
             </div>
-
             <section className="mt-6">
                 <div className="flex items-center justify-between">
                     <h2 className=" font-sans tracking-widest">Categorias</h2>

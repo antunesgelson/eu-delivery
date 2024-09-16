@@ -51,6 +51,7 @@ const MenuItem = ({ Icon, title, link, open }: MenuProps) => {
 }
 
 const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
+    const path = usePathname();
     const [open, setOpen] = useState(false);
     const toggleOpen = () => setOpen(!open);
     const menuData = [
@@ -82,7 +83,7 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
                 </div>
             </div>
             <div className="dark:bg-dark-900 bg-white-off w-full h-full dark:text-white-off text-dark-900">
-                <HeaderAdmin />
+                {path !== '/admin/menu' && <HeaderAdmin />}
                 {children}
             </div>
         </div>

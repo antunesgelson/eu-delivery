@@ -24,11 +24,8 @@ const HeaderAdmin = () => {
     useEffect(() => {
         if (path === '/admin/dashboard') {
             setIsDashboard(true)
-            console.log('path', path)
         } else {
             setIsDashboard(false)
-            console.log('path', path)
-
         }
     }, [path]);
     return (
