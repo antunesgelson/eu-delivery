@@ -50,7 +50,6 @@ const CompleteAddress = ({ location }: Props) => {
         mutationFn: async ({ apelido, bairro, cep, complemento, numero, referencia, rua }: CompleteAddressForm) => {
             const { data } = await api.post('/endereco', {
                 apelido: apelido,
-                favorite: true,
                 bairro: bairro,
                 cep: cep,
                 complemento: complemento,

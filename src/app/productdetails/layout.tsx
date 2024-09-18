@@ -57,8 +57,7 @@ export default function LayoutProductDetails({ children }: Props) {
                         initial={{ y: 100 }}
                         animate={{ y: 0 }}
                         exit={{ y: 100 }}
-                        transition={{ duration: 0.5 }}
-                    >
+                        transition={{ duration: 0.5 }}>
                         <div className='flex justify-center items-center w-32 '>
                             <button className='' onClick={() => setCountProduct(prevState => countProduct >= 2 ? prevState - 1 : prevState)}>
                                 <FaMinusCircle size={30} />

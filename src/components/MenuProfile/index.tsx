@@ -61,6 +61,15 @@ const MenuProfile = () => {
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
+                                            <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1">
+                                                <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white">Adicionar Produto</span>
+                                                <button onClick={() => setOpen(true)}>
+                                                    <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
+                                                </button>
+                                            </div>
+
+
+
                                             {item.produtos.map((produto, index) => (
                                                 <div key={index} className="  text-xs w-full h-full dark:bg-dark-400/50  ">
                                                     <p className="line-clamp-1 cursor-pointer hover:text-dark-900 dark:hover:text-white hover:translate-x-1 hover:underline underline-offset-2 duration-300 text-muted py-2">{produto.titulo}</p>

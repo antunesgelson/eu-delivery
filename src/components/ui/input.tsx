@@ -3,22 +3,37 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
+import { FaCircleQuestion } from "react-icons/fa6"
 import { IoIosSearch } from "react-icons/io"
+import { Tooltip } from "react-tooltip"
 import { Label } from "./label"
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
+  questionContent?: string
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, label, type, ...props }, ref) => {
+  ({ className, error, label, type, questionContent, ...props }, ref) => {
     return (
       <div className="relative">
         {label &&
-          <Label className="text-xs text-muted">
-            {label}
-          </Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted">
+              {label}
+            </Label>
+
+            <FaCircleQuestion
+              className="text-muted hover:text-white cursor-pointer"
+              data-tooltip-id={`${label}-tooltip`}
+              data-tooltip-content={questionContent}
+              size={14}
+            />
+            <Tooltip id={`${label}-tooltip`} />
+          </div>
+
+
         }
         <input
           type={type}
