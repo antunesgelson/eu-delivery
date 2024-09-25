@@ -72,7 +72,7 @@ export default function Home({ searchParams }: Props) {
   }, [searchParams, session, router, userName]);
 
   return (
-    <main className="overflow-x-hidden mt-14">
+    <main className="overflow-x-hidden mt-14 ">
       <section
         style={background}
         className="flex flex-col justify-center items-center h-[40vh] ">

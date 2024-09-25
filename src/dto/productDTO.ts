@@ -1,10 +1,16 @@
 
 export type IngredientesDTO = {
     id: string,
-    nome: string,
-    valor: number,
+    nomeIngrediente: string,
+    valorIngrediente: number,
     removivel: boolean,
     quantia: number
+}
+
+export type AdicionaisDTO = {
+    id: string,
+    nome: string,
+    valor: number,
 }
 
 export type ProdutosDTO = {
@@ -16,4 +22,6 @@ export type ProdutosDTO = {
     desconto: number,
     limitItens: number,
     servingSize: number,
+    ingredientes: IngredientesDTO[],
+    adicionais: AdicionaisDTO[]
 }

@@ -6,7 +6,7 @@ import { FaPeopleGroup } from "react-icons/fa6";
 
 import Thumb from '@/assets/products/box.png';
 
-export default function ProductCard({ titulo, descricao, img, valor, desconto, servingSize }: ProdutosDTO) {
+export default function ProductCard({ titulo, descricao, img, valor, desconto, servingSize, id}: ProdutosDTO) {
     const value = parseInt(valor)
     const sale = value - (value * desconto / 100)
 
@@ -34,12 +34,12 @@ export default function ProductCard({ titulo, descricao, img, valor, desconto, s
     );
 
     return (
-        <Link href={'/productdetails/1'}>
+        <Link href={`/productdetails/${id}`}>
             <div className="bg-white grid grid-cols-2 p-2 rounded-md">
                 <div className='px-1'>
                     <h3 className="uppercase font-semibold my-1">{titulo}</h3>
                     <p className="text-[12px] line-clamp-6 ">{descricao}</p>
-                </div>
+                </div> 
 
                 <div className='relative'>
                     <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />

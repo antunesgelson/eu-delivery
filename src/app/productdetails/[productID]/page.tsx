@@ -1,25 +1,36 @@
 'use client'
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { ModalSubstituir } from '@/components/Modal/Substituir';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 
-import { cardapio } from '@/data';
 
 import Thumb from '@/assets/products/box.png';
-import { IngredientesDTO } from '@/dto/productDTO';
-import { FaPeopleGroup } from 'react-icons/fa6';
+import { IngredientesDTO, ProdutosDTO } from '@/dto/productDTO';
 
-export default function ProductorDetails() {
-    const desconto = 0
+import { api } from "@/service/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
+import { Button } from '@/components/ui/button';
+import { FaMinusCircle } from 'react-icons/fa';
+import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
+import { toast } from 'sonner';
+
+
+type Props = {
+    params: { productID: string }
+}
+export default function ProductorDetails({ params }: Props) {
     const [removeSelectedItems, setRemoveSelectedItems] = useState<Record<number, boolean>>({});
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
     const [removeItem, setRemoveItem] = useState<IngredientesDTO>({} as IngredientesDTO);
     const [openModal, setOpenModal] = useState(false);
+    const [countProduct, setCountProduct] = useState<number>(1);
+    const [showMenu, setShowMenu] = useState<boolean>(true);
+    const [lastScrollY, setLastScrollY] = useState<number>(0);
 
     const handleClick = (index: number, type: string,) => {
         // Atualiza o estado para alternar a seleção do item clicado
@@ -42,66 +53,119 @@ export default function ProductorDetails() {
         }
     };
 
+    const { data: productDetails } = useQuery({
+        queryKey: ['product-details', params.productID],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get<ProdutosDTO>(`/produto/${params.productID}`)
+                console.log('productDetails', data)
+                return data
+            } catch (error: any) {
+                console.log(error)
+                toast.error(error.response.data.message)
+            }
+        },
+    });
+
+    const { } = useMutation({
+        mutationKey: ['add-product'],
+        mutationFn: async () => {
+            const { data } = await api.post('/pedido/carrinho', {
+                produtoId: params.productID,
+                ingredientes: [1, 2, 3, 6],
+                adicionais: [1, 2],
+                obs: 'teste',
+                quantidade: 1
+            })
+            return data
+        }, onSuccess(data, variables, context) {
+            console.log(data)
+        }, onError(error, variables, context) {
+            console.log(error)
+        },
+    })
+    const controlMenu = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                // If the user has reached the bottom of the page, show the menu
+                setShowMenu(true);
+            } else if (window.scrollY > lastScrollY) {
+                // If the user is scrolling down, hide the menu
+                setShowMenu(false);
+            } else {
+                // If the user is scrolling up, show the menu
+                setShowMenu(true);
+            }
+            setLastScrollY(window.scrollY); // Remember current page location to use in the next move
+        }
+    }, [setShowMenu, setLastScrollY, lastScrollY]);
+
+    useEffect(() => {
+        if (!productDetails) return
+        console.log(productDetails.ingredientes)
+    }, [productDetails]);
+
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('scroll', controlMenu);
+            // cleanup function
+            return () => {
+                window.removeEventListener('scroll', controlMenu);
+            };
+        }
+    }, [lastScrollY, controlMenu]);
     return (
-        <motion.main
-            className="mt-14 overflow-x-hidden"
-            initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}>
-            <div className='bg-white p-4'>
-                {/* <div className='flex justify-center'>
-                    <Image
-                        className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px] max-h-[200px] lg:max-h-none"
-                        width={500}
-                        height={500}
-                        src={Thumb.src}
-                        alt={`product-details`}
-                    />
-                </div> */}
-                <div className='relative'>
-                    <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />
-
-
-                    <div className="relative">
-                        {desconto > 0 &&
-                            <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
-                                <span className="font-bold mr-14 ml-2 ">-{desconto}%</span>
-                                <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
-                            </div>
-                        }
-                        <Image
-                            className="rounded-lg object-cover object-center lg:max-h-none    "
-                            width={500}
-                            height={500}
-                            src={Thumb.src}
-                            alt={`product-details`}
-                        />
+        <div className='relative'>
+            <motion.main
+                className="mt-14 overflow-x-hidden mb-20"
+                initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}>
+                <div className='bg-white p-4'>
+                    <div className='relative'>
+                        <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />
+                        <div className="relative">
+                            {productDetails && productDetails?.desconto > 0 &&
+                                <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
+                                    <span className="font-bold mr-14 ml-2 ">-{productDetails?.desconto}%</span>
+                                    <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
+                                </div>
+                            }
+                            <Image
+                                className="rounded-lg object-cover object-center lg:max-h-none"
+                                width={500}
+                                height={500}
+                                src={productDetails?.img || Thumb}
+                                alt={productDetails?.titulo || 'Produto'}
+                            />
+                        </div>
                     </div>
+
+                    <h1 className="uppercase font-semibold my-1">{productDetails?.titulo}</h1>
+                    <p className="text-xs">
+                        {productDetails?.descricao}
+                    </p>
+
+                    <span
+                        className='uppercase font-semibold text-sm flex items-center gap-1 text-muted mt-2'>
+                        <FaPeopleGroup size={20} />
+                        serve até: {productDetails?.servingSize} {productDetails && productDetails?.servingSize > 1 ? 'pessoas' : 'pessoa'}
+                    </span>
                 </div>
 
-                <h1 className="uppercase font-semibold my-1">Product-Details</h1>
-                <p className="text-[12px]">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Suscipit,
-                    neque pariatur. Quis repellendus exercitationem natus asperiores
-                    epudiandae pariatur ipsam dicta repellat voluptas neque, accusantium
-                    mollitia cumque officia, perferendis numquam minus!
-                </p>
+                <div className='p-4 leading-3 -mt-3'>
+                    <h2 className="uppercase text-xl font-bold">deseja remover algo?</h2>
+                    <span className='text-xs'>Selecione os itens que você <strong>NÃO</strong> quer no seu produto.</span>
+                </div>
 
-                <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted mt-2'><FaPeopleGroup size={20} /> serve até:   {cardapio[0].itens[0].servingSize}</span>
-            </div>
-
-            <div className='p-4 leading-3 -mt-3'>
-                <h2 className="uppercase text-xl font-bold">deseja remover algo?</h2>
-                <span className='text-[12px]'>Selecione os itens que você <strong>NÃO</strong> quer no seu produto.</span>
-            </div>
-
-            <div className='bg-white p-4 flex flex-col gap-5'>
-                {cardapio[0].itens[0]?.ingredientes.filter(item => item.removivel !== false).map((item, index) => (
-                    <div key={index} className="flex flex-col gap-2 text-sm duration-300">
-                        <div className={`flex items-center gap-2 ${removeSelectedItems[index] && 'line-through text-red-700'}`} onClick={() => { handleClick(index, 'remove'), setRemoveItem(item) }}>
-                            <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
-                            <span className='capitalize'>Remover {item.nome}</span>
-                        </div>
-                        {/* {removeSelectedItems[index] && (
+                <div className='bg-white p-4 flex flex-col gap-5'>
+                    {productDetails?.ingredientes.filter(item => item.removivel !== false).map((item, index) => (
+                        <div key={index} className="flex flex-col gap-2 text-sm duration-300">
+                            <div className={`flex items-center gap-2 ${removeSelectedItems[index] && 'line-through text-red-700'}`} onClick={() => { handleClick(index, 'remove'), setRemoveItem(item) }}>
+                                <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
+                                <span className='capitalize'>Remover {item.nomeIngrediente}</span>
+                            </div>
+                            {/* {removeSelectedItems[index] && (
                             <div className="ml-6">
                                 <p className="text-sm text-gray-500">Sugestões para trocar:</p>
                                 <ul className="list-disc list-inside">
@@ -111,45 +175,70 @@ export default function ProductorDetails() {
                                 </ul>
                             </div>
                         )} */}
-                    </div>
-                ))}
-            </div>
-
-            <div className='p-4 leading-3 relative'>
-                <h2 className="uppercase text-xl font-bold">adicionais</h2>
-                <span className='text-[12px]'>Que tal turbinar seu pedido?</span>
-
-                <div className='absolute top-18 right-3 bg-gray-400 text-white rounded-xl p-1 font-semibold text-sm'>
-                    Selecione até 1 itens
+                        </div>
+                    ))}
                 </div>
-            </div>
 
-            <div className='bg-white p-4 flex flex-col gap-5'>
-                {cardapio[0].itens[0]?.ingredientes?.map((item, index) => (
-                    <div key={index} className={`flex items-center gap-2 text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleClick(index, 'add')}>
-                        <Checkbox variant='add' checked={!!addSelectedItems[index]} onChange={() => { }} />
-                        <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
+                <div className='p-4 leading-3 relative'>
+                    <h2 className="uppercase text-xl font-bold">adicionais</h2>
+                    <span className='text-xs'>Que tal turbinar seu pedido?</span>
+
+                    <div className='absolute top-18 right-3 bg-gray-400 text-white rounded-xl p-1 font-semibold text-sm'>
+                        Selecione até {productDetails?.limitItens} itens
                     </div>
-                ))}
-            </div>
+                </div>
 
-            <div className='p-4 leading-3'>
-                <h2 className="uppercase text-xl font-bold">observação</h2>
-                <span className='text-[12px]'>Utilize somente para observações.</span>
-            </div>
+                <div className='bg-white p-4 flex flex-col gap-5'>
+                    {productDetails?.adicionais?.map((item, index) => (
+                        <div key={index} className={`flex items-center gap-2 text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleClick(index, 'add')}>
+                            <Checkbox variant='add' checked={!!addSelectedItems[index]} onChange={() => { }} />
+                            <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
+                        </div>
+                    ))}
+                </div>
 
-            <div className='bg-white p-4 flex flex-col gap-5'>
-                <Textarea
-                    placeholder="Digite sua mensagem aqui."
-                    rows={4}
+                <div className='p-4 leading-3'>
+                    <h2 className="uppercase text-xl font-bold">observação</h2>
+                    <span className='text-xs'>Utilize somente para observações.</span>
+                </div>
+
+                <div className='bg-white p-4 flex flex-col gap-5'>
+                    <Textarea
+                        placeholder="Digite sua mensagem aqui."
+                        rows={4}
+                    />
+                </div>
+
+                <ModalSubstituir
+                    open={openModal}
+                    onClose={() => setOpenModal(false)}
+                    product={removeItem}
                 />
-            </div>
+            </motion.main>
 
-            <ModalSubstituir
-                open={openModal}
-                onClose={() => setOpenModal(false)}
-                product={removeItem}
-            />
-        </motion.main>
+            <AnimatePresence>
+                {showMenu &&
+                    <motion.div
+                        className='fixed bottom-0 left-0 right-0 bg-white p-2 flex justify-between items-center border'
+                        initial={{ y: 100 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: 100 }}
+                        transition={{ duration: 0.5 }}>
+                        <div className='flex justify-center items-center w-32 '>
+                            <button className='' onClick={() => setCountProduct(prevState => countProduct >= 2 ? prevState - 1 : prevState)}>
+                                <FaMinusCircle size={30} />
+                            </button>
+                            <div className=' text-4xl font-bold -mt-1 w-12 flex justify-center items-center '>{countProduct}</div>
+                            <button className=' ' onClick={() => setCountProduct(prevState => prevState + 1)}>
+                                <FaCirclePlus size={30} />
+                            </button>
+                        </div>
+                        <Button className='ml-3 w-full flex justify-between p-2 text-lg h-12' variant={'success'}>
+                            <span className='ml-3'>Adicionar</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ {productDetails?.valor}</div>
+                        </Button>
+                    </motion.div>
+                }
+            </AnimatePresence>
+        </div>
     )
 }

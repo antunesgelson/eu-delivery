@@ -4,7 +4,7 @@ import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { FaCoffee } from "react-icons/fa";
+import { FaCoffee, FaShoppingBasket } from "react-icons/fa";
 import { MdSaveAlt } from "react-icons/md";
 import { TbSquareRoundedPlus } from "react-icons/tb";
 
@@ -43,7 +43,7 @@ const MenuProfile = () => {
             </div>
             <section className="mt-6">
                 <div className="flex items-center justify-between">
-                    <h2 className=" font-sans tracking-widest">Categorias</h2>
+                    <h2 className="font-sans tracking-widest">Categorias</h2>
                     <button onClick={() => setOpen(true)}>
                         <TbSquareRoundedPlus className=" dark:hover:text-white hover:text-black text-muted  rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 " size={20} />
                     </button>
@@ -67,9 +67,6 @@ const MenuProfile = () => {
                                                     <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
                                                 </button>
                                             </div>
-
-
-
                                             {item.produtos.map((produto, index) => (
                                                 <div key={index} className="  text-xs w-full h-full dark:bg-dark-400/50  ">
                                                     <p className="line-clamp-1 cursor-pointer hover:text-dark-900 dark:hover:text-white hover:translate-x-1 hover:underline underline-offset-2 duration-300 text-muted py-2">{produto.titulo}</p>
@@ -81,10 +78,33 @@ const MenuProfile = () => {
                             </div>
                         )
                     })}
+
+                    <Accordion type="single" collapsible className="w-full ">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger className="flex justify-between items-center gap-2">
+                                <div className="flex items-center gap-2 font-sans tracking-widest">
+                                    <FaShoppingBasket className="dark:text-white text-muted-foreground" />
+                                    Ingredientes
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1">
+                                    <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white">Adicionar Ingrediente</span>
+                                    <button onClick={() => setOpen(true)}>
+                                        <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
+                                    </button>
+                                </div>
+                                <div className="  text-xs w-full h-full dark:bg-dark-400/50  ">
+                                    <p className="line-clamp-1 cursor-pointer hover:text-dark-900 dark:hover:text-white hover:translate-x-1 hover:underline underline-offset-2 duration-300 text-muted py-2">ingrediente.titulo</p>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </div>
             </section>
-
-            <ModalAddCategory open={open} onClose={() => setOpen(false)} />
+            <ModalAddCategory
+                open={open}
+                onClose={() => setOpen(false)} />
         </div>
     );
 }

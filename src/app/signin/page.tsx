@@ -92,7 +92,7 @@ export default function Signin({ searchParams }: Props) {
                 <span className='text-[12px]'>Cadastre-se e aproveite a melhor experiência.</span> <br />
                 <span className='text-[10px] text-muted-foreground '>Ao fazer login com o  <strong>Google</strong> e realizar um pedido, <strong>agendaremos automaticamente</strong>  no seu <strong>calendario</strong>  a entrega para o dia escolhido.</span>
                 <Button
-                    className="font-semibold text-lg w-full mt-4 mb-1 flex items-center gap-2"
+                    className="font-semibold text-lg w-full mt-4 mb-1 flex items-center gap-2 bg-white"
                     variant={'outline'}
                     size={'lg'}
                     onClick={() => signIn('google')}>
