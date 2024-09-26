@@ -1,15 +1,17 @@
 'use client'
 
 import { Button } from "@/components/ui/button";
+import useCart from "@/hook/useCart";
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 
 export default function OrderSummaryBar() {
-    const [showMenu, setShowMenu] = useState<boolean>(true);
+    const [showMenu, setShowMenu] = React.useState<boolean>(true);
     const [lastScrollY, setLastScrollY] = useState<number>(0);
+    const { cart } = useCart()
 
     const controlMenu = useCallback(() => {
         if (typeof window !== 'undefined') {
@@ -32,7 +34,8 @@ export default function OrderSummaryBar() {
             window.addEventListener('scroll', controlMenu);
             return () => {    // cleanup function
                 window.removeEventListener('scroll', controlMenu);
-            }}
+            }
+        }
     }, [lastScrollY, controlMenu]);
     return (
         <AnimatePresence>
@@ -46,12 +49,11 @@ export default function OrderSummaryBar() {
 
                     <Button asChild className='w-full flex justify-between p-2 text-lg h-12' variant={'success'}>
                         <Link href={'/checkout'}>
-                            <span className='ml-3 flex items-center gap-2'> <IoMdCheckmarkCircleOutline size={25} /> Finalizar Pedido</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ 18.52</div>
+                            <span className='ml-3 flex items-center gap-2'> <IoMdCheckmarkCircleOutline size={25} /> Finalizar Pedido</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ {cart?.valorTotalPedido.toFixed(2)}</div>
                         </Link>
                     </Button>
                 </motion.div>
             }
-
         </AnimatePresence>
     )
 }

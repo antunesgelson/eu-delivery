@@ -56,25 +56,7 @@ export default function Home({ searchParams }: Props) {
     },
   });
 
-  // const { data: cart } = useQuery({
-  //   queryKey: ['list-cart-details'],
-  //   queryFn: async () => {
-  //     try {
-  //       const { data } = await api.get('/pedido/carrinho')
-  //       return data
-  //     } catch (error: unknown) {
-  //       console.log(error)
-  //       if (error instanceof AxiosError && error.response) {
-  //         toast.error(error.response.data.message)
-  //       } else {
-  //         toast.error('An unexpected error occurred')
-  //       }
-  //     }
-  //   },
-  // });
-  // useEffect(() => {
-  //   console.log('cart', cart)
-  // }, [cart]);
+
 
   React.useEffect(() => {
     if (searchParams?.firstLogin) {

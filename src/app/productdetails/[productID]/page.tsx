@@ -16,6 +16,7 @@ import { FaMinusCircle } from 'react-icons/fa';
 import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
 
 import { AdicionaisDTO, IngredientesDTO, ProdutosDTO } from '@/dto/productDTO';
+import useCart from '@/hook/useCart';
 import { api } from "@/service/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AxiosError } from 'axios';
@@ -38,6 +39,7 @@ export default function ProductorDetails({ params }: Props) {
     const [itemValueFinish, setItemValueFinish] = useState(0); // valor final do produto
     const [obs, setObs] = useState<string>('');
     const router = useRouter();
+    const { handleUpdateCart } = useCart();
 
     function handleRemove(index: number) {
         setRemoveSelectedItems(prev => {
@@ -119,6 +121,7 @@ export default function ProductorDetails({ params }: Props) {
         },
         onSuccess(data) {
             console.log(data);
+            handleUpdateCart()
             router.push('/');
 
         },
