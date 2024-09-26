@@ -14,19 +14,25 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useState } from "react";
+import { AxiosError } from "axios";
+import React from "react";
 
 const MenuProfile = () => {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = React.useState(false);
+    
     const { data: cardapio } = useQuery({
         queryKey: ['list-categories-details'],
         queryFn: async () => {
             try {
                 const { data } = await api.get<CardapioDTO[]>('/categoria/lista/detalhes')
                 return data
-            } catch (error: any) {
-                console.log(error)
-                toast.error(error.response.data.message)
+            } catch (error: unknown) {
+                if (error instanceof AxiosError && error.response) {
+                    toast.error(error.response.data.message)
+
+                } else {
+                    toast.error('An unexpected error occurred')
+                }
             }
         },
     });

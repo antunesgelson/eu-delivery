@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'sonner'
 
@@ -15,6 +15,7 @@ import { IngredientesDTO } from '@/dto/productDTO'
 import { api } from '@/service/api'
 import { useQuery } from '@tanstack/react-query'
 
+import { AxiosError } from 'axios'
 import { AnimatePresence, motion } from 'framer-motion'
 import { FaMinusCircle } from 'react-icons/fa'
 import { FaCirclePlus, FaCircleQuestion, FaClipboardQuestion } from 'react-icons/fa6'
@@ -22,7 +23,7 @@ import { HiViewGridAdd } from "react-icons/hi"
 import { MdArrowRightAlt, MdAssignmentAdd, MdSaveAlt } from "react-icons/md"
 
 const Products = () => {
-    const [step, setStep] = useState(1)
+    const [step, setStep] = React.useState(1)
 
     function handleNextStep(event: React.MouseEvent<HTMLButtonElement>, direction: 'next' | 'prev') {
         event.preventDefault()
@@ -173,9 +174,13 @@ const Step2 = () => {
             try {
                 const { data } = await api.get<IngredientesDTO[]>('/ingredientes')
                 return data
-            } catch (error: any) {
-                console.log(error)
-                toast.error(error.response.data.message)
+            } catch (error: unknown) {
+                if (error instanceof AxiosError && error.response) {
+                    toast.error(error.response.data.message)
+
+                } else {
+                    toast.error('An unexpected error occurred')
+                }
             }
         },
     });
@@ -214,8 +219,8 @@ const Step2 = () => {
                             onChange={() => { }}
                             onClick={() => handleToggle(index)} />
                         <div className="flex flex-col ">
-                            <span className='capitalize'>{item.nome} </span>
-                            <p className="text-xs">R$ {item.valor.toFixed(2)}</p>
+                            <span className='capitalize'>{item.nomeIngrediente} </span>
+                            <p className="text-xs">R$ {item.valorIngrediente.toFixed(2)}</p>
                         </div>
                     </div>
 
@@ -281,9 +286,13 @@ const Step3 = () => {
             try {
                 const { data } = await api.get<IngredientesDTO[]>('/ingredientes')
                 return data
-            } catch (error: any) {
-                console.log(error)
-                toast.error(error.response.data.message)
+            } catch (error: unknown) {
+                if (error instanceof AxiosError && error.response) {
+                    toast.error(error.response.data.message)
+
+                } else {
+                    toast.error('An unexpected error occurred')
+                }
             }
         },
     });
@@ -309,8 +318,8 @@ const Step3 = () => {
                                 onChange={() => { }}
                                 onClick={() => handleToggle(index)} />
                             <div className="flex flex-col ">
-                                <span className='capitalize'>{item.nome} </span>
-                                <p className="text-xs">R$ {item.valor.toFixed(2)}</p>
+                                <span className='capitalize'>{item.nomeIngrediente} </span>
+                                <p className="text-xs">R$ {item.valorIngrediente.toFixed(2)}</p>
                             </div>
                         </div>
                     </div>

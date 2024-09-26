@@ -1,8 +1,9 @@
 'use client'
-import { useEffect } from "react";
+import React from "react";
 
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 import Banner from "@/components/Banner";
 import Footer from "@/components/Footer";
@@ -16,11 +17,13 @@ import { toast } from "sonner";
 
 import Background from "@/assets/background/background.jpg";
 import Logotipo from "@/assets/logo/logotipo.jpg";
+
 import { CardapioDTO } from "@/dto/cardapioDTO";
 import useAuth from "@/hook/useAuth";
+
 import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
 
 type Props = {
   searchParams?: { firstLogin?: string }
@@ -42,14 +45,38 @@ export default function Home({ searchParams }: Props) {
       try {
         const { data } = await api.get('/categoria/lista/detalhes')
         return data
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.log(error)
-        toast.error(error.response.data.message)
+        if (error instanceof AxiosError && error.response) {
+          toast.error(error.response.data.message)
+        } else {
+          toast.error('An unexpected error occurred')
+        }
       }
     },
   });
 
-  useEffect(() => {
+  // const { data: cart } = useQuery({
+  //   queryKey: ['list-cart-details'],
+  //   queryFn: async () => {
+  //     try {
+  //       const { data } = await api.get('/pedido/carrinho')
+  //       return data
+  //     } catch (error: unknown) {
+  //       console.log(error)
+  //       if (error instanceof AxiosError && error.response) {
+  //         toast.error(error.response.data.message)
+  //       } else {
+  //         toast.error('An unexpected error occurred')
+  //       }
+  //     }
+  //   },
+  // });
+  // useEffect(() => {
+  //   console.log('cart', cart)
+  // }, [cart]);
+
+  React.useEffect(() => {
     if (searchParams?.firstLogin) {
       setTimeout(() => {
         toast.success(`Bem-Vindo(a) ${userName} 🥰`, {

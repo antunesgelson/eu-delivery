@@ -1,6 +1,6 @@
 'use client'
 import { signIn } from "next-auth/react";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 
 import useFormatters from "@/hook/useFormatters";
 import { useMutation } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 
 
@@ -54,14 +55,18 @@ export default function Signin({ searchParams }: Props) {
             toast.success(data.message)
             router.push(`/signin/getcode?tel=${cellPhone.replace(/\D/g, '')}`);
         },
-        onError(error: any) {
-            console.log(error.response.data.message)
-            toast.error(error.response.data.message)
+        onError(error: unknown) {
+            console.log(error)
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('An unexpected error occurred')
+            }
         }
     })
 
 
-    useEffect(() => {
+    React.useEffect(() => {
         setValue('cellPhone', cellPhoneFormat(cellPhone));
     }, [cellPhone, setValue, cellPhoneFormat]);
 

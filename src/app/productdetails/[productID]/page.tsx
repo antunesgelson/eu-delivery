@@ -1,9 +1,10 @@
 'use client'
-import { AxiosError } from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+
 
 import { ModalSubstituir } from '@/components/Modal/Substituir';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,8 @@ import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
 
 import { AdicionaisDTO, IngredientesDTO, ProdutosDTO } from '@/dto/productDTO';
 import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { AxiosError } from 'axios';
 
 type Props = {
     params: { productID: string }
@@ -34,6 +36,8 @@ export default function ProductorDetails({ params }: Props) {
 
     const [itemValueUnit, setItemValueUnit] = useState(0); //valor de cada unidade do produto
     const [itemValueFinish, setItemValueFinish] = useState(0); // valor final do produto
+    const [obs, setObs] = useState<string>('');
+    const router = useRouter();
 
     function handleRemove(index: number) {
         setRemoveSelectedItems(prev => {
@@ -91,23 +95,44 @@ export default function ProductorDetails({ params }: Props) {
         staleTime: Infinity, // Para garantir que o cache não seja sobrescrito automaticamente
     });
 
-    // const { mutateAsync: handleAddItem } = useMutation({
-    //     mutationKey: ['add-product'],
-    //     mutationFn: async () => {
-    //         const { data } = await api.post('/pedido/carrinho', {
-    //             produtoId: params.productID,
-    //             ingredientes: [1, 2, 3, 6],
-    //             adicionais: [1, 2],
-    //             obs: 'teste',
-    //             quantidade: 1
-    //         })
-    //         return data
-    //     }, onSuccess(data, variables, context) {
-    //         console.log(data)
-    //     }, onError(error, variables, context) {
-    //         console.log(error)
-    //     },
-    // })
+    const { mutateAsync: handleAddItem, isPending } = useMutation({
+        mutationKey: ['add-product'],
+        mutationFn: async () => {
+            const ingredientesIds = productDetails?.ingredientes
+                .filter(item => item.removivel !== false)
+                .map(item => {
+                    const isRemoved = removeSelectedItems[productDetails.ingredientes.indexOf(item)];
+                    return isRemoved && item.replace ? item.replace.id : item.id;
+                });
+            const adicionaisIds = Object.keys(addSelectedItems)
+                .filter(key => addSelectedItems[parseInt(key)])
+                .map(key => parseInt(key) + 1);
+
+            const { data } = await api.post('/pedido/carrinho', {
+                produtoId: parseInt(params.productID),
+                ingredientes: ingredientesIds,
+                adicionais: adicionaisIds,
+                obs: obs,
+                quantidade: countProduct
+            });
+            return data;
+        },
+        onSuccess(data) {
+            console.log(data);
+            router.push('/');
+
+        },
+        onError(error: unknown) {
+            console.log(error)
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('An unexpected error occurred')
+            }
+        },
+    });
+
+
     const controlMenu = useCallback(() => {
         if (typeof window !== 'undefined') {
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
@@ -216,7 +241,7 @@ export default function ProductorDetails({ params }: Props) {
                 <div className='bg-white p-4 flex flex-col gap-5'>
                     {productDetails?.adicionais?.map((item, index) => (
                         <div key={index} className={`flex items-center gap-2 text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleAdicional(index, item)}>
-                            <Checkbox variant='add' checked={!!addSelectedItems[index]} onChange={() => { console.log('caiu aqui') }} />
+                            <Checkbox variant='add' checked={!!addSelectedItems[index]} />
                             <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
                         </div>
                     ))}
@@ -229,6 +254,8 @@ export default function ProductorDetails({ params }: Props) {
                     <Textarea
                         placeholder="Digite sua mensagem aqui."
                         rows={4}
+                        value={obs}
+                        onChange={(e) => setObs(e.target.value)}
                     />
                 </div>
                 {productDetails && (
@@ -260,8 +287,15 @@ export default function ProductorDetails({ params }: Props) {
                                 <FaCirclePlus size={30} />
                             </button>
                         </div>
-                        <Button className='ml-3 w-full flex justify-between p-2 text-lg h-12' variant={'success'}>
-                            <span className='ml-3'>Adicionar</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ {itemValueFinish.toFixed(2)}</div>
+                        <Button
+                            loading={isPending}
+                            variant={'success'}
+                            className='ml-3 w-full flex justify-between p-2 text-lg h-12'
+                            onClick={() => handleAddItem()}>
+                            <span className='ml-3'>Adicionar</span>
+                            <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'>
+                                R$ {itemValueFinish.toFixed(2)}
+                            </div>
                         </Button>
                     </motion.div>
                 }
