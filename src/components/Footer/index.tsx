@@ -1,9 +1,13 @@
+'use client'
 import { FaWhatsapp } from "react-icons/fa";
 import { FaPhone, FaSquareFacebook } from "react-icons/fa6";
 import { RiVisaFill } from "react-icons/ri";
 
 import InstagramIconWithGradient from '@/components/InstagramIconWithGradient';
 import { Separator } from "@/components/ui/separator";
+
+import React from "react";
+
 
 const payments = [
     { name: "Pix", Icon: "pix_icon.svg" },
@@ -24,9 +28,13 @@ const payments = [
 
 const SIZE_ICON = 35
 export default function Footer() {
+
+    React.useEffect(() => {
+
+    }, []);
     return (
         <footer >
-            <div className="bg-white mt-10 p-4">
+            <div className="bg-white mt-10 p-4 ">
                 <div className="text-center">
                     <h4 className="font-bold text-xl">Pagamento</h4>
                     <span className="text-xs text-muted-foreground">Confira as formas de pagamento que aceitamos:</span>
@@ -82,7 +90,7 @@ export default function Footer() {
 
             </div>
 
-            <div className=" flex justify-center  items-center h-14">
+            <div className=" flex justify-center  items-center h-14 mb-14 lg:mb-0  ">
                 <span className="text-muted text-sm ">@2024 Empório Urubici - Urubici</span>
             </div>
         </footer>

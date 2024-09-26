@@ -8,16 +8,22 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
-import { cardapio } from "@/data";
 import useAuth from "@/hook/useAuth";
 import { signOut } from "next-auth/react";
 import { destroyCookie } from 'nookies';
+
 import { BiSolidFoodMenu } from "react-icons/bi";
 import { BsPersonVcardFill } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
 import { FaArrowRight, FaDoorOpen } from "react-icons/fa6";
 import { HiHome } from "react-icons/hi";
 import { PiListChecksFill } from "react-icons/pi";
+
+import { CardapioDTO } from "@/dto/cardapioDTO";
+import { api } from "@/service/api";
+import { useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
 
 type Props = {
     open: boolean
@@ -26,7 +32,7 @@ type Props = {
 export function Menu({ onClose, open }: Props) {
     const pathname = usePathname()
     const { isAuthenticated } = useAuth();
-    const { setSelectedItemId, selectedItemId } = useCart();
+    const { setSelectedItemId } = useCart();
 
 
 
@@ -47,6 +53,24 @@ export function Menu({ onClose, open }: Props) {
         destroyCookie(undefined, "@eu:token");
         await signOut();
     }
+
+    const { data } = useQuery({
+        queryKey: ['list-categories-details'],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get('/categoria/lista/detalhes')
+                console.log("CAIU AQUI", data)
+                return data
+            } catch (error: unknown) {
+                console.log(error)
+                if (error instanceof AxiosError && error.response) {
+                    toast.error(error.response.data.message)
+                } else {
+                    toast.error('An unexpected error occurred')
+                }
+            }
+        },
+    });
 
 
     React.useEffect(() => {
@@ -80,14 +104,13 @@ export function Menu({ onClose, open }: Props) {
                         </ul>
                         {pathname == '/' &&
                             <ul className=" uppercase font-semibold space-y-3  ">
-                                {cardapio.map((produto, index) => (
+                                {data?.map((produto: CardapioDTO) => (
                                     <li
-                                        key={index}
+                                        key={produto.id}
                                         className="pl-5 flex items-center gap-2 text-white w-56  h-8  hover:bg-white hover:text-primary hover:translate-x-2 rounded-md  duration-300 group "
-                                        onClick={() => { handleSectionClick(produto.id), onClose(false) }}>
-
+                                        onClick={() => { handleSectionClick(String(produto.id)); onClose(false) }}>
                                         <FaArrowRight className="group-hover:translate-x-1 duration-300 before:translate-x-2" />
-                                        <span>{produto.secao}</span>
+                                        <span>{produto.titulo}</span>
                                     </li>
                                 ))}
                             </ul>

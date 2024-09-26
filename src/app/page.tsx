@@ -21,6 +21,7 @@ import Logotipo from "@/assets/logo/logotipo.jpg";
 import { CardapioDTO } from "@/dto/cardapioDTO";
 import useAuth from "@/hook/useAuth";
 
+import useCart from "@/hook/useCart";
 import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
@@ -37,6 +38,7 @@ export default function Home({ searchParams }: Props) {
   const router = useRouter();
   const { data: session } = useSession()
   const { isAuthenticated } = useAuth();
+  const { cart } = useCart();
   const userName = session?.user?.name ? session?.user?.name : 'Visitante'
 
   const { data: cardapio } = useQuery({
@@ -119,7 +121,7 @@ export default function Home({ searchParams }: Props) {
           </div>
         ))}
       </section>
-      <OrderSummaryBar />
+      {cart?.itens && <OrderSummaryBar />}
       <Footer />
     </main>
   );
