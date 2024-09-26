@@ -73,12 +73,11 @@ export default function ProductorDetails({ params }: Props) {
     }
 
 
-    const { data: productDetails } = useQuery({
+    const { data: productDetails, } = useQuery({
         queryKey: ['product-details', params.productID],
         queryFn: async () => {
             try {
                 const { data } = await api.get<ProdutosDTO>(`/produto/${params.productID}`)
-                console.log('productDetails', data)
                 return data
             } catch (error: unknown) {
                 console.log(error)
@@ -89,6 +88,7 @@ export default function ProductorDetails({ params }: Props) {
                 }
             }
         },
+        staleTime: Infinity, // Para garantir que o cache não seja sobrescrito automaticamente
     });
 
     // const { mutateAsync: handleAddItem } = useMutation({
@@ -126,6 +126,7 @@ export default function ProductorDetails({ params }: Props) {
 
     useEffect(() => {
         if (!productDetails) return
+        console.log('productDetails atualizado', productDetails);
         const valueItem = parseInt(productDetails.valor)
         setItemValueUnit(valueItem)
         setItemValueFinish(valueItem)
@@ -185,18 +186,21 @@ export default function ProductorDetails({ params }: Props) {
                                 <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
                                 <span className='capitalize'>Remover {item.nomeIngrediente}</span>
                             </div>
-                            {removeSelectedItems[index] && (
-                            <div className="ml-6">
-                                <p className="text-sm text-gray-500">Substituído por:</p>
-                                <ul className="list-disc list-inside">
-                                <li  className="text-sm text-blue-500">suggestion</li>
-
-                                    {/* {suggestionsForItem(item).map((suggestion, idx) => (
-                                        <li key={idx} className="text-sm text-blue-500">{suggestion}</li>
-                                    ))} */}
-                                </ul>
-                            </div>
-                        )}
+                            <AnimatePresence>
+                                {removeSelectedItems[index] && item.replace && (
+                                    <motion.div
+                                        className="ml-6"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}>
+                                        <p className="text-sm text-gray-500">Substituído por:</p>
+                                        <ul className="list-disc list-inside">
+                                            <li className="text-sm text-blue-500 capitalize">{item?.replace?.nomeIngrediente}</li>
+                                        </ul>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     ))}
                 </div>

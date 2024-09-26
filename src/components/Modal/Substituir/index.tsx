@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 
 import { IngredientesDTO, ProdutosDTO } from "@/dto/productDTO"
+import { useQueryClient } from "@tanstack/react-query"
 
 type Props = {
     open: boolean
@@ -23,7 +24,40 @@ type Props = {
 }
 export function ModalSubstituir({ open, onClose, removeProduct, productDetails }: Props) {
     const [checked, setChecked] = React.useState<number | null>(-1);
+    const [replace, setReplace] = React.useState<IngredientesDTO | null>(null);
+    const queryClient = useQueryClient();
 
+    function handleChecked(item: IngredientesDTO | null) {
+        setReplace(item);
+        setChecked(item ? parseInt(item.id) : -1);
+    }
+
+    function handleReplace() {
+        // Recuperar o cache atual
+        const cachedData = queryClient.getQueryData<ProdutosDTO>(['product-details', String(productDetails.id)]);
+        if (cachedData) {
+            console.log('replace:', replace);
+            console.log('Cache atual antes da atualização:', cachedData);
+
+            // Atualizar o cache com o novo ingrediente substituído e adicionar o campo replace
+            const updatedIngredientes = cachedData.ingredientes.map(ingrediente =>
+                ingrediente.id === removeProduct.id
+                    ? { ...ingrediente, replace: replace ? replace : null }
+                    : ingrediente
+            );
+
+            // Atualizar o cache
+            queryClient.setQueryData(['product-details', String(productDetails.id)], {
+                ...cachedData,
+                ingredientes: updatedIngredientes
+            });
+
+            const updatedCache = queryClient.getQueryData(['product-details', String(productDetails.id)]);
+            console.log('Cache atualizado:', updatedCache);
+        }
+
+        onClose();
+    }
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -41,15 +75,15 @@ export function ModalSubstituir({ open, onClose, removeProduct, productDetails }
                 <div className="grid grid-cols-2 gap-4">
                     {productDetails.ingredientes.filter(ingrediente => ingrediente.valorIngrediente <= removeProduct.valorIngrediente).map((item, index) => (
                         <div key={index}
-                            className={`flex items-center gap-2 text-sm ${checked === index && 'text-emerald-600'}`}
-                            onClick={() => setChecked(index)}>
-                            <Checkbox variant='add' checked={checked === index} onChange={() => { }} />
+                            className={`flex items-center gap-2 text-sm ${checked === parseInt(item.id) && 'text-emerald-600'}`}
+                            onClick={() => handleChecked(item)}>
+                            <Checkbox variant='add' checked={checked === parseInt(item.id)} onChange={() => { }} />
                             <span className='capitalize'>{item.nomeIngrediente} </span>
                         </div>
                     ))}
                     <div
                         className={`flex items-center gap-2 text-sm ${checked === -1 && 'text-emerald-600'}`}
-                        onClick={() => setChecked(-1)}>
+                        onClick={() => handleChecked(null)}>
                         <Checkbox variant='add' checked={checked === -1} onChange={() => { }} />
                         <span className='capitalize'>Nenhum</span>
                     </div>
@@ -64,7 +98,7 @@ export function ModalSubstituir({ open, onClose, removeProduct, productDetails }
                         </Button>
                         <Button
                             variant={'success'}
-                            onClick={onClose}
+                            onClick={handleReplace}
                             className="w-full flex items-center justify-center gap-1">
                             <TbReplace />  Substituir
                         </Button>

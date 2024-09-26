@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { Inter } from "next/font/google";
+import React from "react";
 import "./globals.css";
 
 import ClientWrapper from "@/components/ClientWrapper";
