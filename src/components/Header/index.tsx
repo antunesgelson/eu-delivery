@@ -37,12 +37,14 @@ const DefaultHeader = memo(({ open, setOpen }: Props) => {
 
             {isAuthenticated && !cart?.itens && <span className="font-semibold text-lg">Olá {session?.user?.name ? session.user.name.split(' ')[0] : 'Visitante'},</span>}
             {isAuthenticated && cart?.itens && cart?.itens.length > 0 && (
-                <div className="relative cursor-pointer">
-                    <HiShoppingCart size={25} />
-                    <div className="text-[9px] bg-red-600 flex justify-center items-center rounded-full w-4 h-4 absolute -top-2 left-5">
-                        {cart?.itens.length}
+                <Link href={'/checkout'}>
+                    <div className="relative cursor-pointer">
+                        <HiShoppingCart size={25} />
+                        <div className="text-[9px] bg-red-600 flex justify-center items-center rounded-full w-4 h-4 absolute -top-2 left-5">
+                            {cart?.itens.length}
+                        </div>
                     </div>
-                </div>
+                </Link>
             )}
 
             {!isAuthenticated &&
@@ -61,31 +63,32 @@ const SpecialHeader = memo(() => {
     const { isAuthenticated } = useAuth();
     const { cart } = useCart();
     return (
-        <AnimatePresence>
-            <motion.div
-                className="flex justify-between items-center h-14"
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.4 }}>
+        <div className="flex justify-between items-center h-14">
+            <AnimatePresence>
+                <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.4 }}>
+                    <span className="font-semibold text-lg flex items-center"
+                        onClick={() => router.back()}>
+                        <IoIosArrowRoundBack size={20} />
+                        VOLTAR
+                    </span>
+                </motion.div>
+            </AnimatePresence>
 
-                <span className="font-semibold text-lg flex items-center"
-                    onClick={() => router.back()}>
-                    <IoIosArrowRoundBack size={20} />
-                    VOLTAR
-                </span>
-
-
-                {isAuthenticated && cart?.itens && cart?.itens.length > 0 && (
+            {isAuthenticated && cart?.itens && cart?.itens.length > 0 && (
+                <Link href={'/checkout'}>
                     <div className="relative cursor-pointer">
                         <HiShoppingCart size={25} />
                         <div className="text-[9px] bg-red-600 flex justify-center items-center rounded-full w-4 h-4 absolute -top-2 left-5">
                             {cart?.itens.length}
                         </div>
                     </div>
-                )}
-            </motion.div>
-        </AnimatePresence>
+                </Link>
+            )}
+        </div>
     );
 });
 

@@ -16,10 +16,11 @@ import { Label } from "@/components/ui/label";
 
 import { AxiosError } from "axios";
 import React from "react";
+import { Tooltip } from "react-tooltip";
 
 const MenuProfile = () => {
     const [open, setOpen] = React.useState(false);
-    
+
     const { data: cardapio } = useQuery({
         queryKey: ['list-categories-details'],
         queryFn: async () => {
@@ -51,7 +52,13 @@ const MenuProfile = () => {
                 <div className="flex items-center justify-between">
                     <h2 className="font-sans tracking-widest">Categorias</h2>
                     <button onClick={() => setOpen(true)}>
-                        <TbSquareRoundedPlus className=" dark:hover:text-white hover:text-black text-muted  rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 " size={20} />
+                        <TbSquareRoundedPlus
+                            size={20}
+                            data-tooltip-id={`categories-tooltip`}
+                            data-tooltip-content={'Adicionar nova categoria.'}
+                            className=" dark:hover:text-white hover:text-black text-muted  rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 "
+                        />
+                        <Tooltip id={`categories-tooltip`} />
                     </button>
                 </div>
                 <div className="mt-3">

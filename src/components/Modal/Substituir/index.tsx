@@ -21,8 +21,9 @@ type Props = {
     onClose: () => void
     removeProduct: IngredientesDTO
     productDetails: ProdutosDTO
+    itemValueFinish: number
 }
-export function ModalSubstituir({ open, onClose, removeProduct, productDetails }: Props) {
+export function ModalSubstituir({ open, onClose, removeProduct, productDetails, itemValueFinish }: Props) {
     const [checked, setChecked] = React.useState<number | null>(-1);
     const [replace, setReplace] = React.useState<IngredientesDTO | null>(null);
     const queryClient = useQueryClient();
@@ -39,6 +40,8 @@ export function ModalSubstituir({ open, onClose, removeProduct, productDetails }
             console.log('replace:', replace);
             console.log('Cache atual antes da atualização:', cachedData);
 
+
+
             // Atualizar o cache com o novo ingrediente substituído e adicionar o campo replace
             const updatedIngredientes = cachedData.ingredientes.map(ingrediente =>
                 ingrediente.id === removeProduct.id
@@ -49,7 +52,8 @@ export function ModalSubstituir({ open, onClose, removeProduct, productDetails }
             // Atualizar o cache
             queryClient.setQueryData(['product-details', String(productDetails.id)], {
                 ...cachedData,
-                ingredientes: updatedIngredientes
+                ingredientes: updatedIngredientes,
+                valor: itemValueFinish
             });
 
             const updatedCache = queryClient.getQueryData(['product-details', String(productDetails.id)]);

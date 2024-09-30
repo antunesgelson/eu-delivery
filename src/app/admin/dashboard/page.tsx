@@ -1,10 +1,13 @@
 'use client'
 import classNames from "classnames";
+import React from "react";
 
 import { FaHandHoldingDollar, FaLandmark } from "react-icons/fa6";
 import { IoArrowUpCircleSharp } from "react-icons/io5";
+import { IconType } from "react-icons/lib";
 
 const Dashboard = () => {
+    const [teste, setTeste] = React.useState();
     return (
         <div className="px-4 2xl:w-10/12 mx-auto">
             <h1 className="text-start text-3xl pb-6">Dashboard</h1>
@@ -41,7 +44,7 @@ const Dashboard = () => {
 type CardProps = {
     title: string;
     value: number;
-    Icon: any;
+    Icon: IconType;
 }
 
 const Card = ({ title, value, Icon }: CardProps) => {

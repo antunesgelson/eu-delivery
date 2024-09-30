@@ -220,7 +220,7 @@ const Step2 = () => {
                             onClick={() => handleToggle(index)} />
                         <div className="flex flex-col ">
                             <span className='capitalize'>{item.nomeIngrediente} </span>
-                            <p className="text-xs">R$ {item.valorIngrediente.toFixed(2)}</p>
+                            <p className="text-xs">R$ {item?.valorIngrediente?.toFixed(2)}</p>
                         </div>
                     </div>
 
@@ -319,7 +319,7 @@ const Step3 = () => {
                                 onClick={() => handleToggle(index)} />
                             <div className="flex flex-col ">
                                 <span className='capitalize'>{item.nomeIngrediente} </span>
-                                <p className="text-xs">R$ {item.valorIngrediente.toFixed(2)}</p>
+                                <p className="text-xs">R$ {item?.valorIngrediente?.toFixed(2)}</p>
                             </div>
                         </div>
                     </div>

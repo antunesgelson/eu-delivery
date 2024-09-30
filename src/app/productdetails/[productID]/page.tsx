@@ -267,6 +267,7 @@ export default function ProductorDetails({ params }: Props) {
                         onClose={() => setOpenModal(false)}
                         removeProduct={removeItem}
                         productDetails={productDetails}
+                        itemValueFinish={itemValueFinish}
                     />
                 )}
             </motion.main>

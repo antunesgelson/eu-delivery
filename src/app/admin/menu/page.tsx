@@ -1,12 +1,12 @@
 'use client'
 import AddIngredients from "@/components/AddIngredients";
 import MenuProfile from "@/components/MenuProfile";
-import { useState } from "react";
+import React from "react";
 import Products from "../menu/components/Products";
 
 
 export default function Menu() {
-    const [menu, setMenu] = useState('products')
+    const [menu, setMenu] = React.useState('products')
     return (
         <div className="flex justify-between px-2">
             <MenuProfile />
