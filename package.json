@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "cross-env PORT=4051 next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -55,6 +55,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.5",
     "eslint-plugin-react": "^7.36.1",
