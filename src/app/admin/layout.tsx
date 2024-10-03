@@ -2,11 +2,11 @@
 import classNames from 'classnames';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 import HeaderAdmin from "@/components/Header/Admin";
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
+import React from 'react';
 import { BiSolidCategoryAlt, BiSolidFoodMenu } from "react-icons/bi";
 import { BsFiletypeDoc, BsTagsFill } from "react-icons/bs";
 import { FaChartPie, FaGears, FaPersonWalking } from "react-icons/fa6";
@@ -52,11 +52,11 @@ const MenuItem = ({ Icon, title, link, open }: MenuProps) => {
 
 const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
     const path = usePathname();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = React.useState(false);
     const toggleOpen = () => setOpen(!open);
     const menuData = [
         { Icon: FaChartPie, title: 'Dashboard', link: '/admin/dashboard', subMenu: [] },
-        { Icon: BiSolidFoodMenu, title: 'Cardápio', link: '/admin/menu', subMenu: [] },
+        { Icon: BiSolidFoodMenu, title: 'Cardápio', link: '/admin/cardapio', subMenu: [] },
         { Icon: MdOndemandVideo, title: 'Vídeos', link: '/admin/video/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/video/visualizar' }, { title: 'Cadastrar', link: '/admin/video/cadastrar' }] },
         { Icon: BsFiletypeDoc, title: 'Documentos', link: '/admin/documentos/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/documentos/visualizar' }, { title: 'Cadastrar', link: '/admin/documentos/cadastrar' }] },
         { Icon: FaGears, title: 'Implementações', link: '/admin/implementacoes/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/implementacoes/visualizar' }, { title: 'Cadastrar', link: '/admin/implementacoes/cadastrar' }] },
@@ -83,7 +83,7 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
                 </div>
             </div>
             <div className="dark:bg-dark-900 bg-white-off w-full h-full dark:text-white-off text-dark-900">
-                {path !== '/admin/menu' && <HeaderAdmin />}
+                {path !== '/admin/cardapio' && <HeaderAdmin />}
                 {children}
             </div>
         </div>

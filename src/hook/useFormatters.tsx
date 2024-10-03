@@ -67,6 +67,8 @@ const useFormatters = () => {
         return formatted;
     }, []);
 
+
+
     return { cpfFormat, cellPhoneFormat, homePhoneFormat, cepFormat };
 };
 

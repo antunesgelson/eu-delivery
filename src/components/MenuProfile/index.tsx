@@ -18,7 +18,11 @@ import { AxiosError } from "axios";
 import React from "react";
 import { Tooltip } from "react-tooltip";
 
-const MenuProfile = () => {
+type Props = {
+    setMenu: React.Dispatch<React.SetStateAction<string>>
+    setSelectedCategory: React.Dispatch<React.SetStateAction<{ id: string, name: string } | null>>
+}
+const MenuProfile = ({ setMenu, setSelectedCategory }: Props) => {
     const [open, setOpen] = React.useState(false);
 
     const { data: cardapio } = useQuery({
@@ -74,10 +78,17 @@ const MenuProfile = () => {
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
-                                            <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1">
-                                                <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white">Adicionar Produto</span>
-                                                <button onClick={() => setOpen(true)}>
+                                            <div
+                                                className="group cursor-pointer flex justify-between items-center pb-4 -mt-1"
+                                                data-tooltip-id={`products-tooltip`}
+                                                data-tooltip-content={'Adicionar novo produto.'}>
+                                                <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
+                                                <button onClick={() => {
+                                                    setSelectedCategory({ id: String(item.id), name: item.titulo });
+                                                    setMenu('products');
+                                                }}>
                                                     <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
+                                                    <Tooltip id={`products-tooltip`} />
                                                 </button>
                                             </div>
                                             {item.produtos.map((produto, index) => (
@@ -103,7 +114,7 @@ const MenuProfile = () => {
                             <AccordionContent>
                                 <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1">
                                     <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white">Adicionar Ingrediente</span>
-                                    <button onClick={() => setOpen(true)}>
+                                    <button onClick={() => { }}>
                                         <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
                                     </button>
                                 </div>

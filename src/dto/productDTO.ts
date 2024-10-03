@@ -1,15 +1,15 @@
 
 type ReplaceDTO = {
     id: string,
-    nomeIngrediente: string,
-    valorIngrediente: number,
+    nome: string,
+    valor: number,
     removivel: boolean,
     quantia: number,
 }
 export type IngredientesDTO = {
     id: string,
-    nomeIngrediente: string,
-    valorIngrediente: number,
+    nome: string,
+    valor: number,
     removivel: boolean,
     quantia: number,
     replace?: ReplaceDTO

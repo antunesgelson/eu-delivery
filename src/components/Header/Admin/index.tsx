@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { usePathname } from 'next/navigation';
 import { IoChevronBackOutline, IoChevronDownCircle, IoChevronDownOutline, IoChevronForward } from "react-icons/io5";
@@ -15,7 +15,7 @@ const months = [
 ];
 
 const HeaderAdmin = () => {
-    const [year, setYear] = useState(new Date().getFullYear());
+    const [year, setYear] = React.useState(new Date().getFullYear());
     const [month, setMonth] = useState(months[new Date().getMonth()]);
     const [showCalendar, setShowCalendar] = useState(false);
     const [isDashboard, setIsDashboard] = useState(false);

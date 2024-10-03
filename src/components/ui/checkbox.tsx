@@ -19,7 +19,7 @@ const Checkbox = React.forwardRef<
 >(({ className, variant, ...props }, ref) => {
   // Determinar as classes de estilo com base na variante
 
-  
+
   let variantClasses = ''
   switch (variant) {
     case 'add':

@@ -20,7 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className="relative">
         {label &&
           <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted">
+            <Label className="text-xs text-muted py-1">
               {label}
             </Label>
 
@@ -62,7 +62,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <AnimatePresence>
           {error && (
             <motion.p
-              className="text-[0.7rem] text-red-500 ml-2 line-clamp-1"
+              className="text-[0.7rem] text-red-500 ml-2 line-clamp-1 "
               initial={{ opacity: 0, }}
               animate={{
                 opacity: [1, 0.5, 1, 0.5, 1],
@@ -75,8 +75,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 loop: Infinity,
                 repeatDelay: 33
               }}
-              exit={{ opacity: 0, y: 10 }}
-            >
+              exit={{ opacity: 0, y: 10 }}>
               {error}
             </motion.p>
           )}
