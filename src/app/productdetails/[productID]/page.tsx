@@ -52,11 +52,12 @@ export default function ProductorDetails({ params }: Props) {
         });
     };
 
-    function handleAdicional(index: number, item: AdicionaisDTO) {
+    function handleAdicional(item: AdicionaisDTO) {
+        const adicionalID = parseInt(item.id)
         let checked
         setAddSelectedItems(prev => {
-            checked = prev[index];
-            return { ...prev, [index]: !prev[index] }
+            checked = prev[adicionalID];
+            return { ...prev, [adicionalID]: !prev[adicionalID] }
         });
         const valorTotal = item.valor * countProduct;
         if (checked) {
@@ -106,9 +107,10 @@ export default function ProductorDetails({ params }: Props) {
                     const isRemoved = removeSelectedItems[productDetails.ingredientes.indexOf(item)];
                     return isRemoved && item.replace ? item.replace.id : item.id;
                 });
+
             const adicionaisIds = Object.keys(addSelectedItems)
                 .filter(key => addSelectedItems[parseInt(key)])
-                .map(key => parseInt(key) + 1);
+                .map(key => parseInt(key));
 
             const { data } = await api.post('/pedido/carrinho', {
                 produtoId: parseInt(params.productID),
@@ -212,7 +214,7 @@ export default function ProductorDetails({ params }: Props) {
                         <div key={index} className="flex flex-col gap-2 text-sm duration-300">
                             <div className={`flex items-center gap-2 ${removeSelectedItems[index] && 'line-through text-red-700'}`} onClick={() => { handleRemove(index); setRemoveItem(item) }}>
                                 <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
-                                <span className='capitalize'>Remover {item.nomeIngrediente}</span>
+                                <span className='capitalize'>Remover {item.nome}</span>
                             </div>
                             <AnimatePresence>
                                 {removeSelectedItems[index] && item.replace && (
@@ -224,7 +226,7 @@ export default function ProductorDetails({ params }: Props) {
                                         transition={{ duration: 0.3 }}>
                                         <p className="text-sm text-gray-500">Substituído por:</p>
                                         <ul className="list-disc list-inside">
-                                            <li className="text-sm text-blue-500 capitalize">{item?.replace?.nomeIngrediente}</li>
+                                            <li className="text-sm text-blue-500 capitalize">{item?.replace?.nome}</li>
                                         </ul>
                                     </motion.div>
                                 )}
@@ -242,12 +244,15 @@ export default function ProductorDetails({ params }: Props) {
                     </div>
                 </div>
                 <div className='bg-white p-4 flex flex-col gap-5'>
-                    {productDetails?.adicionais?.map((item, index) => (
-                        <div key={index} className={`flex items-center gap-2 text-sm ${addSelectedItems[index] && 'text-emerald-600'}`} onClick={() => handleAdicional(index, item)}>
-                            <Checkbox variant='add' checked={!!addSelectedItems[index]} />
-                            <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
-                        </div>
-                    ))}
+                    {productDetails?.adicionais?.map((item) => {
+                        const adicionalID = parseInt(item.id)
+                        return (
+                            <div key={adicionalID} className={`flex items-center gap-2 text-sm ${addSelectedItems[adicionalID] && 'text-emerald-600'}`} onClick={() => handleAdicional(item)}>
+                                <Checkbox variant='add' checked={!!addSelectedItems[adicionalID]} />
+                                <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
+                            </div>
+                        )
+                    })}
                 </div>
                 <div className='p-4 leading-3'>
                     <h2 className="uppercase text-xl font-bold">observação</h2>
