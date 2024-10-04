@@ -68,7 +68,7 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
 
 
     return (
-        <div className="h-screen flex justify-between">
+        <div className="min-h-screen h-full flex justify-between">
             <div className={classNames("relative duration-300 flex flex-col items-center dark:bg-dark-800 bg-white shadow-sm drop-shadow-lg", { 'w-80': open, 'w-24 ': !open })}>
                 <button className="dark:text-white-off text-muted-foreground py-8 flex items-center" onClick={toggleOpen}>
                     ADMIN

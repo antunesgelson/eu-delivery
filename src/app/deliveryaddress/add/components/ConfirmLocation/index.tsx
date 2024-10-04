@@ -2,7 +2,6 @@
 'use client'
 import { LocationDTO } from "@/dto/addressDTO";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +9,7 @@ import { FaLocationDot } from "react-icons/fa6";
 import { MdNotListedLocation } from "react-icons/md";
 
 import { GoogleMap, Marker } from '@react-google-maps/api';
+import React from "react";
 import GoogleMapsLoader from "../GoogleMapsLoader";
 
 const CONTAINER_STYLE = {
@@ -23,8 +23,7 @@ type Props = {
     setStep: (step: number) => void;
 }
 const ConfirmLocation = ({ location, setLocation, setStep }: Props) => {
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY as string;
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = React.useState(false);
 
     // Atualizar localização quando o marcador for arrastado
     function handleMarkerDragEnd(event: google.maps.MapMouseEvent) {

@@ -78,15 +78,15 @@ const MenuProfile = ({ setMenu, setSelectedCategory }: Props) => {
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
-                                            <div
-                                                className="group cursor-pointer flex justify-between items-center pb-4 -mt-1"
-                                                data-tooltip-id={`products-tooltip`}
-                                                data-tooltip-content={'Adicionar novo produto.'}>
+                                            <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1">
                                                 <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
-                                                <button onClick={() => {
-                                                    setSelectedCategory({ id: String(item.id), name: item.titulo });
-                                                    setMenu('products');
-                                                }}>
+                                                <button
+                                                    data-tooltip-id={`products-tooltip`}
+                                                    data-tooltip-content={'Adicionar novo produto.'}
+                                                    onClick={() => {
+                                                        setSelectedCategory({ id: String(item.id), name: item.titulo });
+                                                        setMenu('products');
+                                                    }}>
                                                     <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
                                                     <Tooltip id={`products-tooltip`} />
                                                 </button>

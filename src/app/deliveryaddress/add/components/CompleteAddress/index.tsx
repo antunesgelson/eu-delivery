@@ -1,5 +1,5 @@
 'use client'
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -18,6 +18,7 @@ import { api } from "@/service/api";
 import { useMutation } from "@tanstack/react-query";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import React from "react";
 import { useForm } from "react-hook-form";
 import zod, { z } from "zod";
 
@@ -58,15 +59,21 @@ const CompleteAddress = ({ location }: Props) => {
                 rua: rua,
             })
             return data
-        }, onSuccess(data) {
+        }, onSuccess() {
             toast.success('Endereço cadastrado com sucesso!')
             router.push(`/deliveryaddress`);
-        }, onError(error: any) {
-            console.error('Erro ao completar endereço:', error);
-            toast.error(error.response.data.message)
-            throw error;
+        }, onError(error: unknown) {
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde.')
+                throw error;
+            }
         },
     })
+
+
 
     const handleReverseGeocode = useCallback(async (lat: number, lng: number) => {
         try {
@@ -108,7 +115,7 @@ const CompleteAddress = ({ location }: Props) => {
         }
     }, []);
 
-    useEffect(() => {
+    React.useEffect(() => {
         const { lat, lng } = location;
         if (lat && lng) {
             handleReverseGeocode(lat, lng);

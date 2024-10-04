@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
             },
         }),
     ],
-
+    debug: true, // Habilita o modo de depuração
     callbacks: {
         async signIn({ account }: any) {
             if (!account.scope.includes('https://www.googleapis.com/auth/calendar')) {

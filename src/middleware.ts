@@ -7,7 +7,6 @@ export async function middleware(request: NextRequest) {
     const tokenGoogle = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
     const isAuthenticate = tokenGoogle ? true : false;
 
-    const cookies = request.cookies;
     const url = request.url;
     const nextUrl = request.nextUrl;
     const ToHome = new URL('/?firstLogin=true', url);

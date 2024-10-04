@@ -68,21 +68,21 @@ export function ModalSubstituir({ open, onClose, removeProduct, productDetails, 
             <DialogContent className="sm:max-w-[425px] w-11/12 mx-auto rounded-md">
                 <DialogHeader>
                     <DialogTitle className=" uppercase text-xl font-bold flex justify-center items-center gap-1 line-clamp-1">
-                        Substituir <strong className="underline underline-offset-2 ">{removeProduct.nomeIngrediente}</strong>
+                        Substituir <strong className="underline underline-offset-2 ">{removeProduct.nome}</strong>
                     </DialogTitle>
                     <DialogDescription className="text-start text-[12px] leading-3">
                         {/* Sugestões para substituir {product}: */}
-                        Selecione o item que deseja adicionar no lugar de <strong className="capitalize">{removeProduct.nomeIngrediente}</strong>.
+                        Selecione o item que deseja adicionar no lugar de <strong className="capitalize">{removeProduct.nome}</strong>.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid grid-cols-2 gap-4">
-                    {productDetails.ingredientes.filter(ingrediente => ingrediente.valorIngrediente <= removeProduct.valorIngrediente).map((item, index) => (
+                    {productDetails.ingredientes.filter(ingrediente => ingrediente.valor <= removeProduct.valor).map((item, index) => (
                         <div key={index}
                             className={`flex items-center gap-2 text-sm ${checked === parseInt(item.id) && 'text-emerald-600'}`}
                             onClick={() => handleChecked(item)}>
                             <Checkbox variant='add' checked={checked === parseInt(item.id)} onChange={() => { }} />
-                            <span className='capitalize'>{item.nomeIngrediente} </span>
+                            <span className='capitalize'>{item.nome} </span>
                         </div>
                     ))}
                     <div

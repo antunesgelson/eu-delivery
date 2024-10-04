@@ -2,12 +2,13 @@
 import { LocationDTO } from "@/dto/addressDTO";
 import { useState } from "react";
 
+import React from "react";
 import CompleteAddress from "./components/CompleteAddress";
 import ConfirmLocation from "./components/ConfirmLocation";
 import SearchLocation from "./components/SearchLocation";
 
 export default function AddAdress() {
-    const [step, setStep] = useState(1);
+    const [step, setStep] = React.useState(1);
     const [location, setLocation] = useState<LocationDTO>({} as LocationDTO);
 
     return (

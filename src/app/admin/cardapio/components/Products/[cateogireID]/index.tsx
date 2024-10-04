@@ -20,7 +20,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { FaMinusCircle } from 'react-icons/fa'
 import { FaCirclePlus, FaCircleQuestion, FaClipboardQuestion } from 'react-icons/fa6'
 import { HiViewGridAdd } from "react-icons/hi"
-import { MdArrowRightAlt, MdAssignmentAdd } from "react-icons/md"
+import { MdArrowRightAlt, MdAssignmentAdd, MdSaveAlt } from "react-icons/md"
 
 import ImageUploadField from '@/components/ImageUploader'
 import CurrencyField from '@/components/ui/current'
@@ -31,19 +31,12 @@ import z from 'zod'
 
 type Props = {
     category: { id: string; name: string; };
+    setMenu: React.Dispatch<React.SetStateAction<string>>;
 }
-const Products = ({ category }: Props) => {
+const Products = ({ category, setMenu }: Props) => {
     const [step, setStep] = React.useState(1)
     const [product, setProduct] = useState<ProdutosDTO>({} as ProdutosDTO)
 
-    // function handleNextStep(event: React.MouseEvent<HTMLButtonElement>, direction: 'next' | 'prev') {
-    //     event.preventDefault()
-    //     if (direction === 'next') {
-    //         setStep((prevStep) => prevStep + 1)
-    //     } else {
-    //         setStep((prevStep) => prevStep - 1)
-    //     }
-    // }
     return (
         <section className="rounded-lg p-6  m-2 dark:bg-[#1d1d1d] dark:border dark:border-stone-500 dark:border-dashed ">
             <div className="w-full">
@@ -73,6 +66,7 @@ const Products = ({ category }: Props) => {
                             exit={{ opacity: 0, x: 25, filter: 'blur(10px)' }}
                             transition={{ duration: 0.5, }}>
                             <Step2
+                                setStep={setStep}
                                 product={product}
                             />
                         </motion.div>}
@@ -85,28 +79,13 @@ const Products = ({ category }: Props) => {
                             animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
                             exit={{ opacity: 0, x: 25, filter: 'blur(10px)' }}
                             transition={{ duration: 0.5, }}>
-                            <Step3 />
+                            <Step3
+                                setStep={setStep}
+                                product={product}
+                                setMenu={setMenu}
+                            />
                         </motion.div>}
                 </AnimatePresence>
-
-                {/* <div className='flex justify-end pt-6'>
-                    {step > 1 &&
-                        <Button
-                            onClick={(event) => handleNextStep(event, 'prev')}
-                            className="flex items-center gap-1 text-sm mr-1"
-                            variant={'outline'}>
-                            <MdArrowRightAlt className='rotate-180' size={20} />
-                            Voltar
-                        </Button>}
-                    <Button
-                        type='submit'
-                        onClick={(event) => handleNextStep(event, 'next')}
-                        className="flex items-center gap-1 text-sm"
-                        variant={'outline'}>
-                        {step === 3 ? 'Finalizar' : 'Próximo'}
-                        {step === 3 ? <MdSaveAlt size={20} /> : <MdArrowRightAlt size={20} />}
-                    </Button>
-                </div> */}
             </div>
         </section>
     )
@@ -114,7 +93,7 @@ const Products = ({ category }: Props) => {
 
 
 
-
+{/* Cadastrar Produto na Categoria Selecionada */ }
 const currencyStringToNumber = (val: string) => {
     if (!val) return 0;
     // Remove o prefixo 'R$ ', espaços, pontos e outros caracteres não numéricos
@@ -182,7 +161,6 @@ const Step1 = ({ setStep, category, setProduct }: Step1Props) => {
             });
             return data
         }, onSuccess(data) {
-            console.log(data)
             setStep((prevStep) => prevStep + 1)
             setProduct(data)
         }, onError(error: unknown) {
@@ -265,14 +243,12 @@ const Step1 = ({ setStep, category, setProduct }: Step1Props) => {
                         error={errors.descricao?.message}
                     />
                 </div>
-
                 <div className='flex justify-end pt-6'>
                     <Button
-                        loading={isPending}
                         type='submit'
-                        // onClick={(event) => handleNextStep(event, 'next')}
-                        className="flex items-center gap-1 text-sm"
-                        variant={'outline'}>
+                        variant={'outline'}
+                        loading={isPending}
+                        className="flex items-center gap-1 text-sm">
                         Próximo
                         <MdArrowRightAlt size={20} />
                     </Button>
@@ -282,11 +258,16 @@ const Step1 = ({ setStep, category, setProduct }: Step1Props) => {
     )
 }
 
+
+
+{/* Vincular Ingrediente ao Produto */ }
 type Step2Props = {
     product: ProdutosDTO
+    setStep: React.Dispatch<React.SetStateAction<number>>
 }
-const Step2 = ({ product }: Step2Props) => {
+const Step2 = ({ product, setStep }: Step2Props) => {
     const [selectedIngredients, setSelectedIngredients] = useState<Record<number, { quantia: number; removivel: boolean }>>({});
+
 
     const { data: ingredientes } = useQuery({
         queryKey: ['list-ingredientes'],
@@ -378,26 +359,37 @@ const Step2 = ({ product }: Step2Props) => {
     }
 
 
+    const { mutateAsync: handleAddIngredientToProduct, isPending } = useMutation({
+        mutationKey: ['add-ingredient-to-product'],
+        mutationFn: async (e: React.FormEvent<HTMLFormElement>) => {
+            e.preventDefault(); // Prevent the default form submission behavior
+            e.stopPropagation(); // Prevent the event from bubbling up the DOM tree
+            const payloadIngredientes = Object.entries(selectedIngredients).map(([key, value]) => ({
+                produtoId: product.id,
+                ingredienteId: Number(key),
+                quantia: value.quantia,
+                removivel: value.removivel
+            }))
+            const { data } = await api.post('/produto/adicionar-ingredientes', payloadIngredientes)
 
-    // const { mutateAsync: handleAddIngredientToProduct } = useMutation({
-    //     mutationKey: ['add-ingredient-to-product'],
-    //     mutationFn: async () => {
-    //         console.log('aqui')
-    //         const { data } = await api.post('/produto/cadastrar', [
-    //             {
-    //                 produtoId: product.id,
-    //                 ingredienteId: 3,
-    //                 quantia: 1,
-    //                 removivel: true
-    //             }
-    //         ])
-    //         return data;
-    //     }
-    // })
+            return data;
+        }, onSuccess(data) {
+            console.log('success ->', data)
+            setStep((prevStep) => prevStep + 1)
+
+        }, onError(error: unknown) {
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+
+            } else {
+                toast.error('An unexpected error occurred')
+            }
+        }
+    })
 
 
     return (
-        <form className='space-y-2'>
+        <form onSubmit={(e) => { handleAddIngredientToProduct(e) }} className='space-y-2'>
             <h1 className=" text-3xl text-muted font-semibold uppercase  py-8 flex items-center gap-1">
                 <FaClipboardQuestion size={40} />
                 Vincular Ingrediente {'>'} {product?.titulo}
@@ -408,19 +400,10 @@ const Step2 = ({ product }: Step2Props) => {
                 const igredientID = parseInt(item.id)
                 return (
                     <div key={item.id} className={`flex items-center justify-between w-full px-4 py-1 rounded-md dark:bg-dark-500`}>
-                        <div
-                            className={`flex items-center gap-2 text-sm cursor-pointer ${selectedIngredients[igredientID] ? 'text-white' : 'text-muted'}`}
-                            onClick={() => handleToggle(igredientID)}>
-                            {/* <Checkbox
+                        <div className={`flex items-center gap-2 text-sm cursor-pointer ${selectedIngredients[igredientID] ? 'text-white' : 'text-muted'}`}>
+                            <Checkbox
                                 checked={!!selectedIngredients[igredientID]}
                                 onCheckedChange={() => handleToggle(igredientID)}
-                            /> */}
-
-                            <input
-                                className="peer h-6 w-6 shrink-0 rounded-sm checked:bg-red-600 border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 "
-                                type="checkbox"
-                                checked={selectedIngredients[igredientID]?.removivel || false}
-                                onChange={() => handleToggle(igredientID)}
                             />
                             <div className="flex flex-col ">
                                 <span className='capitalize'>{item.nome} </span>
@@ -487,17 +470,18 @@ const Step2 = ({ product }: Step2Props) => {
 
             <div className='flex justify-end pt-6'>
                 <Button
-                    // onClick={(event) => handleNextStep(event, 'prev')}
+                    variant={'outline'}
                     className="flex items-center gap-1 text-sm mr-1"
-                    variant={'outline'}>
+                    onClick={() => setStep((prevStep) => prevStep - 1)}>
                     <MdArrowRightAlt className='rotate-180' size={20} />
                     Voltar
                 </Button>
                 <Button
                     type='submit'
-                    // onClick={(event) => handleNextStep(event, 'next')}
+                    variant={'outline'}
+                    loading={isPending}
                     className="flex items-center gap-1 text-sm"
-                    variant={'outline'}>
+                    disabled={!Object.keys(selectedIngredients).length}>
                     Próximo
                     <MdArrowRightAlt size={20} />
                 </Button>
@@ -506,8 +490,18 @@ const Step2 = ({ product }: Step2Props) => {
     )
 }
 
-const Step3 = () => {
+
+
+
+{/* Vincular Adicional ao Produto */ }
+type Step3Props = {
+    product: ProdutosDTO
+    setStep: React.Dispatch<React.SetStateAction<number>>
+    setMenu: React.Dispatch<React.SetStateAction<string>>
+}
+const Step3 = ({ setStep, product, setMenu }: Step3Props) => {
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
+
     const { data: ingredientes } = useQuery({
         queryKey: ['list-ingredientes'],
         queryFn: async () => {
@@ -519,42 +513,89 @@ const Step3 = () => {
                     toast.error(error.response.data.message)
 
                 } else {
-                    toast.error('An unexpected error occurred')
+                    toast.error('Erro inesperado, tente novamente mais tarde.')
                 }
             }
         },
     });
 
-    function handleToggle(index: number) {
-        setAddSelectedItems(prev => ({ ...prev, [index]: !prev[index] }))
+    function handleToggle(ingredientID: number) {
+        setAddSelectedItems(prev => ({ ...prev, [ingredientID]: !prev[ingredientID] }))
     }
 
+
+    const { mutateAsync: handleAddAdicionalToProduct, isPending } = useMutation({
+        mutationKey: ['add-adicional-to-product'],
+        mutationFn: async (e: React.FormEvent<HTMLFormElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const adicionalArray = Object.entries(addSelectedItems)
+                .filter(([value]) => value) // Filtra apenas os itens que estão `true`
+                .map(([key]) => ({
+                    ingredienteId: Number(key),
+                    produtoId: product.id
+                }));
+            const { data } = await api.post('/produto/adicional', adicionalArray)
+
+            return data
+        }, onSuccess(data) {
+            console.log('success ->', data)
+            toast.success('Produto cadastrado com sucesso!')
+            setMenu('ingredients')
+        }, onError(error: unknown) {
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde. ')
+            }
+        },
+    })
+
     return (
-        <div className='space-y-2'>
+        <form onSubmit={(e) => handleAddAdicionalToProduct(e)} className='space-y-2'>
             <h1 className=" text-3xl text-muted font-semibold uppercase  py-8 flex items-center gap-1">
                 <MdAssignmentAdd size={40} />
-                Cadastrar Adicionais
+                Cadastrar Adicionais {'>'} {product?.titulo}
             </h1>
             <span className="text-xs text-muted">Selecione os ingredientes que deseja oferecer como adicionais.</span>
             <div className="grid grid-cols-2 gap-2">
-                {ingredientes?.map((item, index) => (
-                    <div key={`${index}-${addSelectedItems[index]}`} className={`flex items-center justify-between w-full px-4 py-1 rounded-md dark:bg-dark-500`}>
-                        <div className={`flex items-center gap-2 text-sm cursor-pointer ${addSelectedItems[index] ? 'text-white' : 'text-muted'}`}
-                            onClick={() => handleToggle(index)}>
-                            <Checkbox
-                                checked={!!addSelectedItems[index]}
-                                onChange={() => { }}
-                                onClick={() => handleToggle(index)} />
-                            <div className="flex flex-col ">
-                                <span className='capitalize'>{item.nome} </span>
-                                <p className="text-xs">R$ {item?.valor.toFixed(2)}</p>
+                {ingredientes?.map((item) => {
+                    const igredientID = parseInt(item.id)
+                    return (
+                        <div key={`${igredientID}-${addSelectedItems[igredientID]}`} className={`flex items-center justify-between w-full px-4 py-1 rounded-md dark:bg-dark-500`}>
+                            <div className={`flex items-center gap-2 text-sm cursor-pointer ${addSelectedItems[igredientID] ? 'text-white' : 'text-muted'}`}>
+                                <Checkbox
+                                    checked={!!addSelectedItems[igredientID]}
+                                    onCheckedChange={() => handleToggle(igredientID)}
+                                />
+                                <div className="flex flex-col ">
+                                    <span className='capitalize'>{item.nome} </span>
+                                    <p className="text-xs">R$ {item?.valor.toFixed(2)}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
-        </div>
+
+            <div className='flex justify-end pt-6'>
+                <Button
+                    variant={'outline'}
+                    onClick={() => setStep((prevStep) => prevStep - 1)}
+                    className="flex items-center gap-1 text-sm mr-1">
+                    <MdArrowRightAlt className='rotate-180' size={20} />
+                    Voltar
+                </Button>
+                <Button
+                    loading={isPending}
+                    type='submit'
+                    variant={'outline'}
+                    className="flex items-center gap-1 text-sm">
+                    Finalizar
+                    <MdSaveAlt size={20} />
+                </Button>
+            </div>
+        </form>
     )
 }
-
 export default Products;

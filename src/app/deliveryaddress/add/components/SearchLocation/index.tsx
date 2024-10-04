@@ -1,7 +1,7 @@
 'use client'
 import { LocationDTO } from "@/dto/addressDTO";
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { IoMdLocate } from "react-icons/io";
 import { MdAddLocationAlt } from "react-icons/md";
 
 import { Autocomplete } from '@react-google-maps/api';
+import React from "react";
 import GoogleMapsLoader from "../GoogleMapsLoader";
 
 type Props = {
@@ -20,7 +21,7 @@ type Props = {
 }
 
 const SearchLocation = ({ setLocation, setStep }: Props) => {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = React.useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -32,6 +33,7 @@ const SearchLocation = ({ setLocation, setStep }: Props) => {
                     lat: place.geometry.location.lat(),
                     lng: place.geometry.location.lng(),
                 };
+
                 setLocation(location);
                 setStep(2);
             }

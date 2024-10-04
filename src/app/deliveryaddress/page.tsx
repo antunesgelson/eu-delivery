@@ -15,9 +15,10 @@ import { TiEdit } from "react-icons/ti";
 import { AddressDTO } from "@/dto/addressDTO";
 import { api } from "@/service/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import React from "react";
 
 export default function DeliveryAddress() {
-    const [favorite, setFavorite] = useState(false);
+    const [favorite, setFavorite] = React.useState(false);
     const [openModal, setOpenModal] = useState(false);
     const [address, setAddress] = useState<AddressDTO>({} as AddressDTO);
 

@@ -17,7 +17,10 @@ export default function Menu() {
             />
             <div className=" w-full dark:bg-dark-300 ">
                 {menu === 'products' && selectedCategory && (
-                    <Products category={selectedCategory} />
+                    <Products
+                        category={selectedCategory}
+                        setMenu={setMenu}
+                    />
                 )}
                 {menu === 'ingredients' && <AddIngredients />}
             </div>
