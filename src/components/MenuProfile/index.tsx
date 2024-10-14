@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { FaCoffee, FaShoppingBasket } from "react-icons/fa";
+import { ImCancelCircle } from "react-icons/im";
 import { MdSaveAlt } from "react-icons/md";
 import { TbSquareRoundedPlus } from "react-icons/tb";
 
@@ -25,12 +26,13 @@ import { z } from "zod";
 type Props = {
     setMenu: React.Dispatch<React.SetStateAction<string>>
     setSelectedCategory: React.Dispatch<React.SetStateAction<{ id: string, name: string } | null>>
+    productID: number | null
+    setProductID: React.Dispatch<React.SetStateAction<number | null>>
 }
-const MenuProfile = ({ setMenu, setSelectedCategory }: Props) => {
+const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID }: Props) => {
     const [open, setOpen] = React.useState(false);
     const [showIcon, setShowIcon] = React.useState<number | null>(null);
     const [openModalRemoveProduct, setOpenModalRemoveProduct] = React.useState(false);
-    const [productID, setProductID] = React.useState(0)
 
     const { data: cardapio, refetch: handleUpdateCategory } = useQuery({
         queryKey: ['list-categories-details'],
@@ -50,10 +52,15 @@ const MenuProfile = ({ setMenu, setSelectedCategory }: Props) => {
     });
 
     function handleWapperRemoveProduct(productID: number) {
-        console.log('oque ta vindo? kk', productID)
         setProductID(productID)
         setOpenModalRemoveProduct(!openModalRemoveProduct)
     }
+
+    function handleEditProduct(productID: number) {
+        setProductID(productID)
+        setMenu('edit-products')
+    }
+
 
 
     return (
@@ -112,6 +119,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory }: Props) => {
                                             {item.produtos.map((produto,) => (
                                                 <div key={produto.id}
                                                     className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
+                                                    onClick={() => { handleEditProduct(produto.id) }}
                                                     onMouseEnter={() => setShowIcon(produto.id)}
                                                     onMouseLeave={() => setShowIcon(null)}>
                                                     <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
@@ -299,21 +307,13 @@ const ModalRemoveProduct = ({ open, onClose, handleUpdateCategory, productID }: 
                         tem certeza que deseja remover este produto?
                     </DialogDescription>
                 </DialogHeader>
-
                 <DialogFooter>
-                    <Button
-                        onClick={onClose}
-                        className="flex items-center gap-1"
-                        variant={'outline'}>
-                        <MdSaveAlt />
-                        Cancelar
-                    </Button>
                     <Button
                         loading={isPending}
                         onClick={() => handleRemoveProduct()}
                         className="flex items-center gap-1"
                         variant={'outline'}>
-                        <MdSaveAlt />
+                        <ImCancelCircle />
                         Remover
                     </Button>
                 </DialogFooter>
