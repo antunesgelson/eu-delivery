@@ -9,7 +9,7 @@ import { IconType } from "react-icons/lib";
 const Dashboard = () => {
     const [teste, setTeste] = React.useState();
     return (
-        <div className="px-4 2xl:w-10/12 mx-auto">
+        <div className="px-4 2xl:w-10/12 mx-auto h-full min-h-screen">
             <h1 className="text-start text-3xl pb-6">Dashboard</h1>
 
             <section className="grid grid-cols-4 gap-4">

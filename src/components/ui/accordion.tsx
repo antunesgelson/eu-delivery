@@ -5,6 +5,7 @@ import { ChevronDownIcon } from "@radix-ui/react-icons"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { ScrollArea } from "./scroll-area"
 
 const Accordion = AccordionPrimitive.Root
 
@@ -49,8 +50,11 @@ const AccordionContent = React.forwardRef<
     className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down "
     {...props}
   >
-    <div className={cn("py-2", className)}>{children}</div>
-  </AccordionPrimitive.Content>
+
+    <ScrollArea  className=" h-[200px] pr-3">
+      <div className={cn("py-2", className)}>{children}</div>
+    </ScrollArea>
+  </AccordionPrimitive.Content >
 ))
 AccordionContent.displayName = AccordionPrimitive.Content.displayName
 

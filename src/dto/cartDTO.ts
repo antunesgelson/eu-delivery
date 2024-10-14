@@ -1,3 +1,4 @@
+import { AddressDTO } from "./addressDTO"
 import { AdicionaisDTO, IngredientesDTO } from "./productDTO"
 
 export type ItensDTO = {
@@ -17,7 +18,7 @@ export type CartDTO = {
     itens: ItensDTO[]
     cashBack: number
     dataEntrega: null
-    endereco: null
+    endereco: AddressDTO
     obs: string
     valorTotalPedido: number
 }

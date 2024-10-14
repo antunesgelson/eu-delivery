@@ -3,9 +3,14 @@ import { ModalAgendarEntrega } from "@/components/Modal/AgendarEntrega";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import useCart from "@/hook/useCart";
+import { api } from "@/service/api";
+import { useMutation } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import React from "react";
 
 import { BsBasket2Fill } from "react-icons/bs";
 import { FaMapMarkedAlt, FaPiggyBank } from "react-icons/fa";
@@ -14,9 +19,45 @@ import { HiTicket } from "react-icons/hi2";
 import { IoWallet } from "react-icons/io5";
 import { MdAccessTimeFilled } from "react-icons/md";
 import { PiTrash } from "react-icons/pi";
-export default function Checkout() {
-    const [openModal, setOpenModal] = useState(false);
+import { toast } from "sonner";
 
+export default function Checkout() {
+    const [openModal, setOpenModal] = React.useState(false);
+    const { cart, handleUpdateCart } = useCart()
+    const [loadingItems, setLoadingItems] = React.useState<{ [key: number]: boolean }>({});
+
+
+    const { mutateAsync: handleRemoveItemCart } = useMutation({
+        mutationKey: ['change-checkout'],
+        mutationFn: async ({ itemID }: { itemID: number }) => {
+            const { data } = await api.delete(`/pedido/carrinho/item/${itemID}`)
+            return data
+        }, onSuccess() {
+            handleUpdateCart()
+        }, onError(error: unknown) {
+            console.log(error)
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde.')
+            }
+        }
+    })
+
+    const handleRemoveItem = async (itemID: number) => {
+        setLoadingItems((prev) => ({ ...prev, [itemID]: true }));
+        try {
+            await handleRemoveItemCart({ itemID });
+        } finally {
+            setLoadingItems((prev) => ({ ...prev, [itemID]: false }));
+        }
+    };
+
+    React.useEffect(() => {
+        console.log('cart', cart)
+
+        console.log('endereço ', cart?.endereco)
+    }, [cart]);
 
     return (
         <motion.main className="mt-12"
@@ -25,20 +66,34 @@ export default function Checkout() {
 
             <div className='p-4 leading-3'>
                 <h2 className="uppercase text-2xl font-bold flex items-center gap-2 "> <BsBasket2Fill /> itens do pedido </h2>
-                {/* <span className='text-[12px]'>Você pode coferir todos os pedidos realizados em nosso site, e também pode refazer eles de forma rápida e prática!</span> */}
+                <span className='text-xs text-muted-foreground'>Você pode coferir todos os pedidos realizados em nosso site, e também pode refazer eles de forma rápida e prática!</span>
             </div>
 
-            <section className="bg-white p-4">
-                <div className="flex justify-between items-start text-sm gap-2">
-                    <span className="font-semibold">1x COMBO COSTELA + FRITAS E RIFRIGERANTE</span>
-                    <strong className="whitespace-nowrap">R$ 39,90</strong>
-                    <PiTrash className="" size={22} />
-                </div>
-                <div className="flex flex-col text-muted-foreground text-sm">
-                    <span>padrão</span>
-                    <span>com batatinha</span>
-                    <strong>+1x fanta uva lata</strong>
-                </div>
+            <section className="bg-white p-4 space-y-4">
+                {cart?.itens.length === 0 && <span className="text-muted-foreground text-sm text-center">O carrinho está vazio.</span>}
+                {cart?.itens.map((item) => (
+                    <div key={item.id}>
+                        <div className="flex justify-between items-start text-sm gap-2">
+                            <span className="font-semibold">{item.quantidade}x COMBO COSTELA + FRITAS E RIFRIGERANTE</span>
+                            <strong className="whitespace-nowrap">R$ {item?.valor?.toFixed(2)}</strong>
+                            <Button
+                                onClick={() => handleRemoveItem(Number(item.id))}
+                                loading={loadingItems[item.id] || false}
+                                size={'icon'}
+                                variant={'icon'}
+                                className="group -mt-1  ">
+                                <PiTrash className=" group-hover:bg-black group-hover:text-white h-8 w-8 p-1 group-hover:p-1.5 rounded-full  duration-300 " size={20} />
+                            </Button>
+                        </div>
+                        <div className="flex flex-col text-muted-foreground text-sm">
+                            <span className="italic text-xs">{item.obs}</span>
+                            {item.adicionais.map((adicional) => (
+                                <span key={adicional.id}>-{adicional.nome}</span>
+                            ))}
+                            <strong>+1x fanta uva lata</strong>
+                        </div>
+                    </div>
+                ))}
             </section>
 
             <div className='p-4 leading-3'>
@@ -52,7 +107,13 @@ export default function Checkout() {
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
                             <span className="font-semibold">Entregar em:</span>
-                            <span className="text-muted-foreground text-sm">Rua das Flores, 123</span>
+                            <span className="text-muted-foreground text-sm">{cart?.endereco.rua}, {cart?.endereco.numero}</span>
+                            <span className="text-xs italic text-muted-foreground ">
+                                {cart?.endereco.complemento && `Complemento: ${cart.endereco.complemento}`}
+                            </span>
+                            <span className="text-xs italic text-muted-foreground ">
+                                {cart?.endereco.referencia && `Referencia: ${cart.endereco.referencia}`}
+                            </span>
                         </div>
                         <Button size={'sm'} variant={'destructive'}>Alterar</Button>
                     </div>
@@ -97,7 +158,7 @@ export default function Checkout() {
                         <FaPiggyBank size={25} className="text-muted-foreground" />
                         <div className="flex justify-between items-center w-full ">
                             <div className="flex flex-col items-start leading-4 ml-3">
-                                <span className="font-semibold">Saldo disponível: <span className="text-emerald-500">R$ 7,64</span></span>
+                                <span className="font-semibold">Saldo disponível: <span className="text-emerald-500">R$ {cart?.cashBack.toFixed(2)}</span></span>
                                 <span className="text-muted-foreground text-sm">Utilizar o saldo disponível nesta compra?</span>
                             </div>
                             <Switch className="" />
@@ -127,7 +188,7 @@ export default function Checkout() {
                 <Separator />
                 {/* RESUMO DO PEDIDO */}
                 <div className="flex flex-col items-end gap-1 mt-8 text-base">
-                    <span>Subtotal: R$ 39,90</span>
+                    <span>Subtotal: R$ {cart?.valorTotalPedido.toFixed(2)}</span>
                     <strong className="text-emerald-600">Desconto do Cupom: R$ 39,90</strong>
                     <span>Taxa de Entrega: <strong className="text-emerald-600">Grátis!</strong></span>
                     <span className="font-bold">Total: R$ <strong className="text-xl">35,91</strong></span>

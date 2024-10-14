@@ -265,8 +265,13 @@ type Step2Props = {
     product: ProdutosDTO
     setStep: React.Dispatch<React.SetStateAction<number>>
 }
+
+interface SelectedIngredient {
+    quantia: number;
+    removivel: boolean;
+}
 const Step2 = ({ product, setStep }: Step2Props) => {
-    const [selectedIngredients, setSelectedIngredients] = useState<Record<number, { quantia: number; removivel: boolean }>>({});
+    const [selectedIngredients, setSelectedIngredients] = useState<Record<number, SelectedIngredient>>({});
 
 
     const { data: ingredientes } = useQuery({
@@ -274,7 +279,7 @@ const Step2 = ({ product, setStep }: Step2Props) => {
         queryFn: async () => {
             try {
                 const { data } = await api.get<IngredientesDTO[]>('/ingredientes')
-                console.log("caiu aqui", data)
+                console.log('list-ingredientes ->', data)
                 return data
             } catch (error: unknown) {
                 if (error instanceof AxiosError && error.response) {
@@ -359,17 +364,21 @@ const Step2 = ({ product, setStep }: Step2Props) => {
     }
 
 
+
     const { mutateAsync: handleAddIngredientToProduct, isPending } = useMutation({
         mutationKey: ['add-ingredient-to-product'],
         mutationFn: async (e: React.FormEvent<HTMLFormElement>) => {
             e.preventDefault(); // Prevent the default form submission behavior
             e.stopPropagation(); // Prevent the event from bubbling up the DOM tree
-            const payloadIngredientes = Object.entries(selectedIngredients).map(([key, value]) => ({
-                produtoId: product.id,
-                ingredienteId: Number(key),
-                quantia: value.quantia,
-                removivel: value.removivel
-            }))
+            const payloadIngredientes = Object.entries(selectedIngredients).map(([key, value]) => {
+                console.log('key ->', key)
+                return ({
+                    produtoId: product.id,
+                    ingredienteId: Number(key),   // VERIFICAR ID DO INGREDIENTE ESTÀ ERRADO NA HORA DE SALVAR 
+                    quantia: value.quantia,
+                    removivel: value.removivel
+                })
+            })
             const { data } = await api.post('/produto/adicionar-ingredientes', payloadIngredientes)
 
             return data;
@@ -386,6 +395,37 @@ const Step2 = ({ product, setStep }: Step2Props) => {
             }
         }
     })
+
+
+    const { data: productDetails, } = useQuery({
+        queryKey: ['details', product.id],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get<ProdutosDTO>(`/produto/${product.id}`)
+                console.log('data-details ->', data)
+                return data
+            } catch (error: unknown) {
+                console.log(error)
+                if (error instanceof AxiosError && error.response) {
+                    toast.error(error.response.data.message)
+                } else {
+                    toast.error('An unexpected error occurred')
+                }
+            }
+        },
+    });
+
+    React.useEffect(() => {
+        if (productDetails) {
+            productDetails.ingredientes.forEach(item => {
+                handleToggle(parseInt(item.id));
+            });
+        }
+    }, [productDetails]);
+
+    React.useEffect(() => {
+        console.log('selectedIngredients ->', selectedIngredients)
+    }, [selectedIngredients]);
 
 
     return (
