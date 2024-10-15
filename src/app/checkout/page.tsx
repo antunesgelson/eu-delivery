@@ -1,11 +1,12 @@
 'use client'
 import { ModalAgendarEntrega } from "@/components/Modal/AgendarEntrega";
+import { ModalChooseAdress } from '@/components/Modal/ChooseAddress';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import useCart from "@/hook/useCart";
 import { api } from "@/service/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 
 import { motion } from "framer-motion";
@@ -23,9 +24,26 @@ import { toast } from "sonner";
 
 export default function Checkout() {
     const [openModal, setOpenModal] = React.useState(false);
+    const [openModalAdress, setOpenModalAdress] = React.useState(false);
     const { cart, handleUpdateCart } = useCart()
     const [loadingItems, setLoadingItems] = React.useState<{ [key: number]: boolean }>({});
 
+    const { data: cupom, refetch: handleUpdateInfoCupom } = useQuery({
+        queryKey: ['list-cupom-id'],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get(`/cupom/${cart?.cupomId}`)
+                return data
+            } catch (error: unknown) {
+                console.log(error)
+                if (error instanceof AxiosError && error.response) {
+                    toast.error(error.response.data.message)
+                } else {
+                    toast.error('Erro inesperado, tente novamente mais tarde.')
+                }
+            }
+        }, enabled: !!cart?.cupomId
+    })
 
     const { mutateAsync: handleRemoveItemCart } = useMutation({
         mutationKey: ['change-checkout'],
@@ -54,10 +72,8 @@ export default function Checkout() {
     };
 
     React.useEffect(() => {
-        console.log('cart', cart)
-
-        console.log('endereço ', cart?.endereco)
-    }, [cart]);
+        console.log('cupom', cupom)
+    }, [cupom]);
 
     return (
         <motion.main className="mt-12"
@@ -72,18 +88,20 @@ export default function Checkout() {
             <section className="bg-white p-4 space-y-4">
                 {cart?.itens.length === 0 && <span className="text-muted-foreground text-sm text-center">O carrinho está vazio.</span>}
                 {cart?.itens.map((item) => (
-                    <div key={item.id}>
-                        <div className="flex justify-between items-start text-sm gap-2">
-                            <span className="font-semibold">{item.quantidade}x COMBO COSTELA + FRITAS E RIFRIGERANTE</span>
-                            <strong className="whitespace-nowrap">R$ {item?.valor?.toFixed(2)}</strong>
-                            <Button
-                                onClick={() => handleRemoveItem(Number(item.id))}
-                                loading={loadingItems[item.id] || false}
-                                size={'icon'}
-                                variant={'icon'}
-                                className="group -mt-1  ">
-                                <PiTrash className=" group-hover:bg-black group-hover:text-white h-8 w-8 p-1 group-hover:p-1.5 rounded-full  duration-300 " size={20} />
-                            </Button>
+                    <div key={item.id} className="-mt-2">
+                        <div className="flex justify-between items-center text-sm gap-2">
+                            <div className="font-semibold">{item.quantidade}x <span className="uppercase">{item.produto.titulo}</span></div>
+                            <div className="flex items-center justify-center">
+                                <strong className="whitespace-nowrap">R$ {item?.valor?.toFixed(2)}</strong>
+                                <Button
+                                    onClick={() => handleRemoveItem(Number(item.id))}
+                                    loading={loadingItems[item.id] || false}
+                                    size={'icon'}
+                                    variant={'icon'}
+                                    className="group -mt-1  ">
+                                    <PiTrash className=" group-hover:bg-black group-hover:text-white h-8 w-8 p-1 group-hover:p-1.5 rounded-full  duration-300 " size={20} />
+                                </Button>
+                            </div>
                         </div>
                         <div className="flex flex-col text-muted-foreground text-sm">
                             <span className="italic text-xs">{item.obs}</span>
@@ -98,11 +116,11 @@ export default function Checkout() {
 
             <div className='p-4 leading-3'>
                 <h2 className="uppercase text-2xl font-bold flex items-center gap-2 "> <FaUserTag /> minhas informações </h2>
-                {/* <span className='text-[12px]'>Você pode coferir todos os pedidos realizados em nosso site, e também pode refazer eles de forma rápida e prática!</span> */}
             </div>
 
             <section className="bg-white p-4 space-y-8">
-                <div className="flex items-center ">   {/* ENDEREÇO DE ENTREGA */}
+                {/* ENDEREÇO DE ENTREGA */}
+                <div className="flex items-center ">
                     <FaMapMarkedAlt size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
@@ -115,11 +133,16 @@ export default function Checkout() {
                                 {cart?.endereco.referencia && `Referencia: ${cart.endereco.referencia}`}
                             </span>
                         </div>
-                        <Button size={'sm'} variant={'destructive'}>Alterar</Button>
+                        <Button
+                            size={'sm'}
+                            variant={'destructive'}
+                            onClick={() => setOpenModalAdress(true)}>
+                            Alterar
+                        </Button>
                     </div>
                 </div>
-
-                <div className="flex items-center "> {/* AGENDAR HORÁRIO DE ENTREGA */}
+                {/* AGENDAR HORÁRIO DE ENTREGA */}
+                <div className="flex items-center ">
                     <MdAccessTimeFilled size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
@@ -134,13 +157,17 @@ export default function Checkout() {
                         </Button>
                     </div>
                 </div>
-
-                <div className="flex items-center "> {/* CUPOM */}
+                {/* CUPOM */}
+                <div className="flex items-center ">
                     <HiTicket size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
                             <span className="font-semibold">Cupom Aplicado:</span>
-                            <span className="text-muted-foreground text-sm tracking-tight">#MEUCUPOM (desconto de 10%)</span>
+                            {cupom && <div className="text-muted-foreground text-sm tracking-tight">
+                                <span className="uppercase">#{cupom.nome}</span>
+                                <span className="text-xs"> (desconto de {cupom.valor}%)</span>
+                            </div>}
+                            {!cupom && <span className="text-muted-foreground text-sm tracking-tight">Nenhum cupom aplicado</span>}
                         </div>
                         <Button
                             asChild
@@ -152,9 +179,9 @@ export default function Checkout() {
                         </Button>
                     </div>
                 </div>
-
+                {/* CASHBACK */}
                 <div className="">
-                    <div className="flex items-center "> {/* CASHBACK */}
+                    <div className="flex items-center ">
                         <FaPiggyBank size={25} className="text-muted-foreground" />
                         <div className="flex justify-between items-center w-full ">
                             <div className="flex flex-col items-start leading-4 ml-3">
@@ -166,8 +193,8 @@ export default function Checkout() {
                     </div>
                     <span className=" bg-muted-foreground text-white text-[12px] rounded-md p-0.5 ml-8">Após essa compra, sobrará R$ 7,64</span>
                 </div>
-
-                <div className="flex items-center "> {/* FORMA DE PAGAMENTO */}
+                {/* FORMA DE PAGAMENTO */}
+                <div className="flex items-center ">
                     <IoWallet size={25} className="text-muted-foreground" />
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
@@ -206,7 +233,17 @@ export default function Checkout() {
                 onClose={() => setOpenModal(false)}
             />
 
-            <footer className="text-[12px] flex justify-center p-1 items-center text-muted-foreground gap-2 t"><FaCoins /> Você ganhará <strong>R$ 3,59</strong> de cashback com essa compra.</footer>
+            <ModalChooseAdress
+                open={openModalAdress}
+                onClose={() => setOpenModalAdress(false)}
+            />
+
+            <footer className="text-[12px] flex justify-center p-1 items-center text-muted-foreground gap-2">
+                <FaCoins />
+                Você ganhará
+                <strong>R$ 3,59</strong>
+                de cashback com essa compra.
+            </footer>
         </motion.main>
     )
 }

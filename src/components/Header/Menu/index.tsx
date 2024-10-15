@@ -59,7 +59,6 @@ export function Menu({ onClose, open }: Props) {
         queryFn: async () => {
             try {
                 const { data } = await api.get('/categoria/lista/detalhes')
-                console.log("CAIU AQUI", data)
                 return data
             } catch (error: unknown) {
                 console.log(error)

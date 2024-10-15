@@ -12,6 +12,7 @@ import {
 import MultiStep from "@/components/MultiStep"
 import { Calendar } from "@/components/ui/calendar"
 import { AnimatePresence, motion } from "framer-motion"
+import React from "react"
 import { BsCalendarDate } from "react-icons/bs"
 import { IoIosArrowRoundForward } from "react-icons/io"
 
@@ -25,7 +26,7 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [step, setStep] = useState(1);
 
-    const [selectedTime, setSelectedTime] = useState('');
+    const [selectedTime, setSelectedTime] = React.useState('');
     const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
 

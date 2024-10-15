@@ -1,5 +1,5 @@
 import { AddressDTO } from "./addressDTO"
-import { AdicionaisDTO, IngredientesDTO } from "./productDTO"
+import { AdicionaisDTO, IngredientesDTO, ProdutosDTO } from "./productDTO"
 
 export type ItensDTO = {
     adicionais: AdicionaisDTO[]
@@ -9,6 +9,7 @@ export type ItensDTO = {
     quantidade: number
     valor: number
     valorAdicionais: number
+    produto: ProdutosDTO
 }
 
 
@@ -16,6 +17,7 @@ export type CartDTO = {
     id: number
     status: string
     itens: ItensDTO[]
+    cupomId: string
     cashBack: number
     dataEntrega: null
     endereco: AddressDTO

@@ -18,9 +18,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import React from "react";
 
 export default function DeliveryAddress() {
-    const [favorite, setFavorite] = React.useState(false);
     const [openModal, setOpenModal] = useState(false);
-    const [address, setAddress] = useState<AddressDTO>({} as AddressDTO);
+    const [address, setAddress] = React.useState<AddressDTO>({} as AddressDTO);
 
 
 
@@ -58,7 +57,7 @@ export default function DeliveryAddress() {
             refetch()
             console.log(data)
             // toast.success('Endereço editado com sucesso!')
-        }, onError(error: any) {
+        }, onError(error: unknown) {
             console.error('Erro ao editar endereço:', error);
             toast.error(error.response.data.message)
             throw error;
@@ -73,9 +72,9 @@ export default function DeliveryAddress() {
 
             <div className='p-4 leading-3'>
                 <h1 className="uppercase text-2xl font-bold flex items-center gap-1 "><FaMapLocationDot size={25} /> endereços salvos </h1>
-                <span className='text-[12px]'>Você pode editar, excluir ou adicionar novos endereços...</span>
+                <span className='text-xs'>Você pode editar, excluir ou adicionar novos endereços...</span>
                 <br />
-                <span className='text-[12px]'>Quando a fome bater, o seu pedido vai ser ainda mais rapido!</span>
+                <span className='text-xs'>Quando a fome bater, o seu pedido vai ser ainda mais rapido!</span>
             </div>
 
             <section className="bg-white p-4 h-full flex flex-col justify-between">
