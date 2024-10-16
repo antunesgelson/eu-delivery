@@ -64,124 +64,113 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID }: 
 
 
     return (
-        <div className="min-h-screen h-full dark:bg-dark-400 bg-white 2xl:w-64 lg:w-60 p-4">
-            <div className="flex justify-between items-center p-2">
-                <div className="text-start ">
-                    <h1 className="text-white text-md font-bold leading-5">Cardápio</h1>
-                    <p className="text-muted text-xs leading-4 italic">Natal</p>
+        <div className="flex flex-col justify-between min-h-screen h-full dark:bg-dark-400 bg-white 2xl:w-64 lg:w-60 p-4">
+            <div>
+                <div className="flex justify-between items-center p-2">
+                    <div className="text-start ">
+                        <h1 className="text-white text-md font-bold leading-5">Cardápio</h1>
+                        <p className="text-muted text-xs leading-4 italic">Natal</p>
+                    </div>
+                    <div className="flex justify-center items-center h-14">
+                        <img src="https://github.com/antunesgelson.png" className="h-14 w-14 rounded-full" />
+                    </div>
                 </div>
-                <div className="flex justify-center items-center h-14">
-                    <img src="https://github.com/antunesgelson.png" className="h-14 w-14 rounded-full" />
-                </div>
+                <section className="mt-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="font-sans tracking-widest">Categorias</h2>
+                        <button onClick={() => setOpen(true)}>
+                            <TbSquareRoundedPlus
+                                size={20}
+                                data-tooltip-id={`categories-tooltip`}
+                                data-tooltip-content={'Adicionar nova categoria.'}
+                                className=" dark:hover:text-white hover:text-black text-muted  rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 "
+                            />
+                            <Tooltip id={`categories-tooltip`} />
+                        </button>
+                    </div>
+
+                    <div className="mt-3  ">
+                        {cardapio?.map((item, index) => {
+                            return (
+                                <div key={index} className="flex justify-between items-center p-2 ">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="item-1">
+                                            <AccordionTrigger className="flex justify-between items-center gap-2">
+                                                <div className="flex items-center gap-2 ">
+                                                    <FaCoffee className="dark:text-white text-muted-foreground" />
+                                                    <p className="line-clamp-1">{item.titulo}</p>
+
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="">
+                                                <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
+                                                    <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
+                                                    <button
+                                                        className="relative"
+                                                        data-tooltip-id={`products-tooltip`}
+                                                        data-tooltip-content={'Adicionar novo produto.'}
+                                                        onClick={() => {
+                                                            setSelectedCategory({ id: String(item.id), name: item.titulo });
+                                                            setMenu('products');
+                                                        }}>
+                                                        <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
+                                                        <Tooltip id={`products-tooltip`} className="z-50" />
+                                                    </button>
+                                                </div>
+                                                <AnimatePresence>
+                                                    {item.produtos.map((produto,) => (
+                                                        <motion.div key={produto.id}
+                                                            layout
+                                                            className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
+                                                            onClick={() => { handleEditProduct(produto.id) }}
+                                                            onMouseEnter={() => setShowIcon(produto.id)}
+                                                            onMouseLeave={() => setShowIcon(null)}>
+                                                            <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
+                                                                {produto.titulo}
+                                                            </p>
+                                                            <AnimatePresence>
+                                                                {showIcon == produto.id &&
+                                                                    <motion.div
+                                                                        onClick={() => { handleWapperRemoveProduct(produto.id) }}
+                                                                        initial={{ x: 30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+                                                                        animate={{ x: 0, opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
+                                                                        whileTap={{ scale: 1.2 }}
+                                                                        exit={{ x: -30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+                                                                        transition={{ duration: 0.3 }}
+                                                                        data-tooltip-id="removeProduct-tooltip"
+                                                                        data-tooltip-content="Remover este produto.">
+                                                                        <Button
+                                                                            size={'icon'}
+                                                                            variant={'icon'}
+                                                                            className="group -mt-1  ">
+                                                                            <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
+                                                                        </Button>
+                                                                        <Tooltip id="removeProduct-tooltip" />
+                                                                    </motion.div>
+                                                                }
+                                                            </AnimatePresence>
+                                                        </motion.div>
+                                                    ))}
+
+                                                </AnimatePresence>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </section>
             </div>
-            <section className="mt-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="font-sans tracking-widest">Categorias</h2>
-                    <button onClick={() => setOpen(true)}>
-                        <TbSquareRoundedPlus
-                            size={20}
-                            data-tooltip-id={`categories-tooltip`}
-                            data-tooltip-content={'Adicionar nova categoria.'}
-                            className=" dark:hover:text-white hover:text-black text-muted  rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 "
-                        />
-                        <Tooltip id={`categories-tooltip`} />
-                    </button>
-                </div>
 
-                <div className="mt-3">
-                    {cardapio?.map((item, index) => {
-                        return (
-                            <div key={index} className="flex justify-between items-center p-2 ">
-                                <Accordion type="single" collapsible className="w-full">
-                                    <AccordionItem value="item-1">
-                                        <AccordionTrigger className="flex justify-between items-center gap-2">
-                                            <div className="flex items-center gap-2 ">
-                                                <FaCoffee className="dark:text-white text-muted-foreground" />
-                                                <p className="line-clamp-1">{item.titulo}</p>
 
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent className="">
-                                            <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
-                                                <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
-                                                <button
-                                                    className="relative"
-                                                    data-tooltip-id={`products-tooltip`}
-                                                    data-tooltip-content={'Adicionar novo produto.'}
-                                                    onClick={() => {
-                                                        setSelectedCategory({ id: String(item.id), name: item.titulo });
-                                                        setMenu('products');
-                                                    }}>
-                                                    <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
-                                                    <Tooltip id={`products-tooltip`} className="z-50" />
-                                                </button>
-                                            </div>
-                                            <AnimatePresence>
-                                                {item.produtos.map((produto,) => (
-                                                    <motion.div key={produto.id}
-                                                        layout
-                                                        className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
-                                                        onClick={() => { handleEditProduct(produto.id) }}
-                                                        onMouseEnter={() => setShowIcon(produto.id)}
-                                                        onMouseLeave={() => setShowIcon(null)}>
-                                                        <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
-                                                            {produto.titulo}
-                                                        </p>
-                                                        <AnimatePresence>
-                                                            {showIcon == produto.id &&
-                                                                <motion.div
-                                                                    onClick={() => { handleWapperRemoveProduct(produto.id) }}
-                                                                    initial={{ x: 30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-                                                                    animate={{ x: 0, opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
-                                                                    whileTap={{ scale: 1.2 }}
-                                                                    exit={{ x: -30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-                                                                    transition={{ duration: 0.3 }}
-                                                                    data-tooltip-id="removeProduct-tooltip"
-                                                                    data-tooltip-content="Remover este produto.">
-                                                                    <Button
-                                                                        size={'icon'}
-                                                                        variant={'icon'}
-                                                                        className="group -mt-1  ">
-                                                                        <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
-                                                                    </Button>
-                                                                    <Tooltip id="removeProduct-tooltip" />
-                                                                </motion.div>
-                                                            }
-                                                        </AnimatePresence>
-                                                    </motion.div>
-                                                ))}
+            <Button variant={'outline'}
+                onClick={() => setMenu('ingredients')}
+                className="flex items-center gap-2 font-sans tracking-widest">
+                <FaShoppingBasket />
+                Ingredientes
+            </Button>
 
-                                            </AnimatePresence>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
-                            </div>
-                        )
-                    })}
-
-                    <Accordion type="single" collapsible className="w-full ">
-                        <AccordionItem value="item-1">
-                            <AccordionTrigger className="flex justify-between items-center gap-2">
-                                <div className="flex items-center gap-2 font-sans tracking-widest">
-                                    <FaShoppingBasket className="dark:text-white text-muted-foreground" />
-                                    Ingredientes
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1">
-                                    <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white">Adicionar Ingrediente</span>
-                                    <button onClick={() => { }}>
-                                        <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
-                                    </button>
-                                </div>
-                                <div className="  text-xs w-full h-full dark:bg-dark-400/50  ">
-                                    <p className="line-clamp-1 cursor-pointer hover:text-dark-900 dark:hover:text-white hover:translate-x-1 hover:underline underline-offset-2 duration-300 text-muted py-2">ingrediente.titulo</p>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                </div>
-            </section>
             <ModalAddCategory
                 open={open}
                 onClose={() => setOpen(false)}

@@ -13,6 +13,7 @@ import {
 import { AddressDTO } from "@/dto/addressDTO"
 import { api } from "@/service/api"
 import { useMutation } from "@tanstack/react-query"
+import React from "react"
 import { MdOutlineLocationOff } from "react-icons/md"
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
     address: AddressDTO;
 }
 export function ModalRemove({ open, onClose, refetch, address }: Props) {
+    const [openModal, setOpenModal] = React.useState(false)
     const { mutateAsync: handleRemoveAddress, isPending } = useMutation({
         mutationKey: ['remove-address'],
         mutationFn: async () => {

@@ -1,7 +1,8 @@
 'use client'
-import AddIngredients from "@/components/AddIngredients";
-import MenuProfile from "@/components/MenuProfile";
 import React from "react";
+
+import MenuProfile from "@/components/MenuProfile";
+import Ingredients from "./components/Ingredients";
 import Products from "./components/Products/[cateogireID]";
 import EditProduct from "./components/Products/Edit";
 
@@ -33,7 +34,7 @@ export default function Menu() {
                         setMenu={setMenu}
                     />
                 )}
-                {menu === 'ingredients' && <AddIngredients />}
+                {menu === 'ingredients' && <Ingredients />}
             </div>
         </div>
     )
