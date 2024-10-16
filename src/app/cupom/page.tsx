@@ -11,8 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { CupomDTO } from "@/dto/cupomDTO";
 import { api } from "@/service/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
+import useCart from "@/hook/useCart";
 import { useRouter } from "next/navigation";
 import { HiTicket } from "react-icons/hi2";
 import { IoTicketSharp } from "react-icons/io5";
@@ -20,20 +21,8 @@ import { toast } from "sonner";
 
 export default function Cupom() {
     const [checked, setChecked] = React.useState<string | null>(null);
+    const { cuponsFree, handleUpdateCart, handleUpdateCupom, cupom: cupomActive } = useCart()
     const router = useRouter()
-
-    const { data: cupons } = useQuery({
-        queryKey: ['list-cupons-free'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get<CupomDTO[]>('/cupom/free')
-                return data
-            } catch (error: unknown) {
-                console.error(error)
-                throw error
-            }
-        }
-    })
 
     const { mutateAsync: handleAppyCupom } = useMutation({
         mutationKey: ['apply-cupom-free'],
@@ -45,8 +34,10 @@ export default function Cupom() {
             return data
         }, onSuccess(data) {
             console.log('data => ', data)
-            toast.success('Cupom aplicado com sucesso!')
+            handleUpdateCart()
+            handleUpdateCupom()
             router.replace('/checkout');
+            toast.success('Cupom aplicado com sucesso!')
 
         }, onError(error: unknown) {
             console.error(error)
@@ -57,6 +48,15 @@ export default function Cupom() {
         setChecked(cupom.id)
         handleAppyCupom(cupom)
     }
+
+    function formatDate(dateString: string) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+    };
 
 
     return (
@@ -84,10 +84,10 @@ export default function Cupom() {
             </div>
 
             <div className="flex flex-col justify-between ">
-                <ScrollArea className=" p-4 text-sm space-y-2 h-[60vh] ">
-                    {cupons?.filter((oldCupom) => oldCupom.listaPublica == true).map((cupom) => (
+                <ScrollArea className=" p-4 text-sm h-[60vh] ">
+                    {cuponsFree?.filter((oldCupom) => oldCupom.listaPublica == true).map((cupom) => (
                         <div key={cupom.id}
-                            className={`border  rounded-lg p-4 bg-white relative duration-300 flex justify-between items-center ${checked === cupom.id && 'border-emerald-500'}`}
+                            className={`border my-1  rounded-lg p-4 bg-white relative duration-300 flex justify-between items-center ${checked === cupom.id || cupom.id == cupomActive?.id && 'border-emerald-500'}`}
                             onClick={() => handleWapperApplyCupom(cupom)}>
                             <div className="flex flex-col text-xs leading-4">
                                 <span className="font-semibold uppercase flex items-center gap-1">
@@ -95,13 +95,13 @@ export default function Cupom() {
                                     {cupom.nome}
                                 </span>
                                 <span className="text-muted-foreground ">{cupom.descricao}</span>
-                                <span className="text-muted-foreground ">Validade: {cupom.validade}</span>
+                                <span className="text-muted-foreground ">Validade: {formatDate(cupom.validade)}</span>
                                 <Link href={'/cashback'} className="font-bold cursor-pointer">VER REGRAS</Link>
                             </div>
                             <div>
                                 <Checkbox
                                     className=" "
-                                    checked={checked === cupom.id}
+                                    checked={checked === cupom.id || cupom.id == cupomActive?.id}
                                     variant={`add`}
                                 />
                             </div>

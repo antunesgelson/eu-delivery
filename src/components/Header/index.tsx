@@ -66,15 +66,17 @@ const SpecialHeader = memo(() => {
         <div className="flex justify-between items-center h-14">
             <AnimatePresence>
                 <motion.div
-                    initial={{ opacity: 0, x: -50 }}
+                    // initial={{ opacity: 0, x: -50 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -50 }}
                     transition={{ duration: 0.4 }}>
-                    <span className="font-semibold text-lg flex items-center"
+                    <motion.span
+                        className="font-semibold text-lg flex items-center"
+                        whileTap={{ x: -10, scale: 0.9 }}
                         onClick={() => router.back()}>
                         <IoIosArrowRoundBack size={20} />
                         VOLTAR
-                    </span>
+                    </motion.span>
                 </motion.div>
             </AnimatePresence>
 

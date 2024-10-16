@@ -6,10 +6,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import useCart from "@/hook/useCart";
 import { api } from "@/service/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import React from "react";
 
@@ -25,25 +25,9 @@ import { toast } from "sonner";
 export default function Checkout() {
     const [openModal, setOpenModal] = React.useState(false);
     const [openModalAdress, setOpenModalAdress] = React.useState(false);
-    const { cart, handleUpdateCart } = useCart()
+    const { cart, handleUpdateCart, cupom } = useCart()
     const [loadingItems, setLoadingItems] = React.useState<{ [key: number]: boolean }>({});
 
-    const { data: cupom, refetch: handleUpdateInfoCupom } = useQuery({
-        queryKey: ['list-cupom-id'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get(`/cupom/${cart?.cupomId}`)
-                return data
-            } catch (error: unknown) {
-                console.log(error)
-                if (error instanceof AxiosError && error.response) {
-                    toast.error(error.response.data.message)
-                } else {
-                    toast.error('Erro inesperado, tente novamente mais tarde.')
-                }
-            }
-        }, enabled: !!cart?.cupomId
-    })
 
     const { mutateAsync: handleRemoveItemCart } = useMutation({
         mutationKey: ['change-checkout'],
@@ -51,6 +35,7 @@ export default function Checkout() {
             const { data } = await api.delete(`/pedido/carrinho/item/${itemID}`)
             return data
         }, onSuccess() {
+            toast.success('Item removido com sucesso!')
             handleUpdateCart()
         }, onError(error: unknown) {
             console.log(error)
@@ -86,32 +71,48 @@ export default function Checkout() {
             </div>
 
             <section className="bg-white p-4 space-y-4">
-                {cart?.itens.length === 0 && <span className="text-muted-foreground text-sm text-center">O carrinho está vazio.</span>}
-                {cart?.itens.map((item) => (
-                    <div key={item.id} className="-mt-2">
-                        <div className="flex justify-between items-center text-sm gap-2">
-                            <div className="font-semibold">{item.quantidade}x <span className="uppercase">{item.produto.titulo}</span></div>
-                            <div className="flex items-center justify-center">
-                                <strong className="whitespace-nowrap">R$ {item?.valor?.toFixed(2)}</strong>
-                                <Button
-                                    onClick={() => handleRemoveItem(Number(item.id))}
-                                    loading={loadingItems[item.id] || false}
-                                    size={'icon'}
-                                    variant={'icon'}
-                                    className="group -mt-1  ">
-                                    <PiTrash className=" group-hover:bg-black group-hover:text-white h-8 w-8 p-1 group-hover:p-1.5 rounded-full  duration-300 " size={20} />
-                                </Button>
+                <AnimatePresence>
+                    {cart?.itens.length === 0 &&
+                        <motion.span
+                            className="text-muted-foreground text-sm text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}>
+                            O carrinho está vazio.
+                        </motion.span>
+                    }
+                </AnimatePresence>
+                <AnimatePresence mode="popLayout">
+                    {cart?.itens.map((item) => (
+                        <motion.div
+                            key={item.id}
+                            className="-mt-2"
+                            layout
+                            transition={{ type: "spring" }}>
+                            <div className="flex justify-between items-center text-sm gap-2">
+                                <div className="font-semibold">{item.quantidade}x <span className="uppercase">{item.produto.titulo}</span></div>
+                                <div className="flex items-center justify-center">
+                                    <strong className="whitespace-nowrap">R$ {item?.valor?.toFixed(2)}</strong>
+                                    <Button
+                                        onClick={() => handleRemoveItem(Number(item.id))}
+                                        loading={loadingItems[item.id] || false}
+                                        size={'icon'}
+                                        variant={'icon'}
+                                        className="group -mt-1  ">
+                                        <PiTrash className=" group-hover:bg-black group-hover:text-white h-8 w-8 p-1 group-hover:p-1.5 rounded-full  duration-300 " size={20} />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex flex-col text-muted-foreground text-sm">
-                            <span className="italic text-xs">{item.obs}</span>
-                            {item.adicionais.map((adicional) => (
-                                <span key={adicional.id}>-{adicional.nome}</span>
-                            ))}
-                            <strong>+1x fanta uva lata</strong>
-                        </div>
-                    </div>
-                ))}
+                            <div className="flex flex-col text-muted-foreground text-sm">
+                                <span className="italic text-xs">{item.obs}</span>
+                                {item.adicionais.map((adicional) => (
+                                    <span key={adicional.id}>-{adicional.nome}</span>
+                                ))}
+                                <strong>+1x fanta uva lata</strong>
+                            </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
             </section>
 
             <div className='p-4 leading-3'>

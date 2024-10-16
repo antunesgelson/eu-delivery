@@ -116,38 +116,42 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID }: 
                                                     <Tooltip id={`products-tooltip`} className="z-50" />
                                                 </button>
                                             </div>
-                                            {item.produtos.map((produto,) => (
-                                                <div key={produto.id}
-                                                    className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
-                                                    onClick={() => { handleEditProduct(produto.id) }}
-                                                    onMouseEnter={() => setShowIcon(produto.id)}
-                                                    onMouseLeave={() => setShowIcon(null)}>
-                                                    <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
-                                                        {produto.titulo}
-                                                    </p>
-                                                    <AnimatePresence>
-                                                        {showIcon == produto.id &&
-                                                            <motion.div
-                                                                onClick={() => { handleWapperRemoveProduct(showIcon) }}
-                                                                initial={{ x: 30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-                                                                animate={{ x: 0, opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
-                                                                whileTap={{ scale: 1.2 }}
-                                                                exit={{ x: -30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-                                                                transition={{ duration: 0.3 }}
-                                                                data-tooltip-id="removeProduct-tooltip"
-                                                                data-tooltip-content="Remover este produto.">
-                                                                <Button
-                                                                    size={'icon'}
-                                                                    variant={'icon'}
-                                                                    className="group -mt-1  ">
-                                                                    <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
-                                                                </Button>
-                                                                <Tooltip id="removeProduct-tooltip" />
-                                                            </motion.div>
-                                                        }
-                                                    </AnimatePresence>
-                                                </div>
-                                            ))}
+                                            <AnimatePresence>
+                                                {item.produtos.map((produto,) => (
+                                                    <motion.div key={produto.id}
+                                                        layout
+                                                        className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
+                                                        onClick={() => { handleEditProduct(produto.id) }}
+                                                        onMouseEnter={() => setShowIcon(produto.id)}
+                                                        onMouseLeave={() => setShowIcon(null)}>
+                                                        <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
+                                                            {produto.titulo}
+                                                        </p>
+                                                        <AnimatePresence>
+                                                            {showIcon == produto.id &&
+                                                                <motion.div
+                                                                    onClick={() => { handleWapperRemoveProduct(produto.id) }}
+                                                                    initial={{ x: 30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+                                                                    animate={{ x: 0, opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
+                                                                    whileTap={{ scale: 1.2 }}
+                                                                    exit={{ x: -30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+                                                                    transition={{ duration: 0.3 }}
+                                                                    data-tooltip-id="removeProduct-tooltip"
+                                                                    data-tooltip-content="Remover este produto.">
+                                                                    <Button
+                                                                        size={'icon'}
+                                                                        variant={'icon'}
+                                                                        className="group -mt-1  ">
+                                                                        <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
+                                                                    </Button>
+                                                                    <Tooltip id="removeProduct-tooltip" />
+                                                                </motion.div>
+                                                            }
+                                                        </AnimatePresence>
+                                                    </motion.div>
+                                                ))}
+
+                                            </AnimatePresence>
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
