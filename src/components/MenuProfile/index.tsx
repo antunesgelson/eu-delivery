@@ -1,13 +1,13 @@
 'use client'
 import { CardapioDTO } from "@/dto/cardapioDTO";
 import { api } from "@/service/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { FaCoffee, FaShoppingBasket } from "react-icons/fa";
 import { ImCancelCircle } from "react-icons/im";
 import { MdSaveAlt } from "react-icons/md";
-import { TbSquareRoundedPlus } from "react-icons/tb";
+import { TbSquareRoundedMinus, TbSquareRoundedPlus } from "react-icons/tb";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -28,32 +28,24 @@ type Props = {
     setSelectedCategory: React.Dispatch<React.SetStateAction<{ id: string, name: string } | null>>
     productID: number | null
     setProductID: React.Dispatch<React.SetStateAction<number | null>>
+    handleUpdateCategory: () => void
+    cardapio: CardapioDTO[] | undefined
 }
-const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID }: Props) => {
+const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, handleUpdateCategory, cardapio }: Props) => {
+    const [category, setCategory] = React.useState<CardapioDTO>({} as CardapioDTO);
     const [open, setOpen] = React.useState(false);
     const [showIcon, setShowIcon] = React.useState<number | null>(null);
     const [openModalRemoveProduct, setOpenModalRemoveProduct] = React.useState(false);
-
-    const { data: cardapio, refetch: handleUpdateCategory } = useQuery({
-        queryKey: ['list-categories-details'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get<CardapioDTO[]>('/categoria/lista/detalhes')
-                return data
-            } catch (error: unknown) {
-                if (error instanceof AxiosError && error.response) {
-                    toast.error(error.response.data.message)
-
-                } else {
-                    toast.error('An unexpected error occurred')
-                }
-            }
-        },
-    });
+    const [openModalRemoveCategory, setOpenModalRemoveCategory] = React.useState(false);
 
     function handleWapperRemoveProduct(productID: number) {
         setProductID(productID)
         setOpenModalRemoveProduct(!openModalRemoveProduct)
+    }
+
+    function handleWapperRemoveCategory(category: CardapioDTO) {
+        setCategory(category)
+        setOpenModalRemoveCategory(!openModalRemoveCategory)
     }
 
     function handleEditProduct(productID: number) {
@@ -89,76 +81,98 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID }: 
                         </button>
                     </div>
 
-                    <div className="mt-3  ">
-                        {cardapio?.map((item, index) => {
-                            return (
-                                <div key={index} className="flex justify-between items-center p-2 ">
-                                    <Accordion type="single" collapsible className="w-full">
-                                        <AccordionItem value="item-1">
-                                            <AccordionTrigger className="flex justify-between items-center gap-2">
-                                                <div className="flex items-center gap-2 ">
-                                                    <FaCoffee className="dark:text-white text-muted-foreground" />
-                                                    <p className="line-clamp-1">{item.titulo}</p>
+                    <div className="mt-3 ">
+                        <AnimatePresence mode="popLayout">
+                            {cardapio?.map((item, index) => {
+                                return (
+                                    <motion.div
+                                        layout
+                                        key={index}
+                                        className="flex justify-between items-center p-2"
+                                        initial={{ opacity: 0, x: 50 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 50 }}
+                                        transition={{ delay: index * 0.1, duration: 0.4 }}
+                                    >
+                                        <Accordion type="single" collapsible className="w-full">
+                                            <AccordionItem value="item-1">
+                                                <AccordionTrigger className="flex justify-between items-center gap-2">
+                                                    <div className="flex items-center gap-2 ">
+                                                        <FaCoffee className="dark:text-white text-muted-foreground" />
+                                                        <p className="line-clamp-1">{item.titulo}</p>
 
-                                                </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent className="">
-                                                <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
-                                                    <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
-                                                    <button
-                                                        className="relative"
-                                                        data-tooltip-id={`products-tooltip`}
-                                                        data-tooltip-content={'Adicionar novo produto.'}
-                                                        onClick={() => {
-                                                            setSelectedCategory({ id: String(item.id), name: item.titulo });
-                                                            setMenu('products');
-                                                        }}>
-                                                        <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
-                                                        <Tooltip id={`products-tooltip`} className="z-50" />
-                                                    </button>
-                                                </div>
-                                                <AnimatePresence>
-                                                    {item.produtos.map((produto,) => (
-                                                        <motion.div key={produto.id}
-                                                            layout
-                                                            className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
-                                                            onClick={() => { handleEditProduct(produto.id) }}
-                                                            onMouseEnter={() => setShowIcon(produto.id)}
-                                                            onMouseLeave={() => setShowIcon(null)}>
-                                                            <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
-                                                                {produto.titulo}
-                                                            </p>
-                                                            <AnimatePresence>
-                                                                {showIcon == produto.id &&
-                                                                    <motion.div
-                                                                        onClick={() => { handleWapperRemoveProduct(produto.id) }}
-                                                                        initial={{ x: 30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-                                                                        animate={{ x: 0, opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
-                                                                        whileTap={{ scale: 1.2 }}
-                                                                        exit={{ x: -30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-                                                                        transition={{ duration: 0.3 }}
-                                                                        data-tooltip-id="removeProduct-tooltip"
-                                                                        data-tooltip-content="Remover este produto.">
-                                                                        <Button
-                                                                            size={'icon'}
-                                                                            variant={'icon'}
-                                                                            className="group -mt-1  ">
-                                                                            <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
-                                                                        </Button>
-                                                                        <Tooltip id="removeProduct-tooltip" />
-                                                                    </motion.div>
-                                                                }
-                                                            </AnimatePresence>
-                                                        </motion.div>
-                                                    ))}
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="">
+                                                    <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
+                                                        <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Excluir Categoria</span>
+                                                        <button
+                                                            className="relative"
+                                                            data-tooltip-id={`remove-categoria-tooltip`}
+                                                            data-tooltip-content={`Excluir a categoria ${item.titulo}.`}
+                                                            onClick={() => handleWapperRemoveCategory(item)}>
+                                                            <TbSquareRoundedMinus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
+                                                            <Tooltip id={`remove-categoria-tooltip`} className="z-50" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
+                                                        <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
+                                                        <button
+                                                            className="relative"
+                                                            data-tooltip-id={`products-tooltip`}
+                                                            data-tooltip-content={'Adicionar novo produto.'}
+                                                            onClick={() => {
+                                                                setSelectedCategory({ id: String(item.id), name: item.titulo });
+                                                                setMenu('products');
+                                                            }}>
+                                                            <TbSquareRoundedPlus className="group-hover:dark:text-white text-muted rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100" size={15} />
+                                                            <Tooltip id={`products-tooltip`} className="z-50" />
+                                                        </button>
+                                                    </div>
+                                                    <AnimatePresence>
+                                                        {item.produtos.map((produto,) => (
+                                                            <motion.div key={produto.id}
+                                                                layout
+                                                                className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
+                                                                onClick={() => { handleEditProduct(produto.id) }}
+                                                                onMouseEnter={() => setShowIcon(produto.id)}
+                                                                onMouseLeave={() => setShowIcon(null)}>
+                                                                <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
+                                                                    {produto.titulo}
+                                                                </p>
+                                                                <AnimatePresence>
+                                                                    {showIcon == produto.id &&
+                                                                        <motion.div
+                                                                            onClick={() => { handleWapperRemoveProduct(produto.id) }}
+                                                                            initial={{ x: 30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+                                                                            animate={{ x: 0, opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
+                                                                            whileTap={{ scale: 1.2 }}
+                                                                            exit={{ x: -30, opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
+                                                                            transition={{ duration: 0.3 }}
+                                                                            data-tooltip-id="removeProduct-tooltip"
+                                                                            data-tooltip-content="Remover este produto.">
+                                                                            <Button
+                                                                                size={'icon'}
+                                                                                variant={'icon'}
+                                                                                className="group -mt-1  ">
+                                                                                <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
+                                                                            </Button>
+                                                                            <Tooltip id="removeProduct-tooltip" />
+                                                                        </motion.div>
+                                                                    }
+                                                                </AnimatePresence>
+                                                            </motion.div>
+                                                        ))}
 
-                                                </AnimatePresence>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
-                                </div>
-                            )
-                        })}
+                                                    </AnimatePresence>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        </Accordion>
+                                    </motion.div>
+                                )
+                            })}
+
+                        </AnimatePresence>
                     </div>
                 </section>
             </div>
@@ -175,6 +189,12 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID }: 
                 open={open}
                 onClose={() => setOpen(false)}
                 handleUpdateCategory={handleUpdateCategory}
+            />
+            <ModalRemoveCategory
+                open={openModalRemoveCategory}
+                onClose={() => setOpenModalRemoveCategory(!openModalRemoveCategory)}
+                handleUpdateCategory={handleUpdateCategory}
+                category={category}
             />
 
             <ModalRemoveProduct
@@ -271,7 +291,7 @@ type ModalRemoveProps = {
 
 const ModalRemoveProduct = ({ open, onClose, handleUpdateCategory, productID }: ModalRemoveProps) => {
     const { mutateAsync: handleRemoveProduct, isPending } = useMutation({
-        mutationKey: ['add-category'],
+        mutationKey: ['del-category'],
         mutationFn: async () => {
             const { data } = await api.delete(`/produto/${productID}`)
             return data
@@ -304,6 +324,60 @@ const ModalRemoveProduct = ({ open, onClose, handleUpdateCategory, productID }: 
                     <Button
                         loading={isPending}
                         onClick={() => handleRemoveProduct()}
+                        className="flex items-center gap-1"
+                        variant={'outline'}>
+                        <ImCancelCircle />
+                        Remover
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog >
+    )
+}
+
+
+type ModalRemoveCategoryProps = {
+    open: boolean
+    onClose: () => void
+    handleUpdateCategory: () => void
+    category: CardapioDTO
+}
+
+const ModalRemoveCategory = ({ open, onClose, handleUpdateCategory, category }: ModalRemoveCategoryProps) => {
+    const { mutateAsync: handleRemoveCategory, isPending } = useMutation({
+        mutationKey: ['del-category'],
+        mutationFn: async () => {
+            const { data } = await api.delete(`/categoria/${category.id}`)
+            return data
+        }, onSuccess() {
+            toast.success('Categoria removida com sucesso.')
+            handleUpdateCategory()
+            setTimeout(() => {
+                onClose()
+            }, 200);
+        }, onError(error: unknown) {
+            onClose()
+            console.log(error)
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde.')
+            }
+        }
+    })
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-[425px] space-y-3">
+                <DialogHeader>
+                    <DialogTitle className="dark:text-white-off">Remover Categoria {category.titulo}</DialogTitle>
+                    <DialogDescription >
+                        tem certeza que deseja remover esta categoria?
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button
+                        loading={isPending}
+                        onClick={() => handleRemoveCategory()}
                         className="flex items-center gap-1"
                         variant={'outline'}>
                         <ImCancelCircle />

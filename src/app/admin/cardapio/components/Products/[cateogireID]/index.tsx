@@ -32,8 +32,10 @@ import z from 'zod'
 type Props = {
     category: { id: string; name: string; };
     setMenu: React.Dispatch<React.SetStateAction<string>>;
+    handleUpdateCategory: () => void;
+
 }
-const Products = ({ category, setMenu }: Props) => {
+const Products = ({ category, setMenu, handleUpdateCategory }: Props) => {
     const [step, setStep] = React.useState(1)
     const [product, setProduct] = useState<ProdutosDTO>({} as ProdutosDTO)
 
@@ -83,6 +85,7 @@ const Products = ({ category, setMenu }: Props) => {
                                 setStep={setStep}
                                 product={product}
                                 setMenu={setMenu}
+                                handleUpdateCategory={handleUpdateCategory}
                             />
                         </motion.div>}
                 </AnimatePresence>
@@ -538,8 +541,10 @@ type Step3Props = {
     product: ProdutosDTO
     setStep: React.Dispatch<React.SetStateAction<number>>
     setMenu: React.Dispatch<React.SetStateAction<string>>
+    handleUpdateCategory: () => void;
+
 }
-const Step3 = ({ setStep, product, setMenu }: Step3Props) => {
+const Step3 = ({ setStep, product, setMenu, handleUpdateCategory }: Step3Props) => {
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
 
     const { data: ingredientes } = useQuery({
@@ -580,6 +585,7 @@ const Step3 = ({ setStep, product, setMenu }: Step3Props) => {
             return data
         }, onSuccess(data) {
             console.log('success ->', data)
+            handleUpdateCategory()
             toast.success('Produto cadastrado com sucesso!')
             setMenu('ingredients')
         }, onError(error: unknown) {

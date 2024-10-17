@@ -1,6 +1,5 @@
 'use client'
 import classNames from "classnames";
-import { motion } from "framer-motion";
 import React from "react";
 
 import { FaHandHoldingDollar, FaLandmark } from "react-icons/fa6";
@@ -39,7 +38,7 @@ const Dashboard = () => {
                 />
             </section>
 
-            <motion.div
+            {/* <motion.div
                 className="w-20 h-20 bg-emerald-500 mx-auto mt-32 "
                 animate={{
                     scale: [1, 2, 2, 1, 1],
@@ -52,8 +51,7 @@ const Dashboard = () => {
                     times: [0, 0.2, 0.5, 0.8, 1],
                     repeat: Infinity,
                     repeatDelay: 1
-                }} />
-
+                }} /> */}
         </div>
     )
 }
