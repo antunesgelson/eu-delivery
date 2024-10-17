@@ -33,9 +33,9 @@ export default function Menu() {
             }
         },
     });
-    
+
     return (
-        <div className="flex justify-between px-2">
+        <div className="flex justify-between ">
             <MenuProfile
                 setMenu={setMenu}
                 setSelectedCategory={setSelectedCategory}

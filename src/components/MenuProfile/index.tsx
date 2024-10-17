@@ -39,6 +39,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
     const [openModalRemoveCategory, setOpenModalRemoveCategory] = React.useState(false);
 
     function handleWapperRemoveProduct(productID: number) {
+        // console.log("productID", productID)
         setProductID(productID)
         setOpenModalRemoveProduct(!openModalRemoveProduct)
     }
@@ -82,6 +83,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                     </div>
 
                     <div className="mt-3 ">
+                        {/* Categorias */}
                         <AnimatePresence mode="popLayout">
                             {cardapio?.map((item, index) => {
                                 return (
@@ -92,14 +94,13 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                                         initial={{ opacity: 0, x: 50 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: 50 }}
-                                        transition={{ delay: index * 0.1, duration: 0.4 }}
-                                    >
+                                        transition={{ delay: index * 0.1, duration: 0.4 }}>
                                         <Accordion type="single" collapsible className="w-full">
                                             <AccordionItem value="item-1">
                                                 <AccordionTrigger className="flex justify-between items-center gap-2">
                                                     <div className="flex items-center gap-2 ">
                                                         <FaCoffee className="dark:text-white text-muted-foreground" />
-                                                        <p className="line-clamp-1">{item.titulo}</p>
+                                                        <p className="line-clamp-1 capitalize">{item.titulo}</p>
 
                                                     </div>
                                                 </AccordionTrigger>
@@ -129,6 +130,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                                                             <Tooltip id={`products-tooltip`} className="z-50" />
                                                         </button>
                                                     </div>
+                                                    {/* Produtos */}
                                                     <AnimatePresence>
                                                         {item.produtos.map((produto,) => (
                                                             <motion.div key={produto.id}
@@ -140,6 +142,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                                                                 <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
                                                                     {produto.titulo}
                                                                 </p>
+                                                                {/* Remover Produto */}
                                                                 <AnimatePresence>
                                                                     {showIcon == produto.id &&
                                                                         <motion.div

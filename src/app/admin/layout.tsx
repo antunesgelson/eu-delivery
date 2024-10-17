@@ -75,7 +75,7 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
                 </button>
                 <ChevronRightIcon
                     onClick={toggleOpen}
-                    className={classNames("dark:bg-dark-800 dark:hover:bg-white-off dark:text-muted-foreground  bg-white hover:bg-dark-900 hover:text-muted absolute -right-2 top-4 h-4 w-4 shrink-0  transition-transform rounded-full cursor-pointer duration-300 ", { 'rotate-180': open })} />
+                    className={classNames("dark:bg-white-off  dark:hover:bg-white-off/20 dark:hover:text-white-off dark:text-dark-400 bg-white hover:bg-dark-900 hover:text-muted absolute -right-2 top-4 h-4 w-4 shrink-0  transition-transform rounded-full cursor-pointer duration-300 ", { 'rotate-180': open })} />
                 <div className="flex flex-col absolute top-16 left-0 pt-14  ">
                     {menuData.map((item, index) => (
                         <MenuItem key={index} open={open} {...item} />
