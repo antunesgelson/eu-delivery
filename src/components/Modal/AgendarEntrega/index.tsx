@@ -25,19 +25,10 @@ type Props = {
 export function ModalAgendarEntrega({ open, onClose }: Props) {
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [step, setStep] = useState(1);
-
     const [selectedTime, setSelectedTime] = React.useState('');
     const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
 
-    const generateTimes = () => {
-        const times = [];
-        for (let hour = 6; hour < 20; hour++) {
-            times.push(`${hour < 10 ? '0' + hour : hour}:00`);
-            times.push(`${hour < 10 ? '0' + hour : hour}:30`);
-        }
-        return times;
-    };
 
     const fetchAvailableTimes = (selectedDate: Date): string[] => {
         // Dados estáticos simulando a resposta da API
@@ -51,6 +42,16 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
         return staticAvailableTimes[dateString] || [];
     };
 
+
+    const generateTimes = () => {
+        const times = [];
+        for (let hour = 6; hour < 20; hour++) {
+            times.push(`${hour < 10 ? '0' + hour : hour}:00`);
+            times.push(`${hour < 10 ? '0' + hour : hour}:30`);
+        }
+        return times;
+    };
+
     const times = generateTimes();
 
     useEffect(() => {
@@ -59,7 +60,6 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
             setAvailableTimes(fetchAvailableTimes(date));
         }
     }, [date]);
-
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -111,7 +111,8 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                                         key={time}
                                         onClick={() => setSelectedTime(time)}
                                         className={`py-2 px-4 rounded-md text-sm ${availableTimes.includes(time) ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                                        disabled={!availableTimes.includes(time)}>
+                                        disabled={!availableTimes.includes(time)}
+                                    >
                                         {time}
                                     </button>
                                 ))}

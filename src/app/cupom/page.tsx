@@ -14,6 +14,7 @@ import { api } from "@/service/api";
 import { useMutation } from "@tanstack/react-query";
 
 import useCart from "@/hook/useCart";
+import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { HiTicket } from "react-icons/hi2";
 import { IoTicketSharp } from "react-icons/io5";
@@ -40,8 +41,12 @@ export default function Cupom() {
             toast.success('Cupom aplicado com sucesso!')
 
         }, onError(error: unknown) {
-            console.error(error)
-        },
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde.')
+            }
+        }
     })
 
     function handleWapperApplyCupom(cupom: CupomDTO) {
