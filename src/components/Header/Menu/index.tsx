@@ -3,10 +3,12 @@ import useCart from "@/hook/useCart";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 import useAuth from "@/hook/useAuth";
 import { signOut } from "next-auth/react";
@@ -23,7 +25,6 @@ import { CardapioDTO } from "@/dto/cardapioDTO";
 import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { toast } from "sonner";
 
 type Props = {
     open: boolean
@@ -78,8 +79,8 @@ export function Menu({ onClose, open }: Props) {
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent side={'left'} className="bg-primary border-0 p-4 ">
-                <SheetHeader >
+            <SheetContent side={'left'} className="bg-primary border-0 p-4">
+                <SheetHeader>
                     {!isAuthenticated &&
                         <Button asChild className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
                             <Link href={'/signin'}>
@@ -87,9 +88,14 @@ export function Menu({ onClose, open }: Props) {
                             </Link>
                         </Button>
                     }
+                    {/* Titulo & Descrição ocultos para evitar erro. Ao utilizar Sheet é nessesário passarum Title & Descrição */}
+                    <VisuallyHidden>
+                        <SheetTitle>Menu de navegação</SheetTitle>
+                        <SheetDescription>Selecione uma opção no menu lateral.</SheetDescription>
+                    </VisuallyHidden>
                 </SheetHeader>
 
-                <ScrollArea className="h-[80vh]  w-full rounded-md   ">
+                <ScrollArea className="h-[80vh] w-full rounded-md">
                     <nav className="space-y-4">
                         <ul className="text-white uppercase font-bold space-y-4 ">
                             <li className="flex items-center w-full h-8 hover:bg-white hover:text-primary rounded-md  duration-300 group">

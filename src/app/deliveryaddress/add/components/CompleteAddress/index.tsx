@@ -83,6 +83,7 @@ const CompleteAddress = ({ location }: Props) => {
                 setAddress(address);
                 return address;
             } else {
+                console.log("Erro =>", data)
                 console.error('Erro na geocodificação reversa:', data.status);
                 return null;
             }

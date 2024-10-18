@@ -79,7 +79,7 @@ const ModalEditIngredient = ({ open, onClose, handleUpdateIngredients, ingredien
             title: ingredientEdit.nome,
             valor: ingredientEdit.valor
         })
-    }, [ingredientEdit]);
+    }, [ingredientEdit, reset]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>

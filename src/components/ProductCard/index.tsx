@@ -6,7 +6,7 @@ import { FaPeopleGroup } from "react-icons/fa6";
 
 import Thumb from '@/assets/products/box.png';
 
-export default function ProductCard({ titulo, descricao, img, valor, desconto, servingSize, id}: ProdutosDTO) {
+export default function ProductCard({ titulo, descricao, imgs, valor, desconto, servingSize, id}: ProdutosDTO) {
     const value = parseInt(valor)
     const sale = value - (value * desconto / 100)
 

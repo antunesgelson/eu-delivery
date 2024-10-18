@@ -15,6 +15,7 @@ import { TiEdit } from "react-icons/ti";
 import { AddressDTO } from "@/dto/addressDTO";
 import { api } from "@/service/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import React from "react";
 
 export default function DeliveryAddress() {
@@ -58,8 +59,11 @@ export default function DeliveryAddress() {
             console.log(data)
             // toast.success('Endereço editado com sucesso!')
         }, onError(error: unknown) {
-            console.error('Erro ao editar endereço:', error);
-            toast.error(error.response.data.message)
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde.')
+            }
             throw error;
         },
     })

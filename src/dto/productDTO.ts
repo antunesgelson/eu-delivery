@@ -1,3 +1,4 @@
+import { ImgDTO } from "./imgDTO"
 
 type ReplaceDTO = {
     id: string,
@@ -26,7 +27,7 @@ export type ProdutosDTO = {
     titulo: string,
     descricao: string,
     valor: string,
-    img: string,
+    imgs: ImgDTO,
     desconto: number,
     limitItens: number,
     servingSize: number,

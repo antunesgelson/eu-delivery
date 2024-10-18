@@ -1,5 +1,4 @@
 'use client'
-import Image from 'next/image'
 import React, { useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'sonner'
@@ -256,12 +255,12 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
                     error={errors.imgs?.message}
                 />
 
-                <div className=" grid grid-cols-4 gap-2">
-                    {product?.img && product?.img.length > 0
+                {/* <div className=" grid grid-cols-4 gap-2">
+                    {product?.imgs && product?.imgs.length > 0
                         ? <h3 className="col-span-4 text-2xl font-poppins-bold text-blue-900">Imagens:</h3>
                         : <span className="whitespace-nowrap text-muted-foreground text-sm text-center">Nenhuma imagem cadastrada.</span>}
-                    {product?.img && (
-                        product?.img.map((img: any, index: number) => (
+                    {product?.imgs &&
+                        product?.imgs.map((img: any, index: number) => (
                             <div className="relative w-full h-full" key={index}>
                                 <Image
                                     priority
@@ -272,15 +271,10 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
                                     src={img?.local}
                                 />
 
-                                {/* <IoMdCloseCircle
-                                    size={20}
-                                    onClick={() => handleRemoveFoto(img)}
-                                    className=" text-red-500 cursor-pointer hover:scale-150 duration-300 absolute top-0 right-0 bg-white border border-black rounded-full"
-                                /> */}
                             </div>
                         ))
-                    )}
-                </div>
+                    }
+                </div> */}
 
                 <div className="flex flex-col ">
                     <Label className='text-xs text-muted flex items-center gap-2'>

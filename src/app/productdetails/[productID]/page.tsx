@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 
-import Thumb from '@/assets/products/box.png';
 import { FaMinusCircle } from 'react-icons/fa';
 import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
 
@@ -187,13 +186,30 @@ export default function ProductorDetails({ params }: Props) {
                                     <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
                                 </div>
                             }
-                            <Image
-                                className="rounded-lg object-cover object-center lg:max-h-none"
-                                width={500}
-                                height={500}
-                                src={productDetails?.img || Thumb}
-                                alt={productDetails?.titulo || 'Produto'}
-                            />
+
+                            {/* {productDetails && productDetails?.imgs?.length == 0 && 'Nenhuma imagem cadastrada.'} */}
+                            {/* {productDetails && productDetails.imgs.map((img) => (
+                                <Image
+                                    key={img.Key}
+                                    priority
+                                    width={500}
+                                    height={500}
+                                    className="rounded-lg object-cover object-center lg:max-h-none"
+                                    alt={productDetails?.titulo || 'Produto'}
+                                    src={img.Location}
+                                />
+                            ))} */}
+
+                            {productDetails &&
+                                <Image
+                                    priority
+                                    width={500}
+                                    height={500}
+                                    className="rounded-lg object-cover object-center lg:max-h-none"
+                                    alt={productDetails?.titulo || 'Produto'}
+                                    src={productDetails.imgs.Location}
+                                />
+                            }
                         </div>
                     </div>
 
