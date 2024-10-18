@@ -158,7 +158,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                                                                                 size={'icon'}
                                                                                 variant={'icon'}
                                                                                 className="group -mt-1  ">
-                                                                                <PiTrash className=" hover:bg-black hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
+                                                                                <PiTrash className=" hover:bg-black mt-1 hover:text-red-400 h-6 w-6 p-1 hover:p-1.5 rounded-full  duration-300 " size={5} />
                                                                             </Button>
                                                                             <Tooltip id="removeProduct-tooltip" />
                                                                         </motion.div>
