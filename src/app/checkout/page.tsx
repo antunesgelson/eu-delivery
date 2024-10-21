@@ -149,7 +149,8 @@ export default function Checkout() {
                         <div className="flex flex-col items-start leading-4 ml-3">
                             <span className="font-semibold">Horário:</span>
                             {!cart?.dataEntrega && <span className="text-muted-foreground text-sm">Selecione um horário</span>}
-                            {cart?.dataEntrega && <span className="text-muted-foreground text-sm">Entregar dia 02/12 as 08:00</span>}
+                            {/* {cart?.dataEntrega && <span className="text-muted-foreground text-sm">Entregar dia 02/12 as 08:00</span>} */}
+                            {cart?.dataEntrega && <span className="text-muted-foreground text-sm">Entregar dia {cart.dataEntrega}</span>}
                         </div>
                         <Button
                             size={'sm'}
