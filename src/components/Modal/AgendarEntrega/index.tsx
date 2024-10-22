@@ -75,7 +75,7 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
             console.log('Sucessooo data => ', data)
             handleUpdateCart()
             onClose()
-            toast.success('Data de entrega agendado com sucesso!')
+            toast.success('Data de entrega agendada com sucesso!')
 
         }, onError(error: unknown) {
             if (error instanceof AxiosError && error.response) {

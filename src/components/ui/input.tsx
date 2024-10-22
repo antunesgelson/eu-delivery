@@ -24,16 +24,18 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               {label}
             </Label>
 
-            <FaCircleQuestion
-              className="text-muted hover:text-white cursor-pointer"
-              data-tooltip-id={`${label}-tooltip`}
-              data-tooltip-content={questionContent}
-              size={14}
-            />
-            <Tooltip id={`${label}-tooltip`} />
+            {questionContent &&
+              <>
+                <FaCircleQuestion
+                  className="text-muted hover:text-white cursor-pointer"
+                  data-tooltip-id={`${label}-tooltip`}
+                  data-tooltip-content={questionContent}
+                  size={14}
+                />
+                <Tooltip id={`${label}-tooltip`} />
+              </>
+            }
           </div>
-
-
         }
         <input
           type={type}

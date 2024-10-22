@@ -4,14 +4,17 @@ import { ModalChooseAdress } from '@/components/Modal/ChooseAddress';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+
 import useCart from "@/hook/useCart";
 import { api } from "@/service/api";
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 
+import { format, parseISO } from 'date-fns';
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import React from "react";
+import { toast } from "sonner";
 
 import { BsBasket2Fill } from "react-icons/bs";
 import { FaMapMarkedAlt, FaPiggyBank } from "react-icons/fa";
@@ -20,14 +23,13 @@ import { HiTicket } from "react-icons/hi2";
 import { IoWallet } from "react-icons/io5";
 import { MdAccessTimeFilled } from "react-icons/md";
 import { PiTrash } from "react-icons/pi";
-import { toast } from "sonner";
 
 export default function Checkout() {
     const [openModal, setOpenModal] = React.useState(false);
     const [openModalAdress, setOpenModalAdress] = React.useState(false);
     const { cart, handleUpdateCart, cupom } = useCart()
     const [loadingItems, setLoadingItems] = React.useState<{ [key: number]: boolean }>({});
-
+    const formattedDate = cart?.dataEntrega ? format(parseISO(cart.dataEntrega), "dd/MM 'às' HH:mm") : 'Escolha uma data.';
 
     const { mutateAsync: handleRemoveItemCart } = useMutation({
         mutationKey: ['change-checkout'],
@@ -150,7 +152,7 @@ export default function Checkout() {
                             <span className="font-semibold">Horário:</span>
                             {!cart?.dataEntrega && <span className="text-muted-foreground text-sm">Selecione um horário</span>}
                             {/* {cart?.dataEntrega && <span className="text-muted-foreground text-sm">Entregar dia 02/12 as 08:00</span>} */}
-                            {cart?.dataEntrega && <span className="text-muted-foreground text-sm">Entregar dia {cart.dataEntrega}</span>}
+                            {cart?.dataEntrega && <span className="text-muted-foreground text-sm">Entregar dia {formattedDate}</span>}
                         </div>
                         <Button
                             size={'sm'}

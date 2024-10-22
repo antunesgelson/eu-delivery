@@ -17,7 +17,6 @@ export default function Historic() {
             </div>
 
             <section className="bg-white p-4">
-
                 {historicDetails.map((order) => (
                     <OrderDetails key={order.id} {...order} />
                 ))}

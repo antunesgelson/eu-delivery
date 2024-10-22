@@ -7,13 +7,11 @@ import HeaderAdmin from "@/components/Header/Admin";
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import React from 'react';
-import { BiSolidCategoryAlt, BiSolidFoodMenu } from "react-icons/bi";
-import { BsFiletypeDoc, BsTagsFill } from "react-icons/bs";
-import { FaChartPie, FaGears, FaPersonWalking } from "react-icons/fa6";
+import { BiSolidFoodMenu } from "react-icons/bi";
+import { FaChartPie } from "react-icons/fa6";
+import { HiTicket } from "react-icons/hi2";
+import { IoMdOptions } from "react-icons/io";
 import { IconType } from "react-icons/lib";
-import { MdOndemandVideo } from "react-icons/md";
-import { TfiRulerAlt2 } from "react-icons/tfi";
-
 type MenuProps = {
     open: boolean
     Icon: IconType
@@ -57,16 +55,11 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
     const menuData = [
         { Icon: FaChartPie, title: 'Dashboard', link: '/admin/dashboard', subMenu: [] },
         { Icon: BiSolidFoodMenu, title: 'Cardápio', link: '/admin/cardapio', subMenu: [] },
-        { Icon: MdOndemandVideo, title: 'Vídeos', link: '/admin/video/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/video/visualizar' }, { title: 'Cadastrar', link: '/admin/video/cadastrar' }] },
-        { Icon: BsFiletypeDoc, title: 'Documentos', link: '/admin/documentos/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/documentos/visualizar' }, { title: 'Cadastrar', link: '/admin/documentos/cadastrar' }] },
-        { Icon: FaGears, title: 'Implementações', link: '/admin/implementacoes/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/implementacoes/visualizar' }, { title: 'Cadastrar', link: '/admin/implementacoes/cadastrar' }] },
-        { Icon: TfiRulerAlt2, title: 'Avaliações', link: '/admin/avaliacoes/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/avaliacoes/visualizar' }, { title: 'Cadastrar', link: '/admin/avaliacoes/cadastrar' }] },
-        { Icon: FaPersonWalking, title: 'Práticas', link: '/admin/praticas/visualizar', subMenu: [{ title: 'Ver todos', link: '/admin/praticas/visualizar' }, { title: 'Cadastrar', link: '/admin/praticas/cadastrar' }] },
-        { Icon: BiSolidCategoryAlt, title: 'Categorias', link: '/admin/categorias', subMenu: [] },
-        { Icon: BsTagsFill, title: 'Tags', link: '/admin/tags', subMenu: [] },
+        { Icon: IoMdOptions, title: 'Configuração', link: '/admin/config', subMenu: [] },
+        { Icon: HiTicket, title: 'Cupom', link: '/admin/cupom', subMenu: [] },
     ];
 
-
+    
     return (
         <div className="min-h-screen h-full flex justify-between">
             <div className={classNames("relative duration-300 flex flex-col items-center dark:bg-dark-800 bg-white shadow-sm drop-shadow-lg", { 'w-80': open, 'w-24 ': !open })}>

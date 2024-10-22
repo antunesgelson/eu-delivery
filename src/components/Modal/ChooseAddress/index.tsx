@@ -1,7 +1,6 @@
 'use client'
 import useCart from "@/hook/useCart"
 import Link from "next/link"
-import React from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -71,9 +70,6 @@ export function ModalChooseAdress({ open, onClose }: Props) {
         }
     })
 
-    React.useEffect(() => {
-
-    }, [addressList]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -88,7 +84,7 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                 </DialogHeader>
 
                 <ScrollArea className="h-[50vh] -mt-10">
-                    <section className=" h-full flex flex-col justify-between gap-2 ">
+                    <section className=" h-full flex flex-col justify-center gap-2 ">
                         {addressList?.length == 0 && <span className="text-center my-auto text-sm text-muted-foreground">Nenhum endereço cadastrado.</span>}
                         {addressList && addressList?.length > 0 && addressList.map((address: AddressDTO) => (
                             <div
