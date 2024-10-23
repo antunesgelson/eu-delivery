@@ -8,6 +8,6 @@ export type CupomDTO = {
     tipo: string
     unicoUso: boolean
     validade: string
-    valor: 40
-    valorMinimoGasto: 40
+    valor: number
+    valorMinimoGasto: number
 }

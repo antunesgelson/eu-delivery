@@ -2,8 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 
 
+import { Label } from "@/components/ui/label";
+import React from "react";
 import { BiSolidPhoneCall } from "react-icons/bi";
 import { FaPiggyBank } from "react-icons/fa6";
 import { MdUpdate } from "react-icons/md";
@@ -16,6 +19,8 @@ type Props = {
     handleCheckboxChange: (dia: string) => void;
 }
 export default function ViewConfig({ dias, hasInterval, setHasInterval, handleCheckboxChange }: Props) {
+    const [cashBack, setCashBack] = React.useState(10);
+
     return (
         <section className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
@@ -26,16 +31,18 @@ export default function ViewConfig({ dias, hasInterval, setHasInterval, handleCh
                         Cashback
                     </h2>
                     <div className="relative">
-                        <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            defaultValue="20"
-                            label="Defina a porcentagem de Cashback:"
+                        <div className="flex justify-between items-center ">
+                            <Label className="text-xs text-muted py-1">
+                                Defina a porcentagem de Cashback:
+                            </Label>
+                            <span className="text-xs">{cashBack}%</span>
+                        </div>
+                        <Slider
+                            value={[cashBack]}
+                            max={100}
+                            step={1}
+                            onValueChange={(value) => setCashBack(value[0])}
                         />
-                        <span className="absolute left-9 top-1/2 transform ">
-                            %
-                        </span>
                     </div>
                 </div>
                 {/* Informações de Contato Section */}
