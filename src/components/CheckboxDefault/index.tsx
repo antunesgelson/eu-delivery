@@ -16,7 +16,7 @@ type Props = {
 export default function CheckboxDefault({ label, questionContent, name, form, error }: Props) {
     return (
         <div className="relative flex flex-col items-center">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 -mb-2">
                 <Label className="text-xs text-muted py-1">
                     {label}
                 </Label>
@@ -42,7 +42,7 @@ export default function CheckboxDefault({ label, questionContent, name, form, er
                                 <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
-                                    className={`duration-300 ${error ? 'border-red-500' : 'border-gray-700'}`}
+                                    className={`duration-300 mt-3 ${error ? 'border-red-500' : 'border-gray-700'}`}
                                 />
                             </FormControl>
                         </FormItem>

@@ -4,9 +4,7 @@ import { toast } from "sonner"
 
 import CheckboxDefault from "@/components/CheckboxDefault"
 import Select from "@/components/SelectDefault"
-import SliderDefault from "@/components/SliderDefault"
 import { Button } from "@/components/ui/button"
-import CurrencyField from "@/components/ui/current"
 import {
     Dialog,
     DialogContent,
@@ -18,6 +16,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+
+import SliderDefault from "@/components/SliderDefault"
+import CurrencyField from "@/components/ui/current"
 import { Textarea } from "@/components/ui/textarea"
 
 import { api } from "@/service/api"
@@ -26,13 +27,17 @@ import { useMutation } from "@tanstack/react-query"
 import { FormProvider, useForm } from "react-hook-form"
 import z from "zod"
 
+import { CupomDTO } from "@/dto/cupomDTO"
+import { useEffect } from "react"
 import { HiSave } from "react-icons/hi"
 import { HiTicket } from "react-icons/hi2"
+
 
 type Props = {
     open: boolean
     onClose: () => void
     onUpdate: () => void
+    cupom?: CupomDTO
 }
 const currencyStringToNumber = (val: string) => {
     if (!val) return 0;
@@ -41,10 +46,13 @@ const currencyStringToNumber = (val: string) => {
     const parsedValue = parseFloat(numericValue);
     return isNaN(parsedValue) ? 0 : parsedValue;
 };
+
 function numberToCurrencyString(value: number): string {
     // Converte o número para o formato '40,00'
     return value?.toFixed(2).replace('.', ',');
 }
+
+
 const schemaAddCupom = z.object({
     nome: z.string().min(1, { message: "Informe o nome do cupom." }),
     descricao: z.string().min(1, { message: "Campo obrigatório." }),
@@ -62,52 +70,46 @@ const schemaAddCupom = z.object({
         }),
     listaPublica: z.boolean({ required_error: "Erro." }),
     unicoUso: z.boolean({ required_error: "Erro." }),
-}).and(z.discriminatedUnion("tipo", [
-    z.object({
-        tipo: z.literal("porcentagem"),
-        valor: z
-            .number({ required_error: "Campo obrigatório." })
-            .min(0, { message: "Valor deve ser maior ou igual a 0." })
-            .max(100, { message: "Valor deve ser menor ou igual a 100." }),
-    }),
-    z.object({
-        tipo: z.literal("valor_fixo"),
-        valor: z
-            .string({ required_error: "Campo obrigatório." })
-            .min(1, "Campo obrigatório.")
-            .transform(currencyStringToNumber)
-            .refine((val) => !isNaN(val), {
-                message: "Por favor, forneça um valor numérico válido.",
+})
+    .and(
+        z.discriminatedUnion("tipo", [
+            z.object({
+                tipo: z.literal("porcentagem"),
+                valor: z
+                    .number({ required_error: "Campo obrigatório." })
+                    .min(0, { message: "Valor deve ser maior ou igual a 0." })
+                    .max(100, { message: "Valor deve ser menor ou igual a 100." }),
             }),
-    }),
-])
-);
+            z.object({
+                tipo: z.literal("valor_fixo"),
+                valor: z
+                    .string({ required_error: "Campo obrigatório." })
+                    .min(1, "Campo obrigatório.")
+                    .transform(currencyStringToNumber)
+                    .refine((val) => !isNaN(val), {
+                        message: "Por favor, forneça um valor numérico válido.",
+                    }),
+            }),
+        ])
+    );
 
 
 type AddCupomForm = z.infer<typeof schemaAddCupom>
 
-export function ModalAddCupom({ open, onClose, onUpdate }: Props) {
+export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
     const methods = useForm<AddCupomForm>({
         resolver: zodResolver(schemaAddCupom),
-        defaultValues: {
-            valor: 10.00?.toFixed(2)?.replace('.', ','),
-            tipo: 'valor_fixo',
-            status: true,
-            listaPublica: false,
-            unicoUso: false,
-            quantidade: 1,
-        }
-    })
 
+    })
     const { register, handleSubmit, watch, reset, formState: { errors }, ...form } = methods
     const tipo = watch('tipo')
-    const valor = watch('valor')
 
 
-    const { mutateAsync: handleAddCupom, isPending } = useMutation({
-        mutationKey: ['add-cupom'],
+    const { mutateAsync: handleEditCupom, isPending } = useMutation({
+        mutationKey: ['edit-cupom'],
         mutationFn: async ({ nome, descricao, valor, tipo, quantidade, validade, status, valorMinimoGasto, listaPublica, unicoUso }: AddCupomForm) => {
-            const { data } = await api.post('/cupom', {
+            const { data } = await api.put('/cupom', {
+                id: cupom?.id,
                 nome,
                 descricao,
                 valor,
@@ -121,7 +123,7 @@ export function ModalAddCupom({ open, onClose, onUpdate }: Props) {
             })
             return data
         }, onSuccess(data) {
-            toast.success('Cupom adicionado com sucesso!')
+            toast.success('Cupom editado com sucesso!')
             onUpdate()
             onClose()
         }, onError(error: unknown) {
@@ -136,6 +138,22 @@ export function ModalAddCupom({ open, onClose, onUpdate }: Props) {
 
 
 
+    useEffect(() => {
+        console.log("cupom ->", cupom)
+        if (!cupom) return
+        reset({
+            nome: cupom.nome,
+            descricao: cupom.descricao,
+            valor: cupom.tipo === 'porcentagem' ? cupom.valor : numberToCurrencyString(cupom.valor),
+            quantidade: cupom.quantidade,
+            validade: cupom.validade,
+            status: cupom.status,
+            valorMinimoGasto: numberToCurrencyString(cupom.valorMinimoGasto),
+            listaPublica: cupom.listaPublica,
+            unicoUso: cupom.unicoUso,
+            tipo: cupom.tipo,
+        })
+    }, [cupom]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -143,7 +161,7 @@ export function ModalAddCupom({ open, onClose, onUpdate }: Props) {
                 <DialogHeader>
                     <DialogTitle className="flex justify-center items-center gap-1 text-xl dark:text-white-off">
                         <HiTicket size={25} />
-                        Adicionar Cupom
+                        Editar Cupom
                     </DialogTitle>
                     <DialogDescription className="text-center text-muted text-xs">
                         Certifique-se de fornecer todas as informações necessárias para que o cupom seja válido e utilizável pelos usuários.
@@ -152,7 +170,7 @@ export function ModalAddCupom({ open, onClose, onUpdate }: Props) {
 
                 <Separator className="bg-muted/20" />
                 <FormProvider {...methods}>
-                    <form onSubmit={handleSubmit((data) => handleAddCupom(data))}
+                    <form onSubmit={handleSubmit((data) => handleEditCupom(data))}
                         className="grid grid-cols-2 gap-2">
                         <div className="col-span-2">
                             <Input

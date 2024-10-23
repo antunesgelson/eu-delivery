@@ -5,7 +5,7 @@ export type CupomDTO = {
     nome: string
     quantidade: number
     status: boolean
-    tipo: string
+    tipo: "porcentagem" | "valor_fixo";
     unicoUso: boolean
     validade: string
     valor: number
