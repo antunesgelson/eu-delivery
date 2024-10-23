@@ -2,16 +2,17 @@
 import classNames from 'classnames';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import React from 'react';
 
 import HeaderAdmin from "@/components/Header/Admin";
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
-import React from 'react';
 import { BiSolidFoodMenu } from "react-icons/bi";
 import { FaChartPie } from "react-icons/fa6";
 import { HiTicket } from "react-icons/hi2";
-import { IoMdOptions } from "react-icons/io";
+import { IoMdSettings } from "react-icons/io";
 import { IconType } from "react-icons/lib";
+
 type MenuProps = {
     open: boolean
     Icon: IconType
@@ -55,11 +56,11 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
     const menuData = [
         { Icon: FaChartPie, title: 'Dashboard', link: '/admin/dashboard', subMenu: [] },
         { Icon: BiSolidFoodMenu, title: 'Cardápio', link: '/admin/cardapio', subMenu: [] },
-        { Icon: IoMdOptions, title: 'Configuração', link: '/admin/config', subMenu: [] },
         { Icon: HiTicket, title: 'Cupom', link: '/admin/cupom', subMenu: [] },
+        { Icon: IoMdSettings, title: 'Configuração', link: '/admin/config', subMenu: [] },
     ];
 
-    
+
     return (
         <div className="min-h-screen h-full flex justify-between">
             <div className={classNames("relative duration-300 flex flex-col items-center dark:bg-dark-800 bg-white shadow-sm drop-shadow-lg", { 'w-80': open, 'w-24 ': !open })}>
@@ -73,6 +74,7 @@ const LayoutAdmin = ({ children }: { children: React.ReactNode }) => {
                     {menuData.map((item, index) => (
                         <MenuItem key={index} open={open} {...item} />
                     ))}
+
                 </div>
             </div>
             <div className="dark:bg-dark-900 bg-white-off w-full h-full dark:text-white-off text-dark-900">
