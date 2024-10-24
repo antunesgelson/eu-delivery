@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { PiTrash } from "react-icons/pi";
@@ -65,7 +66,12 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                         <p className="text-muted text-xs leading-4 italic">Natal</p>
                     </div>
                     <div className="flex justify-center items-center h-14">
-                        <img src="https://github.com/antunesgelson.png" className="h-14 w-14 rounded-full" />
+                        <Image
+                            className="h-14 w-14 rounded-full"
+                            src={"https://github.com/antunesgelson.png"}
+                            alt="profile"
+                        />
+                        {/* <img src="https://github.com/antunesgelson.png" className="h-14 w-14 rounded-full" /> */}
                     </div>
                 </div>
                 <section className="mt-6">

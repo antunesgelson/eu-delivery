@@ -1,10 +1,13 @@
 import { AxiosError } from "axios"
 import { AnimatePresence, motion } from "framer-motion"
+import { useEffect } from "react"
 import { toast } from "sonner"
 
 import CheckboxDefault from "@/components/CheckboxDefault"
 import Select from "@/components/SelectDefault"
+import SliderDefault from "@/components/SliderDefault"
 import { Button } from "@/components/ui/button"
+import CurrencyField from "@/components/ui/current"
 import {
     Dialog,
     DialogContent,
@@ -16,19 +19,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-
-import SliderDefault from "@/components/SliderDefault"
-import CurrencyField from "@/components/ui/current"
 import { Textarea } from "@/components/ui/textarea"
 
+import { CupomDTO } from "@/dto/cupomDTO"
 import { api } from "@/service/api"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { FormProvider, useForm } from "react-hook-form"
 import z from "zod"
 
-import { CupomDTO } from "@/dto/cupomDTO"
-import { useEffect } from "react"
 import { HiSave } from "react-icons/hi"
 import { HiTicket } from "react-icons/hi2"
 
@@ -52,46 +51,32 @@ function numberToCurrencyString(value: number): string {
     return value?.toFixed(2).replace('.', ',');
 }
 
-
-const schemaAddCupom = z.object({
+const baseSchema = z.object({
     nome: z.string().min(1, { message: "Informe o nome do cupom." }),
     descricao: z.string().min(1, { message: "Campo obrigatório." }),
-    tipo: z.enum(["porcentagem", "valor_fixo"], { required_error: "Campo obrigatório." }),
-    quantidade: z
-        .preprocess((val) => Number(val), z.number().min(1, { message: "Informe a quantidade deste cupom." })),
+    quantidade: z.preprocess((val) => Number(val), z.number().min(1, { message: "Informe a quantidade deste cupom." })),
     validade: z.string().optional(),
     status: z.boolean({ required_error: "Erro." }),
     valorMinimoGasto: z
         .string({ required_error: "Informe quanto o usuário precisa gastar para utilizar este cupom." })
-        .min(1, "Informe quanto o usuário precisa gastar para utilizar este cupom.")
-        .transform(currencyStringToNumber)
-        .refine((val) => !isNaN(val), {
-            message: "Por favor, forneça um valor numérico válido.",
-        }),
+        .min(1, "Informe quanto o usuário precisa gastar para utilizar este cupom."),
     listaPublica: z.boolean({ required_error: "Erro." }),
     unicoUso: z.boolean({ required_error: "Erro." }),
-})
-    .and(
-        z.discriminatedUnion("tipo", [
-            z.object({
-                tipo: z.literal("porcentagem"),
-                valor: z
-                    .number({ required_error: "Campo obrigatório." })
-                    .min(0, { message: "Valor deve ser maior ou igual a 0." })
-                    .max(100, { message: "Valor deve ser menor ou igual a 100." }),
-            }),
-            z.object({
-                tipo: z.literal("valor_fixo"),
-                valor: z
-                    .string({ required_error: "Campo obrigatório." })
-                    .min(1, "Campo obrigatório.")
-                    .transform(currencyStringToNumber)
-                    .refine((val) => !isNaN(val), {
-                        message: "Por favor, forneça um valor numérico válido.",
-                    }),
-            }),
-        ])
-    );
+});
+
+const schemaAddCupom = z.discriminatedUnion('tipo', [
+    baseSchema.extend({
+        tipo: z.literal("porcentagem"),
+        valor: z
+            .number({ required_error: "Campo obrigatório." })
+            .min(0, { message: "Valor deve ser maior ou igual a 0." })
+            .max(100, { message: "Valor deve ser menor ou igual a 100." }),
+    }),
+    baseSchema.extend({
+        tipo: z.literal("valor_fixo"),
+        valor: z.string({ required_error: "Campo obrigatório." }).min(1, "Campo obrigatório."),
+    }),
+]);
 
 
 type AddCupomForm = z.infer<typeof schemaAddCupom>
@@ -101,25 +86,30 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
         resolver: zodResolver(schemaAddCupom),
 
     })
-    const { register, handleSubmit, watch, reset, formState: { errors }, ...form } = methods
-    const tipo = watch('tipo')
-
+    const { register, handleSubmit, watch, reset, setValue, formState: { errors }, ...form } = methods
+    const tipo = watch('tipo');
+    const valor = watch('valor');
 
     const { mutateAsync: handleEditCupom, isPending } = useMutation({
         mutationKey: ['edit-cupom'],
         mutationFn: async ({ nome, descricao, valor, tipo, quantidade, validade, status, valorMinimoGasto, listaPublica, unicoUso }: AddCupomForm) => {
+
+            // Transforme os valores conforme o tipo
+            const parsedValorMinimoGasto = currencyStringToNumber(valorMinimoGasto);
+            const parsedValor = tipo === 'valor_fixo' ? currencyStringToNumber(valor) : valor;
+
             const { data } = await api.put('/cupom', {
                 id: cupom?.id,
                 nome,
                 descricao,
-                valor,
+                valor: parsedValor,
                 tipo,
                 quantidade,
-                validade, //opcional, mas não pode ser menor e nem igual a data de hoje.
+                validade, //opcional
                 status,
-                valorMinimoGasto,
+                valorMinimoGasto: parsedValorMinimoGasto,
                 listaPublica,
-                unicoUso
+                unicoUso,
             })
             return data
         }, onSuccess(data) {
@@ -136,24 +126,52 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
         }
     })
 
-
+    useEffect(() => {
+        if (tipo === 'valor_fixo') {
+            if (typeof valor === 'number') {
+                // Converte número para string de moeda
+                const valorString = numberToCurrencyString(valor);
+                setValue('valor', valorString);
+            }
+        } else if (tipo === 'porcentagem') {
+            if (typeof valor === 'string' && valor !== '') {
+                // Converte string de moeda para número
+                const valorNumber = currencyStringToNumber(valor);
+                setValue('valor', valorNumber);
+            }
+        }
+    }, [valor, tipo, setValue]);
 
     useEffect(() => {
-        console.log("cupom ->", cupom)
-        if (!cupom) return
-        reset({
-            nome: cupom.nome,
-            descricao: cupom.descricao,
-            valor: cupom.tipo === 'porcentagem' ? cupom.valor : numberToCurrencyString(cupom.valor),
-            quantidade: cupom.quantidade,
-            validade: cupom.validade,
-            status: cupom.status,
-            valorMinimoGasto: numberToCurrencyString(cupom.valorMinimoGasto),
-            listaPublica: cupom.listaPublica,
-            unicoUso: cupom.unicoUso,
-            tipo: cupom.tipo,
-        })
-    }, [cupom]);
+        if (!cupom) return;
+        if (cupom.tipo === 'porcentagem') {
+            reset({
+                nome: cupom.nome,
+                descricao: cupom.descricao,
+                valor: cupom.valor, // valor é number
+                quantidade: cupom.quantidade,
+                validade: cupom.validade,
+                status: cupom.status,
+                valorMinimoGasto: numberToCurrencyString(cupom.valorMinimoGasto),
+                listaPublica: cupom.listaPublica,
+                unicoUso: cupom.unicoUso,
+                tipo: 'porcentagem',
+            });
+        } else if (cupom.tipo === 'valor_fixo') {
+            reset({
+                nome: cupom.nome,
+                descricao: cupom.descricao,
+                valor: numberToCurrencyString(cupom.valor), // valor é string
+                quantidade: cupom.quantidade,
+                validade: cupom.validade,
+                status: cupom.status,
+                valorMinimoGasto: numberToCurrencyString(cupom.valorMinimoGasto),
+                listaPublica: cupom.listaPublica,
+                unicoUso: cupom.unicoUso,
+                tipo: 'valor_fixo',
+            });
+        }
+    }, [cupom, reset]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -170,8 +188,7 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
 
                 <Separator className="bg-muted/20" />
                 <FormProvider {...methods}>
-                    <form onSubmit={handleSubmit((data) => handleEditCupom(data))}
-                        className="grid grid-cols-2 gap-2">
+                    <form onSubmit={handleSubmit((data) => handleEditCupom(data))} className="grid grid-cols-2 gap-2">
                         <div className="col-span-2">
                             <Input
                                 label="Nome"
@@ -230,7 +247,6 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
                                 </motion.div>
                             }
                         </AnimatePresence>
-
                         <Input
                             type="number"
                             label="Quantidade"
@@ -238,7 +254,6 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
                             {...register('quantidade')}
                             error={errors.quantidade?.message}
                         />
-
                         <div className="flex justify-between gap-4 items-start col-span-2 mb-2">
                             <div className="flex w-full justify-between">
                                 <CheckboxDefault
@@ -263,7 +278,6 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
                                     questionContent="Indica se este cupom é listado para todos os usuários."
                                 />
                             </div>
-
                             <Input
                                 type="date"
                                 label="Validade"
@@ -272,7 +286,6 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
                                 error={errors.validade?.message}
                             />
                         </div>
-
                         <div className="col-span-2">
                             <div className="flex items-center justify-between py-1">
                                 <Label className="text-xs text-muted">
@@ -287,7 +300,6 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
                                 error={errors.descricao?.message}
                             />
                         </div>
-
                         <DialogFooter className="w-full col-span-2">
                             <div className="flex items-center">
                                 <Button
@@ -301,8 +313,6 @@ export function ModalEditCupom({ open, onClose, onUpdate, cupom }: Props) {
                             </div>
                         </DialogFooter>
                     </form>
-
-
                 </FormProvider>
             </DialogContent>
         </Dialog>

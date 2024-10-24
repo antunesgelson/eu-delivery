@@ -133,17 +133,17 @@ const CardCupom = ({ cupom, openModalEditar, setCupom }: CardCupomProps) => {
                         Tipo: {cupom.tipo}
                     </span>
                     <span
-                        data-tooltip-id={`quantia-tooltip`}
-                        data-tooltip-content={'Quantia do cupom.'}>
-                        Quantidade: {cupom.quantidade}
-                    </span>
-                    <span
                         data-tooltip-id={`valor-tooltip`}
                         data-tooltip-content={cupom.tipo === 'porcentagem'
-                            ? 'Usuário irá receber um desconto de acordo com a porcentagem informada.'
-                            : 'Usuário irá receber um desconto de acordo com o valor informado.'
+                            ? `Usuário irá receber um desconto de ${cupom.valor}%.`
+                            : `Usuário irá receber um desconto de R$${cupom.valor}.`
                         }>
-                        {cupom.tipo === 'valor_fixo' && 'R$'}Valor: {cupom.valor}{cupom.tipo === 'porcentagem' && '%'}
+                        Valor: {cupom.tipo === 'valor_fixo' && 'R$'}{cupom.valor}{cupom.tipo === 'porcentagem' && '%'}
+                    </span>
+                    <span
+                        data-tooltip-id={`quantia-tooltip`}
+                        data-tooltip-content={'Quantia do cupom disponível para uso.'}>
+                        Quantidade: {cupom.quantidade}
                     </span>
                     <span
                         data-tooltip-id={`valorMinimo-tooltip`}
