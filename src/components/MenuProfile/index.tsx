@@ -70,6 +70,8 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                             className="h-14 w-14 rounded-full"
                             src={"https://github.com/antunesgelson.png"}
                             alt="profile"
+                            width={500}
+                            height={500}
                         />
                         {/* <img src="https://github.com/antunesgelson.png" className="h-14 w-14 rounded-full" /> */}
                     </div>

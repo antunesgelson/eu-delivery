@@ -106,30 +106,41 @@ const schemaStep1 = z.object({
     titulo: z.string().min(1, 'Por favor, forneça um nome para este produto.'),
     descricao: z.string().min(1, 'Por favor, forneça uma descrição para este produto.'),
     valor: z
-        .string({ message: 'Por favor, forneça o valor deste produto.' })
+        .string()
         .min(1, 'Por favor, forneça o valor deste produto.')
-        .transform(currencyStringToNumber)
-        .refine((val) => !isNaN(val), {
+        .refine((val) => !isNaN(currencyStringToNumber(val)), {
             message: 'Por favor, forneça um valor numérico válido.',
         }),
     valorPromocional: z
-        .string({ message: 'Por favor, forneça o valor promocional deste produto.' })
+        .string()
         .min(1, 'Por favor, forneça o valor promocional deste produto.')
-        .transform(currencyStringToNumber)
-        .refine((val) => !isNaN(val), {
+        .refine((val) => !isNaN(currencyStringToNumber(val)), {
             message: 'Por favor, forneça um valor numérico válido.',
         }),
-    limitItens: z.string().min(1, 'Por favor, forneça o limite de itens adicionais.').refine((val) => !isNaN(Number(val)), {
-        message: 'Por favor, forneça um valor numérico válido.',
-    }),
-    servingSize: z.string().min(1, 'Por favor, forneça a quantidade de pessoas que este produto serve.').refine((val) => !isNaN(Number(val)), {
-        message: 'Por favor, forneça um valor numérico válido.',
-    }),
-    imgs: z.array(z.instanceof(File))
-        .min(1, { message: "Por favor, insira pelo menos uma imagem." })
-        .refine(files => files.every(file => file.size <= MAX_SIZE), { message: "Cada imagem deve ter no máximo 5MB." })
-        .refine(files => files.every(file => ['image/jpeg', 'image/png'].includes(file.type)), { message: "Formato de imagem inválido. Apenas JPEG e PNG são permitidos." })
+    limitItens: z
+        .string()
+        .min(1, 'Por favor, forneça o limite de itens adicionais.')
+        .refine((val) => !isNaN(Number(val)), {
+            message: 'Por favor, forneça um valor numérico válido.',
+        }),
+    servingSize: z
+        .string()
+        .min(1, 'Por favor, forneça a quantidade de pessoas que este produto serve.')
+        .refine((val) => !isNaN(Number(val)), {
+            message: 'Por favor, forneça um valor numérico válido.',
+        }),
+    imgs: z
+        .array(z.instanceof(File))
+        .min(1, { message: 'Por favor, insira pelo menos uma imagem.' })
+        .refine((files) => files.every((file) => file.size <= MAX_SIZE), {
+            message: 'Cada imagem deve ter no máximo 2MB.',
+        })
+        .refine(
+            (files) => files.every((file) => ['image/jpeg', 'image/png'].includes(file.type)),
+            { message: 'Formato de imagem inválido. Apenas JPEG e PNG são permitidos.' }
+        ),
 });
+
 type Step1Form = z.infer<typeof schemaStep1>
 type Step1Props = {
     setStep: React.Dispatch<React.SetStateAction<number>>
@@ -195,8 +206,8 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
         reset({
             titulo: product.titulo,
             limitItens: String(product.limitItens),
-            valor: parseInt(product.valor),
-            valorPromocional: product.desconto,
+            valor: product.valor,
+            valorPromocional: String(product.desconto),
             servingSize: String(product.servingSize),
             descricao: product.descricao
         })

@@ -153,7 +153,7 @@ export function ModalAddCupom({ open, onClose, onUpdate }: Props) {
         } else if (tipo === 'porcentagem') {
             if (typeof valor === 'string' && valor !== '') {
                 // Converte string de moeda para número
-                const valorNumber = currencyStringToNumber(valor);
+                const valorNumber = currencyStringToNumber('10');
                 setValue('valor', valorNumber);
             }
         }

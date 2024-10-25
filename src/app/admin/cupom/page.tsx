@@ -1,4 +1,6 @@
 'use client'
+import { motion } from "framer-motion";
+import { useState } from "react";
 
 import { CupomDTO } from "@/dto/cupomDTO";
 import { api } from "@/service/api";
@@ -9,30 +11,33 @@ import { Tooltip } from "react-tooltip";
 
 import { HiTicket } from "react-icons/hi2";
 import { MdLibraryAdd, MdOutlineUpdate } from "react-icons/md";
+import { TiEdit } from "react-icons/ti";
 
+import { ModalAddCupom } from "@/components/Modal/AddCupom";
+import { ModalEditCupom } from "@/components/Modal/EditCupom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 
-import { ModalAddCupom } from "@/components/Modal/AddCupom";
-import { ModalEditCupom } from "@/components/Modal/EditCupom";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { TiEdit } from "react-icons/ti";
+
 
 
 const Cupom = () => {
     const [open, setOpen] = useState(false)
     const [openModalEditar, setOpenModalEditar] = useState(false)
     const [cupom, setCupom] = useState<CupomDTO>({} as CupomDTO)
-
+    const [filter, setFilter] = useState('')
 
     const { data: cupons, refetch: handleUpdateListCupom } = useQuery({
-        queryKey: ['list-cupom-admin'],
+        queryKey: ['list-cupom-admin', filter],
         queryFn: async () => {
             try {
-                const { data } = await api.get<CupomDTO[]>('/cupom/buscar')
+                const { data } = await api.get<CupomDTO[]>('/cupom/buscar', {
+                    params: {
+                        nome: filter
+                    }
+                })
                 return data
             } catch (error: unknown) {
                 if (error instanceof AxiosError || error instanceof Error) {
@@ -41,10 +46,7 @@ const Cupom = () => {
             }
         }
     })
-    useEffect(() => {
-        if (!cupons) return
-        console.log('cupons:', cupons);
-    }, [cupons]);
+
     return (
         <div className="p-6  mx-auto  -mt-16 min-h-screen h-fit ">
             <div className="flex justify-between items-center border-white-off/20 border-b pb-4 mb-6 relative z-50 ">
@@ -53,7 +55,11 @@ const Cupom = () => {
                     Cupom
                 </h1>
                 <div className="flex items-center ">
-                    <Input type="search" />
+                    <Input
+                        type="search"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                    />
                     <Button
                         size={'icon'}
                         variant={'icon'}
