@@ -11,27 +11,62 @@ import ViewConfig from "./components";
 
 
 export type DiasState = {
-    [key: string]: boolean;
+    [key: string]: {
+        abertura: string;
+        fechamento: string;
+        inicio_intervalo: string;
+        fim_intervalo: string;
+    };
 }
 const Config = () => {
-    const [menu, setMenu] = React.useState('visualizar');
+    const [menu, setMenu] = React.useState('editar');
     const [hasInterval, setHasInterval] = useState(false);
-    const [dias, setDias] = useState<DiasState>({
-        Segunda: true,
-        Quinta: true,
-        Sábado: false,
-        Terça: true,
-        Sexta: true,
-        Domingo: false,
-        Quarta: true,
+    const [dias, setDias] = useState({
+        seg: {
+            abertura: '08:00',
+            fechamento: '19:00',
+            inicio_intervalo: '',
+            fim_intervalo: ''
+        },
+        ter: {
+            abertura: '08:00',
+            fechamento: '12:00',
+            inicio_intervalo: '14:00',
+            fim_intervalo: '18:00'
+        },
+        qua: {
+            abertura: '08:00',
+            fechamento: '19:00',
+            inicio_intervalo: '',
+            fim_intervalo: ''
+        },
+        qui: {
+            abertura: '08:00',
+            fechamento: '19:00',
+            inicio_intervalo: '',
+            fim_intervalo: ''
+        },
+        sex: {
+            abertura: '08:00',
+            fechamento: '19:00',
+            inicio_intervalo: '',
+            fim_intervalo: ''
+        },
+        sab: {
+            abertura: '',
+            fechamento: '',
+            inicio_intervalo: '',
+            fim_intervalo: ''
+        },
+        dom: {
+            abertura: '',
+            fechamento: '',
+            inicio_intervalo: '',
+            fim_intervalo: ''
+        }
     });
 
-    const handleCheckboxChange = (dia: string) => {
-        setDias((prevDias) => ({
-            ...prevDias,
-            [dia]: !prevDias[dia],
-        }));
-    };
+
 
     React.useEffect(() => {
         console.log('dias de funcinamento:', dias);
@@ -74,10 +109,6 @@ const Config = () => {
 
             {menu === 'editar' &&
                 <ViewConfig
-                    dias={dias}
-                    hasInterval={hasInterval}
-                    setHasInterval={setHasInterval}
-                    handleCheckboxChange={handleCheckboxChange}
                 />
             }
 

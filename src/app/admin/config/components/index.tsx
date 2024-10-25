@@ -1,128 +1,251 @@
 'use client'
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-
-
-import { Label } from "@/components/ui/label";
+import useFormatters from "@/hook/useFormatters";
 import React from "react";
+
+import SliderDefault from "@/components/SliderDefault";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+
 import { BiSolidPhoneCall } from "react-icons/bi";
-import { FaPiggyBank } from "react-icons/fa6";
+import { FaMapLocationDot, FaPiggyBank } from "react-icons/fa6";
+import { HiSave } from "react-icons/hi";
 import { MdUpdate } from "react-icons/md";
-import { DiasState } from "../page";
+
+import CurrencyField from "@/components/ui/current";
+import { Separator } from "@/components/ui/separator";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FormProvider, useForm } from "react-hook-form";
+import { z } from "zod";
+
+const DIAS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+
+const schemaEditConfig = z.object({
+    tel: z.string().min(8, { message: 'Telefone inválido' }).max(11, { message: 'Telefone inválido' }),
+    facebook: z.string().min(3, { message: 'Facebook inválido' }),
+    instagram: z.string().min(3, { message: 'Instagram inválido' }),
+    cashback: z.number().min(0, { message: 'Cashback inválido' }).max(100, { message: 'Cashback inválido' })
+
+})
+type EditConfigForm = z.infer<typeof schemaEditConfig>
 
 type Props = {
-    dias: DiasState;
-    hasInterval: boolean;
-    setHasInterval: (value: boolean) => void;
-    handleCheckboxChange: (dia: string) => void;
-}
-export default function ViewConfig({ dias, hasInterval, setHasInterval, handleCheckboxChange }: Props) {
-    const [cashBack, setCashBack] = React.useState(10);
 
+}
+export default function ViewConfig({ }: Props) {
+    const methods = useForm<EditConfigForm>({
+        resolver: zodResolver(schemaEditConfig),
+        defaultValues: {
+            cashback: 10
+        }
+    })
+    const { register, watch, setValue, formState: { errors } } = methods;
+    const { cellPhoneFormat } = useFormatters()
+    const tel = watch('tel');
+
+    React.useEffect(() => {
+        setValue('tel', cellPhoneFormat(tel));
+    }, [tel, setValue, cellPhoneFormat]);
     return (
         <section className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-                {/* Cashback Section */}
-                <div className="bg-dark-300 p-4  rounded-md">
-                    <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                        <FaPiggyBank />
-                        Cashback
-                    </h2>
-                    <div className="relative">
-                        <div className="flex justify-between items-center ">
-                            <Label className="text-xs text-muted py-1">
-                                Defina a porcentagem de Cashback:
-                            </Label>
-                            <span className="text-xs">{cashBack}%</span>
+            <FormProvider {...methods}>
+                <form >
+                    <div className="grid grid-cols-2 gap-2">
+                        {/* Horário de Atendimento Section */}
+                        <div className="bg-dark-300 p-4  rounded-md">
+                            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                                <MdUpdate />
+                                Horário de Atendimento
+                            </h2>
+                            <p className="text-xs text-muted">
+                                Configure os horários de abertura e
+                                fechamento do estabelecimento, bem como os
+                                intervalos de atendimento para cada dia
+                                da semana. Esta seção permite ajustar os
+                                horários de funcionamento de forma detalhada.
+                            </p>
+
+                            {DIAS.map((dia) => (
+                                <div key={dia} className="flex items-center justify-between border-b py-2  border-muted/20 ">
+                                    <h2 className="uppercase mt-6  text-base text-muted tracking-wider">{dia}:</h2>
+                                    <div className="grid grid-cols-4 gap-6">
+                                        <Input className="w-fit" label="Abertura" questionContent={`Defina o horário de abertura do estabelecimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
+                                        <Input className="w-fit" label="Fechamento" questionContent={`Defina o horário de fechamento do estabelecimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
+                                        <Input className="w-fit" label="Início Intervalo" questionContent={`Defina o horário de início do intervalo de atendimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
+                                        <Input className="w-fit" label="Final Intervalo" questionContent={`Defina o horário de término do intervalo de atendimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        <Slider
-                            value={[cashBack]}
-                            max={100}
-                            step={1}
-                            onValueChange={(value) => setCashBack(value[0])}
-                        />
-                    </div>
-                </div>
-                {/* Informações de Contato Section */}
-                <div className="bg-dark-300 p-4 rounded-md flex flex-col">
-                    <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                        <BiSolidPhoneCall />
-                        Informações de Contato
-                    </h2>
-                    <div className="flex flex-col justify-center">
-                        <Input label="Telefone:" type="tel" defaultValue="48991758185" />
-                        <Input label="Facebook:" type="tel" defaultValue="@antunesgelson" />
-                        <Input label="Instagram:" type="tel" defaultValue="@antunesgelson" />
-                    </div>
-                </div>
-            </div>
-            <div className="grid ">
-                {/* Horário de Atendimento Section */}
-                <div className="bg-dark-300 p-4  rounded-md ">
-                    <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                        <MdUpdate />
-                        Horário de Atendimento
-                    </h2>
-                    <div className="grid grid-cols-2 gap-2 items-center">
-                        <Input label="Abertura" type="time" />
-                        <Input label="Fechamento" type="time" />
-                    </div>
-                    <h3 className="font-semibold my-2">Dias de Funcionamento</h3>
-                    <div className="grid grid-cols-3  gap-2 ">
-                        {Object.keys(dias).map((dia) => (
-                            <div key={dia} className="flex items-center gap-2">
-                                <Checkbox
-                                    id={dia}
-                                    className="w-5 h-5"
-                                    checked={dias[dia]}
-                                    onCheckedChange={() => handleCheckboxChange(dia)}
+
+                        {/* Informações de Contato Section */}
+                        <div className="bg-dark-300 p-4 rounded-md flex flex-col">
+                            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                                <BiSolidPhoneCall />
+                                Informações de Contato
+                            </h2>
+                            <p className="text-xs text-muted pb-3">
+                                Forneça os detalhes de contato do estabelecimento,
+                                incluindo telefone, Facebook e Instagram. Esta
+                                seção permite que os clientes encontrem facilmente
+                                as informações necessárias para entrar em contato.
+                            </p>
+
+                            <div className="flex flex-col justify-center">
+                                <Input
+                                    type="tel"
+                                    label="Telefone:"
+                                    placeholder="(00) 00000-0000"
+                                    {...register('tel')}
+                                    error={errors.tel?.message}
                                 />
-                                <label className="cursor-pointer" htmlFor={dia}>{dia}</label>
+                                <Input
+                                    type="text"
+                                    label="Facebook:"
+                                    placeholder="@seu-usuario"
+                                    {...register('facebook')}
+                                    error={errors.facebook?.message}
+                                />
+                                <Input
+                                    type="text"
+                                    label="Instagram:"
+                                    placeholder="@seu-usuario"
+                                    {...register('instagram')}
+                                    error={errors.instagram?.message}
+                                />
                             </div>
-                        ))}
-                    </div>
-                    <div className=" flex flex-col my-3 gap-1 ">
-                        <label className="cursor-pointer" htmlFor="temIntervalo">Possui intervalo?</label>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size={'sm'}
-                                variant={hasInterval ? 'outline' : 'default'}
-                                className={`${hasInterval ? ' ' : 'text-white-off'}`}
-                                onClick={() => setHasInterval(true)}>
-                                NÃO
-                            </Button>
-                            <Button
-                                size={'sm'}
-                                variant={hasInterval ? 'default' : 'outline'}
-                                className={`${hasInterval ? ' text-white-off' : ''}`}
-                                onClick={() => setHasInterval(false)} >
-                                SIM
-                            </Button>
+                            <Separator className="bg-muted/20 mt-4" />
+                            {/* Cashback Section */}
+                            <div className="my-4">
+                                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                                    <FaPiggyBank />
+                                    Cashback
+                                </h2>
+                                <p className="text-xs text-muted pb-3">
+                                    Configure a porcentagem de cashback que o usuário
+                                    receberá em cada compra. Esta seção permite
+                                    ajustar a taxa de retorno para incentivar as
+                                    compras e fidelizar os clientes.
+                                </p>
+
+                                <div className="">
+                                    <SliderDefault
+                                        name="cashback"
+                                        label="Defina a porcentagem de Cashback"
+                                        questionContent="Indica a porcentagem de cashback que o usuário receberá em cada compra."
+                                        error={errors.cashback?.message}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Informações de Entrega Section */}
+                        <div className="bg-dark-300 p-4 rounded-md flex flex-col">
+                            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                                <FaMapLocationDot />
+                                Informações de Entrega
+                            </h2>
+                            <p className="text-xs text-muted pb-3">
+                                Forneça os detalhes de contato do estabelecimento,
+                                incluindo telefone, Facebook e Instagram. Esta
+                                seção permite que os clientes encontrem facilmente
+                                as informações necessárias para entrar em contato.
+                            </p>
+
+                            <div className="flex flex-col justify-center">
+                                <Input
+                                    type="text"
+                                    placeholder="Avenida Brasil, 123"
+                                    label="Endereço do Estabelecimento:"
+                                    questionContent="Este campo será utilizado para calcular o frete e exibir o endereço do estabelecimento."
+                                />
+
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input
+                                        type="time"
+                                        placeholder="00:00"
+                                        label="Intervalo entre entregas:"
+                                        questionContent="Defina o intervalo de tempo entre as entregas realizadas pelo estabelecimento."
+                                    />
+                                    <CurrencyField
+                                        name="cashback"
+                                        label="Taxa de Frete:"
+                                        questionContent="Esse campo indica o valor da taxa de entrega cobrada pelo estabelecimento. EX: R$ 5,00 por km."
+                                        error={errors.cashback?.message}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 items-center">
-                        <Input
-                            type="time"
-                            disabled={hasInterval}
-                            label="Início do Intervalo:"
-                        />
-                        <Input
-                            type="time"
-                            disabled={hasInterval}
-                            label="Fim do Intervalo:"
-                        />
+                    <div className=" flex items-center justify-end my-4">
+                        <Button className="flex items-center gap-1" variant={'outline'}>
+                            <HiSave size={20} />
+                            Salvar Configurações
+                        </Button>
                     </div>
-                    <Button className="w-full mt-4" variant={'outline'}>Salvar Horário</Button>
-                </div>
-            </div>
-            <div className="w-full flex justify-end mt-4">
-                {/* Save Button */}
-                <Button variant={'outline'}>
-                    Salvar Configurações
-                </Button>
-            </div>
+                </form>
+            </FormProvider>
         </section>
     )
 }
+
+{/* Horário de Atendimento Section */ }
+// <div className="grid grid-cols-2 ">
+// <div className="bg-dark-300 p-4  rounded-md ">
+//     <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+//         <MdUpdate />
+//         Horário de Atendimento
+//     </h2>
+//     <div className="grid grid-cols-2 gap-2 items-center">
+//         <Input label="Abertura" type="time" />
+//         <Input label="Fechamento" type="time" />
+//     </div>
+//     <h3 className="font-semibold my-2">Dias de Funcionamento</h3>
+//     <div className="grid grid-cols-3  gap-2 ">
+//         {Object.keys(dias).map((dia) => (
+//             <div key={dia} className="flex items-center gap-2">
+//                 <Checkbox
+//                     id={dia}
+//                     className="w-5 h-5"
+//                     checked={dias[dia]}
+//                     onCheckedChange={() => handleCheckboxChange(dia)}
+//                 />
+//                 <label className="cursor-pointer" htmlFor={dia}>{dia}</label>
+//             </div>
+//         ))}
+//     </div>
+//     <div className=" flex flex-col my-3 gap-1 ">
+//         <label className="cursor-pointer" htmlFor="temIntervalo">Possui intervalo?</label>
+//         <div className="flex items-center gap-2">
+//             <Button
+//                 size={'sm'}
+//                 variant={hasInterval ? 'outline' : 'default'}
+//                 className={`${hasInterval ? ' ' : 'text-white-off'}`}
+//                 onClick={() => setHasInterval(true)}>
+//                 NÃO
+//             </Button>
+//             <Button
+//                 size={'sm'}
+//                 variant={hasInterval ? 'default' : 'outline'}
+//                 className={`${hasInterval ? ' text-white-off' : ''}`}
+//                 onClick={() => setHasInterval(false)} >
+//                 SIM
+//             </Button>
+//         </div>
+//     </div>
+//     <div className="grid grid-cols-2 gap-2 items-center">
+//         <Input
+//             type="time"
+//             disabled={hasInterval}
+//             label="Início do Intervalo:"
+//         />
+//         <Input
+//             type="time"
+//             disabled={hasInterval}
+//             label="Fim do Intervalo:"
+//         />
+//     </div>
+//     <Button className="w-full mt-4" variant={'outline'}>Salvar Horário</Button>
+// </div>
+// </div>
