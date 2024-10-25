@@ -152,6 +152,10 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
         resolver: zodResolver(schemaStep1),
     });
     const { register, handleSubmit, reset, formState: { errors } } = methods;
+    function numberToCurrencyString(value: number): string {
+        // Converte o número para o formato '40,00'
+        return value?.toFixed(2).replace('.', ',');
+    }
 
     const { data: product } = useQuery({
         queryKey: ['product-info', productID],
@@ -206,8 +210,8 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
         reset({
             titulo: product.titulo,
             limitItens: String(product.limitItens),
-            valor: product.valor,
-            valorPromocional: String(product.desconto),
+            valor: numberToCurrencyString(Number(product.valor)),
+            valorPromocional: numberToCurrencyString(product.valorPromocional),
             servingSize: String(product.servingSize),
             descricao: product.descricao
         })

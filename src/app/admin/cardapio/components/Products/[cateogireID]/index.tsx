@@ -111,15 +111,13 @@ const schemaStep1 = z.object({
     valor: z
         .string({ message: 'Por favor, forneça o valor deste produto.' })
         .min(1, 'Por favor, forneça o valor deste produto.')
-        .transform(currencyStringToNumber)
-        .refine((val) => !isNaN(val), {
+        .refine((val) => !isNaN(currencyStringToNumber(val)), {
             message: 'Por favor, forneça um valor numérico válido.',
         }),
     valorPromocional: z
         .string({ message: 'Por favor, forneça o valor promocional deste produto.' })
         .min(1, 'Por favor, forneça o valor promocional deste produto.')
-        .transform(currencyStringToNumber)
-        .refine((val) => !isNaN(val), {
+        .refine((val) => !isNaN(currencyStringToNumber(val)), {
             message: 'Por favor, forneça um valor numérico válido.',
         }),
     limitItens: z.string().min(1, 'Por favor, forneça o limite de itens adicionais.').refine((val) => !isNaN(Number(val)), {
@@ -153,10 +151,11 @@ const Step1 = ({ setStep, category, setProduct }: Step1Props) => {
             formData.append('limitItens', String(limitItens));
             formData.append('servingSize', String(servingSize));
             formData.append('titulo', titulo);
-            formData.append('valor', String(valor));
-            formData.append('valorPromocional', String(valorPromocional));
+            formData.append('valor', String(valor.replaceAll('.','').replace(',','.')));
+            formData.append('valorPromocional', String(valorPromocional.replaceAll('.','').replace(',','.')));
             formData.append('categoriaId', category.id);
             imgs.forEach((img) => formData.append('imgs', img));
+
             const { data } = await api.post('/produto/cadastrar', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -167,14 +166,15 @@ const Step1 = ({ setStep, category, setProduct }: Step1Props) => {
             setStep((prevStep) => prevStep + 1)
             setProduct(data)
         }, onError(error: unknown) {
+            console.log('error ->', error)
             if (error instanceof AxiosError && error.response) {
                 toast.error(error.response.data.message)
-
             } else {
                 toast.error('Erro inesperado, tenta novamente mais tarde.')
             }
         },
     })
+
 
     return (
         <FormProvider {...methods}>

@@ -1,5 +1,5 @@
 'use client'
-import React from "react";
+import React, { useEffect } from "react";
 
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -58,6 +58,10 @@ export default function Home({ searchParams }: Props) {
     },
   });
 
+
+  useEffect(() => {
+    console.log(cardapio)
+  }, [cardapio]);
 
 
   React.useEffect(() => {

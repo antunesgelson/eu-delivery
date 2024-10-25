@@ -50,7 +50,7 @@ function numberToCurrencyString(value: number): string {
     // Converte o número para o formato '40,00'
     return value?.toFixed(2).replace('.', ',');
 }
-
+ 
 const baseSchema = z.object({
     nome: z.string().min(1, { message: "Informe o nome do cupom." }),
     descricao: z.string().min(1, { message: "Campo obrigatório." }),

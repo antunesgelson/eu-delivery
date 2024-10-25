@@ -36,9 +36,13 @@ export default function ProductorDetails({ params }: Props) {
 
     const [itemValueUnit, setItemValueUnit] = useState(0); //valor de cada unidade do produto
     const [itemValueFinish, setItemValueFinish] = useState(0); // valor final do produto
+    const [desconto, setDesconto] = useState<number>(0);
     const [obs, setObs] = useState<string>('');
     const router = useRouter();
     const { handleUpdateCart } = useCart();
+
+
+
 
     function handleRemove(index: number) {
         setRemoveSelectedItems(prev => {
@@ -155,6 +159,9 @@ export default function ProductorDetails({ params }: Props) {
 
     useEffect(() => {
         if (!productDetails) return
+        const value = parseInt(productDetails?.valor)
+        const discountPercentage = ((value - productDetails?.valorPromocional) / value) * 100;
+        setDesconto(discountPercentage)
         console.log('productDetails atualizado', productDetails);
         const valueItem = parseInt(productDetails.valor)
         setItemValueUnit(valueItem)
@@ -180,9 +187,9 @@ export default function ProductorDetails({ params }: Props) {
                     <div className='relative'>
                         <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />
                         <div className="relative">
-                            {productDetails && productDetails?.desconto > 0 &&
+                            {productDetails && productDetails?.valorPromocional > 0 &&
                                 <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
-                                    <span className="font-bold mr-14 ml-2 ">-{productDetails?.desconto}%</span>
+                                    <span className="font-bold mr-14 ml-2 ">-{desconto}%</span>
                                     <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
                                 </div>
                             }
