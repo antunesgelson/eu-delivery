@@ -64,7 +64,7 @@ type CardProps = {
 
 const Card = ({ title, value, Icon }: CardProps) => {
     return (
-        <div className="h-28 rounded-3xl flex justify-between items-center bg-white border-white dark:bg-dark-800 p-8 border dark:border-dark-400 shadow-sm drop-shadow-lg">
+        <div className="h-28 rounded-3xl flex justify-between items-center bg-white border-white dark:bg-dark-800 p-8 border dark:border-dark-400 shadow-sm drop-shadow-lg ">
             <div className="flex flex-col">
                 <h2 className="font-light text-muted ">{title}</h2>
                 <span className="font-semibold text-2xl py-1">R$ {value.toFixed(2)} </span>

@@ -13,7 +13,7 @@ export default function Banner() {
     const BannerSlide = [Thumb, Thumb, Thumb]
 
     return (
-        <div className='w-full my-5  '>
+        <div className='w-full my-5 lg:w-6/12 mx-auto  '>
             <Swiper className='w-full h-[170px]'
                 modules={[Autoplay, Pagination]}
                 spaceBetween={33}

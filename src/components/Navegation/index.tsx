@@ -47,7 +47,7 @@ export default function Navegation() {
     });
 
     return (
-        <div className="flex items-center w-full bg-white">
+        <div className="flex items-center w-full bg-white lg:w-6/12 mx-auto">
             <Button
                 variant={'icon'}
                 className="bg-white rounded-none  h-14 "

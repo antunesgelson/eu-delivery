@@ -33,8 +33,8 @@ export default function Footer() {
 
     }, []);
     return (
-        <footer >
-            <div className="bg-white mt-10 p-4 ">
+        <footer className="bg-white mt-10 p-4 " >
+            <div className=" lg:w-6/12 mx-auto">
                 <div className="text-center">
                     <h4 className="font-bold text-xl">Pagamento</h4>
                     <span className="text-xs text-muted-foreground">Confira as formas de pagamento que aceitamos:</span>

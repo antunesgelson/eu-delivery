@@ -87,7 +87,7 @@ export default function Home({ searchParams }: Props) {
   }, [searchParams, session, router, userName]);
 
   return (
-    <main className="overflow-x-hidden mt-14 ">
+    <main className="overflow-x-hidden mt-14  ">
       <section
         style={background}
         className="flex flex-col justify-center items-center h-[40vh] ">
@@ -111,13 +111,13 @@ export default function Home({ searchParams }: Props) {
       <Navegation />
       <Banner />
 
-      <section className="w-11/12 mx-auto">
+      <section className="w-11/12 lg:w-6/12 mx-auto">
         {cardapio?.map((produto: CardapioDTO) => (
           <div id={`section-${produto.id}`} key={produto.titulo}>
             <h2 className="uppercase text-2xl font-bold mt-6 mb-2">
               {produto.titulo}
             </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
               {produto.produtos.map((item) => (
                 <ProductCard key={item.id} {...item} />
               ))}

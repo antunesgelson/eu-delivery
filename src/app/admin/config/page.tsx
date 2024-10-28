@@ -1,13 +1,14 @@
 'use client'
-import { Button } from "@/components/ui/button";
-
 import React, { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import ViewConfig from "./components";
+
 import { Tooltip } from "react-tooltip";
 
 import { IoMdSettings } from "react-icons/io";
 import { IoEyeOutline, IoEyeSharp } from "react-icons/io5";
 import { RiMarkPenFill, RiMarkPenLine } from "react-icons/ri";
-import ViewConfig from "./components";
 
 
 export type DiasState = {
@@ -107,13 +108,7 @@ const Config = () => {
                 </div>
             </div>
 
-            {menu === 'editar' &&
-                <ViewConfig
-                />
-            }
-
-
-
+            {menu === 'editar' && <ViewConfig />}
         </div>
     );
 };

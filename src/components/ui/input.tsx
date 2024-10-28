@@ -20,7 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className="relative">
         {label &&
           <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted py-1">
+            <Label className="text-xs text-muted py-1 line-clamp-1">
               {label}
             </Label>
 

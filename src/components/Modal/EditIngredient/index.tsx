@@ -15,25 +15,20 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 
-const currencyStringToNumber = (val: string) => {
-    if (!val) return 0;
-    // Remove o prefixo 'R$ ', espaços, pontos e outros caracteres não numéricos
-    const numericValue = val.replace(/[^\d,]/g, '').replace(',', '.');
-    const parsedValue = parseFloat(numericValue);
-    return isNaN(parsedValue) ? 0 : parsedValue;
-};
-const schemaAddCategory = z.object({
+
+function numberToCurrencyString(value: number): string {
+    // Converte o número para o formato '40,00'
+    return value?.toFixed(2).replace('.', ',');
+}
+const schemaEditIngredient = z.object({
     title: z.string().min(3, 'O título deve conter no mínimo 3 caracteres.'),
     valor: z
         .string({ message: 'Por favor, forneça o valor deste produto.' })
         .min(1, 'Por favor, forneça o valor deste produto.')
-        .transform(currencyStringToNumber)
-        .refine((val) => !isNaN(val), {
-            message: 'Por favor, forneça um valor numérico válido.',
-        }),
+
 })
 
-type schemaAddCategoryForm = z.infer<typeof schemaAddCategory>
+type schemaEditIngredientForm = z.infer<typeof schemaEditIngredient>
 
 type ModalProps = {
     open: boolean
@@ -42,14 +37,14 @@ type ModalProps = {
     ingredientEdit: IngredientesDTO
 }
 const ModalEditIngredient = ({ open, onClose, handleUpdateIngredients, ingredientEdit }: ModalProps) => {
-    const methods = useForm<schemaAddCategoryForm>({
-        resolver: zodResolver(schemaAddCategory)
+    const methods = useForm<schemaEditIngredientForm>({
+        resolver: zodResolver(schemaEditIngredient)
     })
     const { handleSubmit, register, reset, formState: { errors } } = methods;
 
     const { mutateAsync: handleEditIngredient, isPending } = useMutation({
         mutationKey: ['edit-ingrediente'],
-        mutationFn: async ({ title, valor }: schemaAddCategoryForm) => {
+        mutationFn: async ({ title, valor }: schemaEditIngredientForm) => {
             const { data } = await api.put('/ingredientes', {
                 id: ingredientEdit.id,
                 nome: title,
@@ -77,7 +72,7 @@ const ModalEditIngredient = ({ open, onClose, handleUpdateIngredients, ingredien
         if (!ingredientEdit) return
         reset({
             title: ingredientEdit.nome,
-            valor: ingredientEdit.valor
+            valor: numberToCurrencyString(ingredientEdit.valor)
         })
     }, [ingredientEdit, reset]);
 
