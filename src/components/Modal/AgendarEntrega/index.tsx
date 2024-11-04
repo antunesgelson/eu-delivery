@@ -1,5 +1,8 @@
+'use client'
+import useCart from "@/hook/useCart"
 import { AnimatePresence, motion } from "framer-motion"
 import React, { useState } from "react"
+import { toast } from "sonner"
 
 import MultiStep from "@/components/MultiStep"
 import { Button } from "@/components/ui/button"
@@ -12,47 +15,47 @@ import {
     DialogHeader,
     DialogTitle
 } from "@/components/ui/dialog"
-
-
 import { Separator } from "@/components/ui/separator"
-import useCart from "@/hook/useCart"
+
 import { api } from "@/service/api"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { AxiosError } from "axios"
+
 import { BsCalendarDate } from "react-icons/bs"
 import { FaRegCalendarCheck } from "react-icons/fa6"
 import { IoIosArrowRoundForward } from "react-icons/io"
-import { toast } from "sonner"
+
 
 type Props = {
     open: boolean
     onClose: () => void
 }
 
-const TIMES = [
-    "06:00", "06:30",
-    "07:00", "07:30",
-    "08:00", "08:30",
-    "09:00", "09:30",
-    "10:00", "10:30",
-    "11:00", "11:30",
-    "12:00", "12:30",
-    "13:00", "13:30",
-    "14:00", "14:30",
-    "15:00", "15:30",
-    "16:00", "16:30",
-    "17:00", "17:30",
-    "18:00", "18:30",
-    "19:00", "19:30"
-];
-
 export function ModalAgendarEntrega({ open, onClose }: Props) {
-    const [date, setDate] = useState<Date | undefined>(new Date())
+    const [date, setDate] = useState<Date | undefined>(new Date());
     const [step, setStep] = useState(1);
     const [selectedTime, setSelectedTime] = React.useState('');
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const { handleUpdateCart } = useCart()
 
+    const { data: time } = useQuery({
+        queryKey: ['list-times'],
+        queryFn: async () => {
+            const formattedDate = date ? date.toISOString().split("T")[0] : "";
+            try {
+                const { data } = await api.get(`/pedido/horarios/${formattedDate}`)
+                return data
+            } catch (error: unknown) {
+                if (error instanceof AxiosError && error.response) {
+                    throw new Error(error.response.data.message)
+                } else {
+                    throw new Error('Erro inesperado, tente novamente mais tarde.')
+
+                }
+            }
+        },
+        enabled: step === 2
+    })
 
     const { mutateAsync: handleChooseDate, isPending } = useMutation({
         mutationKey: ['choose-date'],
@@ -61,9 +64,13 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                 throw new Error('Data e horário ou período devem ser selecionados');
             }
             const formattedDate = date.toISOString().split('T')[0]; // Formata a data como YYYY-MM-DD
+
+            console.log('formattedDate => ', formattedDate)
             const dataEntrega = selectedPeriod
                 ? `${formattedDate} ${selectedPeriod === 'morning' ? 'Manhã' : 'Tarde'}`
                 : `${formattedDate} ${selectedTime}`; // Combina a data e o horário ou período
+
+            console.log('dataEntrega => ', dataEntrega)
 
             const { data } = await api.put('/pedido', {
                 dataEntrega
@@ -86,20 +93,6 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
         }
     })
 
-
-    // useEffect(() => {
-    //     if (!date) return;
-    //     console.log('selectedTime ->', selectedTime)
-    //     console.log('date ->', date)
-    //     console.log('selectedPeriod ->', selectedPeriod);
-    //     const formattedDate = date.toISOString().split('T')[0]; // Formata a data como YYYY-MM-DD
-    //     const dataEntrega = selectedPeriod
-    //         ? `${formattedDate} ${selectedPeriod === 'morning' ? 'Manhã' : 'Tarde'}`
-    //         : `${formattedDate} ${selectedTime}`; // Combina a data e o horário ou período
-
-
-    //     console.log('dataEntrega ->', dataEntrega)
-    // }, [date, selectedTime, selectedPeriod]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -145,19 +138,22 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                             <h2 className="text-center font-bold">Horários Disponíveis</h2>
                             <p className="text-center text-xs text-muted-foreground">Selecione o horário desejado para receber o produto.</p>
 
-                            <div className="grid grid-cols-4 gap-2 mt-2">
-                                {/* bg-gray-300 text-gray-500 cursor-not-allowed */}
-                                {TIMES.map((time) => (
-                                    <button
-                                        key={time}
-                                        onClick={() => setSelectedTime(time)}
-                                        disabled={!!selectedPeriod}
-                                        className={`py-2 px-4 rounded-md text-sm duration-200 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed ${selectedTime === time ? 'bg-emerald-500 text-white' : 'bg-dark-400 text-white-off'}`}>
-                                        {time}
-                                    </button>
-                                ))}
-                            </div>
+                            <div className="grid grid-cols-4 gap-2 mt-2 h-72">
+                                <AnimatePresence mode="popLayout">
+                                    {time?.map((time: { horario: string, disponivel: boolean }) => (
+                                        <motion.button
+                                            layout
+                                            key={time.horario}
+                                            onClick={() => setSelectedTime(time.horario)}
+                                            disabled={!!selectedPeriod || !time.disponivel}
+                                            className={`py-2 px-4 rounded-md text-sm duration-200 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed ${selectedTime === time.horario ? 'bg-emerald-500 text-white' : 'bg-dark-400 text-white-off'}`}>
+                                            {time.horario}
+                                        </motion.button>
+                                    ))}
+                                </AnimatePresence>
 
+                                {time?.length === 0 && <span className="col-span-4 h-72 flex justify-center items-center text-muted-foreground">Nenhum horário disponível para este dia.</span>}
+                            </div>
 
                             <div className="mt-3">
                                 <div className="leading-3 flex flex-col justify-center items-center">
@@ -168,25 +164,25 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                                 <div className="grid grid-cols-2 text-xs mt-3">
                                     <div className="flex items-center gap-1">
                                         <Checkbox
+                                            disabled={time?.length === 0}
                                             variant="add"
                                             checked={selectedPeriod === 'morning'}
                                             onCheckedChange={() => setSelectedPeriod(selectedPeriod === 'morning' ? null : 'morning')}
                                             className="h-5 w-5"
                                         />
-                                        <span>Na parte da manhã</span>
+                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ': ''}`}>Na parte da manhã</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Checkbox
+                                            disabled={time?.length === 0}
                                             variant="add"
                                             checked={selectedPeriod === 'afternoon'}
                                             onCheckedChange={() => setSelectedPeriod(selectedPeriod === 'afternoon' ? null : 'afternoon')}
                                             className="h-5 w-5"
                                         />
-                                        <span>Na parte da tarde</span>
+                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ': ''}`}>Na parte da tarde</span>
                                     </div>
                                 </div>
-
-
                             </div>
                         </motion.div>
                     }
@@ -214,6 +210,7 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                             </Button>
 
                             <Button
+                                disabled={time?.length === 0}
                                 variant={'success'}
                                 loading={isPending}
                                 onClick={() => handleChooseDate()}
@@ -229,3 +226,4 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
         </Dialog>
     )
 }
+
