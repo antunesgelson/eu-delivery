@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle
@@ -96,25 +97,37 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className=" min-h-[600px]  h-[600px] w-11/12  rounded-md ">
+            <DialogContent className=" min-h-[600px]  h-[600px] w-11/12  rounded-md  ">
                 <DialogHeader className=" -mb-8">
                     <DialogTitle className="uppercase text-xl font-bold flex justify-center items-center w-full ">
                         <h1 className=" flex items-center gap-2 "> <BsCalendarDate />Agendar Entrega</h1>
                     </DialogTitle>
                     <MultiStep size={2} currentStep={step} />
                 </DialogHeader>
+                <DialogDescription>
+                    {step === 1 &&
+                        <div className="absolute top-24 left-0 right-0 ">
+                            <h2 className="text-center font-bold text-black">Selecione o Dia de Entrega</h2>
+                            <p className="text-center text-xs text-muted-foreground">Escola o dia que deseja receber o produto.</p>
+                        </div>
+                    }
+                    {step === 2 &&
+                        <div className="absolute top-24 left-0 right-0">
+                            <h2 className="text-center font-bold text-black">Horários Disponíveis</h2>
+                            <p className="text-center text-xs text-muted-foreground">Selecione o horário desejado para receber o produto.</p>
+                        </div>
+                    }
+                </DialogDescription>
 
                 <AnimatePresence initial={false} mode="popLayout">
                     {step === 1 &&
                         <motion.div
-                            className=""
+                            className="absolute top-36 left-0 right-0 "
                             layout
                             initial={{ opacity: 0, x: 35 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 35 }}
                             transition={{ duration: 0.2, }} >
-                            <h2 className="text-center font-bold">Selecione o Dia de Entrega</h2>
-                            <p className="text-center text-xs text-muted-foreground">Escola o dia que deseja receber o produto.</p>
                             <Calendar
                                 mode="single"
                                 selected={date}
@@ -135,9 +148,6 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                             animate={{ opacity: 1, x: -0 }}
                             exit={{ opacity: 0, x: -35 }}
                             transition={{ duration: 0.2, }} >
-                            <h2 className="text-center font-bold">Horários Disponíveis</h2>
-                            <p className="text-center text-xs text-muted-foreground">Selecione o horário desejado para receber o produto.</p>
-
                             <div className="grid grid-cols-4 gap-2 mt-2 h-72">
                                 <AnimatePresence mode="popLayout">
                                     {time?.map((time: { horario: string, disponivel: boolean }) => (
@@ -170,7 +180,7 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                                             onCheckedChange={() => setSelectedPeriod(selectedPeriod === 'morning' ? null : 'morning')}
                                             className="h-5 w-5"
                                         />
-                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ': ''}`}>Na parte da manhã</span>
+                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ' : ''}`}>Na parte da manhã</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Checkbox
@@ -180,7 +190,7 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                                             onCheckedChange={() => setSelectedPeriod(selectedPeriod === 'afternoon' ? null : 'afternoon')}
                                             className="h-5 w-5"
                                         />
-                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ': ''}`}>Na parte da tarde</span>
+                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ' : ''}`}>Na parte da tarde</span>
                                     </div>
                                 </div>
                             </div>

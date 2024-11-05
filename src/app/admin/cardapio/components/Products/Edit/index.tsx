@@ -1,33 +1,34 @@
 'use client'
+import { AnimatePresence, motion } from 'framer-motion'
+import Image from 'next/image'
 import React, { useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'sonner'
 
+import ImageUploadField from '@/components/ImageUploader'
 import MultiStep from '@/components/MultiStep'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import CurrencyField from '@/components/ui/current'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 
+import { ImgDTO } from '@/dto/imgDTO'
 import { IngredientesDTO, ProdutosDTO } from '@/dto/productDTO'
 import { api } from '@/service/api'
-import { useMutation, useQuery } from '@tanstack/react-query'
-
-import { AxiosError } from 'axios'
-import { AnimatePresence, motion } from 'framer-motion'
-import { FaMinusCircle } from 'react-icons/fa'
-import { FaCirclePlus, FaCircleQuestion, FaClipboardQuestion } from 'react-icons/fa6'
-import { HiViewGridAdd } from "react-icons/hi"
-import { MdArrowRightAlt, MdAssignmentAdd, MdSaveAlt } from "react-icons/md"
-
-import ImageUploadField from '@/components/ImageUploader'
-import CurrencyField from '@/components/ui/current'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AxiosError } from 'axios'
 import { FormProvider, useForm } from 'react-hook-form'
 import z from 'zod'
 
+import { FaMinusCircle } from 'react-icons/fa'
+import { FaCirclePlus, FaCircleQuestion, FaClipboardQuestion } from 'react-icons/fa6'
+import { HiViewGridAdd } from "react-icons/hi"
+import { IoMdCloseCircle } from 'react-icons/io'
+import { MdArrowRightAlt, MdAssignmentAdd, MdSaveAlt } from "react-icons/md"
 
 type Props = {
     productID: number
@@ -91,8 +92,6 @@ const EditProduct = ({ productID, setMenu }: Props) => {
     )
 }
 
-
-
 {/* Cadastrar Produto na Categoria Selecionada */ }
 const currencyStringToNumber = (val: string) => {
     if (!val) return 0;
@@ -148,10 +147,12 @@ type Step1Props = {
     setProduct: React.Dispatch<React.SetStateAction<ProdutosDTO>>
 }
 const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
+    const queryClient = useQueryClient();
     const methods = useForm<Step1Form>({
         resolver: zodResolver(schemaStep1),
     });
     const { register, handleSubmit, reset, formState: { errors } } = methods;
+
     function numberToCurrencyString(value: number): string {
         // Converte o número para o formato '40,00'
         return value?.toFixed(2).replace('.', ',');
@@ -172,8 +173,6 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
             }
         },
     });
-
-
     const { mutateAsync: handleAddProduct, isPending } = useMutation({
         mutationKey: ['create-product'],
         mutationFn: async ({ descricao, imgs, limitItens, servingSize, titulo, valor, valorPromocional }: Step1Form) => {
@@ -204,6 +203,29 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
             }
         },
     })
+
+    async function handleRemoveFoto(img: ImgDTO) {
+        const removeImage = async () => {
+            await api.delete(`/produto/${productID}/${img.ETag}`);
+            queryClient.setQueryData<ProdutosDTO>(['product-info', productID], (oldData) => {
+                if (oldData) {
+                    return {
+                        ...oldData,
+                        imgs: oldData.imgs.filter((foto) => foto.ETag !== img.ETag),
+                    };
+                }
+                return oldData;
+            });
+        };
+        toast.promise(
+            removeImage(),
+            {
+                loading: 'Removendo imagem...',
+                success: 'Imagem removida com sucesso! 🎉',
+                error: (error) => error?.message || 'Tente novamente mais tarde.',
+            }
+        );
+    }
 
     React.useEffect(() => {
         if (!product) return
@@ -270,26 +292,31 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
                     error={errors.imgs?.message}
                 />
 
-                {/* <div className=" grid grid-cols-4 gap-2">
+                <div className=" grid grid-cols-4 gap-2">
                     {product?.imgs && product?.imgs.length > 0
-                        ? <h3 className="col-span-4 text-2xl font-poppins-bold text-blue-900">Imagens:</h3>
+                        ? <h3 className="col-span-4 text-xs text-muted ">Imagens:</h3>
                         : <span className="whitespace-nowrap text-muted-foreground text-sm text-center">Nenhuma imagem cadastrada.</span>}
                     {product?.imgs &&
-                        product?.imgs.map((img: any, index: number) => (
-                            <div className="relative w-full h-full" key={index}>
+                        product?.imgs.map((img, index: number) => (
+                            <div className="relative w-full h-full  " key={index}>
                                 <Image
                                     priority
                                     width={500}
                                     height={500}
-                                    className="rounded-md  object-cover object-center h-28 2xl:h-[320px] lg:h-[220px]"
-                                    alt={img.titulo}
-                                    src={img?.local}
+                                    className="rounded-md  object-cover object-center h-28 2xl:h-[320px] lg:h-[220px] border-[5px] border-[#FFFFFF54]"
+                                    alt={img.ETag}
+                                    src={img?.Location}
                                 />
 
+                                <IoMdCloseCircle
+                                    size={20}
+                                    onClick={() => handleRemoveFoto(img)}
+                                    className=" text-red-500 cursor-pointer hover:scale-150 duration-300 absolute top-1 right-1 bg-white border border-black rounded-full"
+                                />
                             </div>
                         ))
                     }
-                </div> */}
+                </div>
 
                 <div className="flex flex-col ">
                     <Label className='text-xs text-muted flex items-center gap-2'>

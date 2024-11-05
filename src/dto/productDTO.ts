@@ -27,7 +27,7 @@ export type ProdutosDTO = {
     titulo: string,
     descricao: string,
     valor: string,
-    imgs: ImgDTO,
+    imgs: ImgDTO[],
     valorPromocional: number,
     limitItens: number,
     servingSize: number,
