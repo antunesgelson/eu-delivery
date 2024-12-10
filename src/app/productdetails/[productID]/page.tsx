@@ -214,7 +214,7 @@ export default function ProductorDetails({ params }: Props) {
                                     height={500}
                                     className="rounded-lg object-cover object-center lg:max-h-none"
                                     alt={productDetails?.titulo || 'Produto'}
-                                    src={productDetails.imgs.Location}
+                                    src={productDetails.imgs[0].Location}
                                 />
                             }
                         </div>

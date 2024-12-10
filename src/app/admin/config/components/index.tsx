@@ -14,7 +14,9 @@ import { MdUpdate } from "react-icons/md";
 
 import CurrencyField from "@/components/ui/current";
 import { Separator } from "@/components/ui/separator";
+import { api } from "@/service/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -43,9 +45,26 @@ export default function ViewConfig({ }: Props) {
     const { cellPhoneFormat } = useFormatters()
     const tel = watch('tel');
 
+
+    const { } = useMutation({
+        mutationKey: ['editConfig',],
+        mutationFn: async (response: EditConfigForm) => {
+
+            const { data } = await api.post('/configuracao', {
+
+            });
+            return data
+        }, onSuccess(data, variables, context) {
+
+        }, onError(error, variables, context) {
+
+        },
+    })
+
     React.useEffect(() => {
         setValue('tel', cellPhoneFormat(tel));
     }, [tel, setValue, cellPhoneFormat]);
+
     return (
         <section className="space-y-2">
             <FormProvider {...methods}>
@@ -179,7 +198,10 @@ export default function ViewConfig({ }: Props) {
                         </div>
                     </div>
                     <div className=" flex items-center justify-end my-4">
-                        <Button className="flex items-center gap-1" variant={'outline'}>
+                        <Button
+                            className="flex items-center gap-1"
+                            variant={'outline'}
+                            type="submit">
                             <HiSave size={20} />
                             Salvar Configurações
                         </Button>
