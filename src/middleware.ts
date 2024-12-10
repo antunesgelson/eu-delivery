@@ -41,8 +41,8 @@ export async function middleware(request: NextRequest) {
 
     if (nextUrl.pathname.startsWith('/admin') && token) { // Verifica se o usuário está tentando acessar a rota de admin
         const token_decoded = decode(token.value) as DecodedToken;
-        const isPermit = token_decoded.regras.some((regra) => regra === 'admin');
-        if (!isPermit) return NextResponse.redirect(ToHome);// Verifica se o usuário tem permissão admin
+        // const isPermit = token_decoded.regras.some((regra) => regra === 'admin');
+        // if (!isPermit) return NextResponse.redirect(ToHome);// Verifica se o usuário tem permissão admin
     }
 
 

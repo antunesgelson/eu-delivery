@@ -1,6 +1,6 @@
 'use client'
 
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/Theme/ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
