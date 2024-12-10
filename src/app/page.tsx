@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect } from "react";
+import React from "react";
 
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -52,16 +52,11 @@ export default function Home({ searchParams }: Props) {
         if (error instanceof AxiosError && error.response) {
           toast.error(error.response.data.message)
         } else {
-          toast.error('erro inesperado, tente novamente mais tarde.')
+          toast.error('Erro inesperado, tente novamente mais tarde.')
         }
       }
     },
   });
-
-
-  useEffect(() => {
-    console.log(cardapio)
-  }, [cardapio]);
 
 
   React.useEffect(() => {

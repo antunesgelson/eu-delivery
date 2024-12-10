@@ -151,7 +151,7 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
     const methods = useForm<Step1Form>({
         resolver: zodResolver(schemaStep1),
     });
-    const { register, handleSubmit, reset, formState: { errors } } = methods;
+    const { register, handleSubmit, reset, setValue, formState: { errors } } = methods;
 
     function numberToCurrencyString(value: number): string {
         // Converte o número para o formato '40,00'
@@ -228,16 +228,54 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
     }
 
     React.useEffect(() => {
-        if (!product) return
+        if (!product) return;
+
         reset({
             titulo: product.titulo,
             limitItens: String(product.limitItens),
             valor: numberToCurrencyString(Number(product.valor)),
             valorPromocional: numberToCurrencyString(product.valorPromocional),
             servingSize: String(product.servingSize),
-            descricao: product.descricao
-        })
+            descricao: product.descricao,
+            // imgs: [], // Mantém imgs como array vazio
+        });
     }, [product, reset, productID]);
+
+    React.useEffect(() => {
+        if (!product || !product.imgs) return;
+
+        const fetchFilesFromUrls = async () => {
+            const filePromises = product.imgs.map(async (img) => {
+                const response = await fetch(img.Location);
+                const blob = await response.blob();
+
+                const fileName = img.Key.split('/').pop() || 'image.jpg';
+
+                // Deduzir o tipo da imagem baseado na extensão do arquivo
+                let type = '';
+                if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+                    type = 'image/jpeg';
+                } else if (fileName.endsWith('.png')) {
+                    type = 'image/png';
+                } else {
+                    // Caso a extensão não seja suportada, você pode decidir o que fazer aqui.
+                    // Por exemplo, simplesmente atribuir um tipo default ou não incluir o arquivo.
+                    console.warn('Extensão de imagem não reconhecida:', fileName);
+                    // Como fallback, você poderia tentar:
+                    type = blob.type;
+                }
+
+                return new File([blob], fileName, { type });
+            });
+
+            const files = await Promise.all(filePromises);
+            setValue('imgs', files);
+        };
+
+        fetchFilesFromUrls();
+    }, [product, setValue]);
+
+
 
     return (
         <FormProvider {...methods}>

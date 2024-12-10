@@ -3,8 +3,10 @@ import { JwtPayload } from "jsonwebtoken"
 export type DecodedToken = JwtPayload & {
     sub: number,
     email: string,
-    nomeCompleto: string,
-    regras: string[],
+    tel: string,
+    isAdmin: boolean,
     iat: number,
     exp: number
 }
+
+
