@@ -42,8 +42,6 @@ export default function ProductorDetails({ params }: Props) {
     const { handleUpdateCart } = useCart();
 
 
-
-
     function handleRemove(index: number) {
         setRemoveSelectedItems(prev => {
             const isCurrentlySelected = prev[index];
@@ -88,6 +86,7 @@ export default function ProductorDetails({ params }: Props) {
         queryFn: async () => {
             try {
                 const { data } = await api.get<ProdutosDTO>(`/produto/${params.productID}`)
+                console.log('ProdutosDTO', data);
                 return data
             } catch (error: unknown) {
                 console.log(error)
@@ -128,14 +127,13 @@ export default function ProductorDetails({ params }: Props) {
             console.log(data);
             handleUpdateCart()
             router.push('/');
-
         },
         onError(error: unknown) {
             console.log(error)
             if (error instanceof AxiosError && error.response) {
                 toast.error(error.response.data.message)
             } else {
-                toast.error('An unexpected error occurred')
+                toast.error('Erro inesperado, tente novamente mais tarde.')
             }
         },
     });
@@ -189,7 +187,7 @@ export default function ProductorDetails({ params }: Props) {
                         <div className="relative">
                             {productDetails && productDetails?.valorPromocional > 0 &&
                                 <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
-                                    <span className="font-bold mr-14 ml-2 ">-{desconto}%</span>
+                                    <span className="font-bold mr-14 ml-2 ">-{desconto?.toFixed(2)}%</span>
                                     <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
                                 </div>
                             }
@@ -214,7 +212,7 @@ export default function ProductorDetails({ params }: Props) {
                                     height={500}
                                     className="rounded-lg object-cover object-center lg:max-h-none"
                                     alt={productDetails?.titulo || 'Produto'}
-                                    src={productDetails.imgs[0].Location}
+                                    src={productDetails?.imgs[0]?.Location}
                                 />
                             }
                         </div>

@@ -2,6 +2,7 @@
 
 import { CartDTO } from "@/dto/cartDTO";
 import { CupomDTO } from "@/dto/cupomDTO";
+import useAuth from "@/hook/useAuth";
 import { api } from "@/service/api";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
@@ -27,6 +28,7 @@ type CartProviderProps = {
 }
 
 export function CartProvider({ children }: CartProviderProps) {
+    const { isAuthenticated } = useAuth()
     const [selectedItemId, setSelectedItemId] = React.useState<null | string>(null);
 
     const { data: cart, refetch: handleUpdateCart } = useQuery({
@@ -36,14 +38,16 @@ export function CartProvider({ children }: CartProviderProps) {
                 const { data } = await api.get<CartDTO>('/pedido/carrinho')
                 return data
             } catch (error: unknown) {
-                console.log(error)
                 if (error instanceof AxiosError && error.response) {
-                    toast.error(error.response.data.message)
+                    // toast.error(error.response.data.message)
+                    console.log('error ->', console.log(error.response.data.message))
+
                 } else {
-                    toast.error('An unexpected error occurred')
+                    console.log('error ->', console.log(error))
+                    toast.error('Erro inesperado, tente novamente mais tarde.')
                 }
             }
-        },
+        }, enabled: !!isAuthenticated
     });
 
     const { data: cupom, refetch: handleUpdateCupom } = useQuery({
@@ -75,7 +79,7 @@ export function CartProvider({ children }: CartProviderProps) {
                 console.error(error)
                 throw error
             }
-        }
+        }, enabled: !!isAuthenticated
     })
 
     React.useEffect(() => {

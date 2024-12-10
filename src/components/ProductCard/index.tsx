@@ -66,7 +66,7 @@ export default function ProductCard({ titulo, descricao, imgs, valor, valorPromo
                     <div className="relative">
                         {valorPromocional !== 0 &&
                             <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
-                                <span className="font-bold mr-14 ml-2 ">-{discountPercentage}%</span>
+                                <span className="font-bold mr-14 ml-2 ">-{discountPercentage?.toFixed(2)}%</span>
                                 <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
                             </div>
                         }

@@ -59,8 +59,8 @@ export default function Checkout() {
     };
 
     React.useEffect(() => {
-        console.log('cupom', cupom)
-    }, [cupom]);
+        console.log('cart', cart?.endereco)
+    }, [cart]);
 
     return (
         <motion.main className="mt-12"
@@ -128,13 +128,18 @@ export default function Checkout() {
                     <div className="flex justify-between items-center w-full ">
                         <div className="flex flex-col items-start leading-4 ml-3">
                             <span className="font-semibold">Entregar em:</span>
-                            <span className="text-muted-foreground text-sm">{cart?.endereco.rua}, {cart?.endereco.numero}</span>
-                            <span className="text-xs italic text-muted-foreground ">
-                                {cart?.endereco.complemento && `Complemento: ${cart.endereco.complemento}`}
-                            </span>
-                            <span className="text-xs italic text-muted-foreground ">
-                                {cart?.endereco.referencia && `Referencia: ${cart.endereco.referencia}`}
-                            </span>
+                            {!cart?.endereco || Object.keys(cart.endereco).length === 0
+                                ? <span className="text-muted-foreground text-sm">Selecione um endereço</span>
+                                : <>
+                                    <span className="text-muted-foreground text-sm">{cart.endereco.rua}, {cart.endereco.numero}</span>
+                                    <span className="text-xs italic text-muted-foreground ">
+                                        {cart.endereco.complemento && `Complemento: ${cart.endereco.complemento}`}
+                                    </span>
+                                    <span className="text-xs italic text-muted-foreground ">
+                                        {cart.endereco.referencia && `Referencia: ${cart.endereco.referencia}`}
+                                    </span>
+                                </>
+                            }
                         </div>
                         <Button
                             size={'sm'}

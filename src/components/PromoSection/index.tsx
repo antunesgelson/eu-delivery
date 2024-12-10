@@ -1,10 +1,13 @@
 
+import { ModalChooseAdress } from "@/components/Modal/ChooseAddress";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useState } from "react";
 import { FaChevronRight } from "react-icons/fa";
 import { FaCircleQuestion, FaLocationDot, FaMotorcycle, FaPiggyBank } from "react-icons/fa6";
 
 export default function PromoSection() {
+    const [openModalAdress, setOpenModalAdress] = useState(false);
     return (
         <div className="w-11/12 lg:w-6/12 mx-auto my-2 space-y-2  ">
             <Link href={"/cashback"} className=" border-dashed border-[2px]  border-muted rounded-lg bg-white p-2 flex justify-between items-center">
@@ -28,14 +31,22 @@ export default function PromoSection() {
                 <FaChevronRight />
             </Button>
 
-            <Button variant={'destructive'} className="w-full justify-between">
+            <Button
+                onClick={() => setOpenModalAdress(true)}
+                variant={'destructive'}
+                className="w-full justify-between">
                 <FaLocationDot size={15} />
                 <div className="w-full flex justify-start ml-3">
                     Escolha o endereço
                 </div>
                 <FaChevronRight />
             </Button>
-        </div>
 
+
+            <ModalChooseAdress
+                open={openModalAdress}
+                onClose={() => setOpenModalAdress(false)}
+            />
+        </div>
     )
 }

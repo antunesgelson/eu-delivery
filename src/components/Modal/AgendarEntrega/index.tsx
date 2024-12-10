@@ -230,7 +230,6 @@ export function ModalAgendarEntrega({ open, onClose }: Props) {
                             </Button>
                         </div>
                     }
-
                 </DialogFooter>
             </DialogContent>
         </Dialog>

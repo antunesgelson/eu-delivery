@@ -52,7 +52,7 @@ export default function Home({ searchParams }: Props) {
         if (error instanceof AxiosError && error.response) {
           toast.error(error.response.data.message)
         } else {
-          toast.error('An unexpected error occurred')
+          toast.error('erro inesperado, tente novamente mais tarde.')
         }
       }
     },

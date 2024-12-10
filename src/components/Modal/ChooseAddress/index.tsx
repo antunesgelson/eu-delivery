@@ -22,7 +22,6 @@ import { CgArrowsExchange } from "react-icons/cg"
 import { FaMapLocationDot, FaRegStar, FaStar } from "react-icons/fa6"
 import { MdAddLocation } from "react-icons/md"
 
-
 type Props = {
     open: boolean
     onClose: () => void
@@ -54,8 +53,6 @@ export function ModalChooseAdress({ open, onClose }: Props) {
         }
     })
 
-
-
     const { data: addressList } = useQuery({
         queryKey: ['deliveryaddress-list'],
         queryFn: async () => {
@@ -84,12 +81,12 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                 </DialogHeader>
 
                 <ScrollArea className="h-[50vh] -mt-10">
-                    <section className=" h-full flex flex-col justify-center gap-2 ">
+                    <section className=" h-full flex flex-col justify-start gap-2 ">
                         {addressList?.length == 0 && <span className="text-center my-auto text-sm text-muted-foreground">Nenhum endereço cadastrado.</span>}
                         {addressList && addressList?.length > 0 && addressList.map((address: AddressDTO) => (
                             <div
                                 key={address.id}
-                                className={`bg-white p-4 rounded-lg shadow-sm drop-shadow-lg border cursor-pointer ${address.favorite && 'border-emerald-500'}`}
+                                className={`bg-white p-3 rounded-lg shadow-sm drop-shadow-lg border cursor-pointer ${address.favorite && 'border-emerald-500'}`}
                                 onClick={() => handleChangeAddress(address.id)}>
                                 <div className="flex justify-between items-center">
                                     <h2 className="uppercase font-bold">{address.apelido}</h2>
@@ -111,7 +108,7 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                 </ScrollArea>
 
                 <DialogFooter className=" fixed bottom-4 right-4 left-4  ">
-                    <div className="flex justify-center items-center ">
+                    <div className="flex justify-center items-center w-full ">
                         {addressList?.length == 0 &&
                             <Button asChild className="flex  items-center gap-1 w-full" variant={'success'}>
                                 <Link href={'/deliveryaddress/add'}>
@@ -120,7 +117,7 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                                 </Link>
                             </Button>
                         }
-                        {addressList &&
+                        {addressList && addressList?.length !== 0 &&
                             <Button
                                 loading={isPending}
                                 variant={'success'}
