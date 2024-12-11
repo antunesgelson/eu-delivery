@@ -19,15 +19,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
+import CashBack from "@/app/cashback/page";
+import { ConfiguracaoDTO } from "@/dto/configuracaoDTO";
 
 const DIAS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
 
 const schemaEditConfig = z.object({
-    tel: z.string().min(8, { message: 'Telefone inválido' }).max(11, { message: 'Telefone inválido' }),
-    facebook: z.string().min(3, { message: 'Facebook inválido' }),
-    instagram: z.string().min(3, { message: 'Instagram inválido' }),
-    cashback: z.number().min(0, { message: 'Cashback inválido' }).max(100, { message: 'Cashback inválido' })
-
+    tel: z.string().optional().refine((value) => !value || (value.length >= 8 && value.length <= 15), {message: "Telefone inválido",}),
+    facebook: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), {message: "Facebook inválido",}),
+    instagram: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), {message: "Instagram inválido",}),
+    cashback: z.number().optional().refine((value) => !value || (value >= 0 && value <= 100), {message: "Cashback inválido",}),
+    endereco: z.string().optional().refine((value) => !value || (value.length <= 254), {message: "Endereço deve ser mais curto.",}),
 })
 type EditConfigForm = z.infer<typeof schemaEditConfig>
 
@@ -41,7 +43,7 @@ export default function ViewConfig({ }: Props) {
             cashback: 10
         }
     })
-    const { register, watch, setValue, formState: { errors } } = methods;
+    const { register, watch, handleSubmit, setValue, formState: { errors } } = methods;
     const { cellPhoneFormat } = useFormatters()
     const tel = watch('tel');
 
@@ -49,26 +51,45 @@ export default function ViewConfig({ }: Props) {
     const { } = useMutation({
         mutationKey: ['editConfig',],
         mutationFn: async (response: EditConfigForm) => {
-
             const { data } = await api.post('/configuracao', {
-
             });
             return data
         }, onSuccess(data, variables, context) {
-
         }, onError(error, variables, context) {
-
         },
     })
 
     React.useEffect(() => {
-        setValue('tel', cellPhoneFormat(tel));
+        setValue('tel', cellPhoneFormat(tel || ''));
     }, [tel, setValue, cellPhoneFormat]);
+
+
+    const salvarDados = async (data: EditConfigForm) => {
+        const facebook = watch('facebook');
+        const instagram = watch('instagram');
+        const cashback = watch('cashback');
+        const endereco = watch('endereco');
+        console.log(endereco);
+        const redesSociais = { facebook: facebook, instagram: instagram }
+
+
+        //
+        const editCashback = { chave: "cashback", valor: (cashback ?? 0).toString(), privado: false }
+        const editTelefone = { chave: "telefone", valor: tel, privado: false }
+        const editRedesSociais = { chave: "redesSociais", valor: JSON.stringify(redesSociais), privado: false }
+
+        const requests = [
+            api.put<ConfiguracaoDTO>(`/configuracao`, editCashback).catch(async (e) => { if (e.response.status == 404) { await api.post<ConfiguracaoDTO>(`/configuracao`, editCashback) } }),
+            api.put<ConfiguracaoDTO>(`/configuracao`, editTelefone).catch(async (e) => { if (e.response.status == 404) { await api.post<ConfiguracaoDTO>(`/configuracao`, editTelefone) } }),
+            api.put<ConfiguracaoDTO>(`/configuracao`, editRedesSociais).catch(async (e) => { if (e.response.status == 404) { await api.post<ConfiguracaoDTO>(`/configuracao`, editRedesSociais) } }),
+        ]
+        Promise.all(requests);
+    }
 
     return (
         <section className="space-y-2">
             <FormProvider {...methods}>
-                <form >
+                <form onSubmit={handleSubmit(salvarDados)}>
                     <div className="grid grid-cols-2 gap-2">
                         {/* Horário de Atendimento Section */}
                         <div className="bg-dark-300 p-4  rounded-md">
@@ -177,6 +198,8 @@ export default function ViewConfig({ }: Props) {
                                     placeholder="Avenida Brasil, 123"
                                     label="Endereço do Estabelecimento:"
                                     questionContent="Este campo será utilizado para calcular o frete e exibir o endereço do estabelecimento."
+                                    {...register('endereco')}
+                                    error={errors.endereco?.message}
                                 />
 
 
@@ -201,6 +224,7 @@ export default function ViewConfig({ }: Props) {
                         <Button
                             className="flex items-center gap-1"
                             variant={'outline'}
+                            // onClick={salvarDados}
                             type="submit">
                             <HiSave size={20} />
                             Salvar Configurações
