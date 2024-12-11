@@ -33,8 +33,10 @@ import { MdArrowRightAlt, MdAssignmentAdd, MdSaveAlt } from "react-icons/md"
 type Props = {
     productID: number
     setMenu: React.Dispatch<React.SetStateAction<string>>;
+    category: { id: string; name: string; };
+
 }
-const EditProduct = ({ productID, setMenu }: Props) => {
+const EditProduct = ({ productID, setMenu, category }: Props) => {
     const [step, setStep] = React.useState(1)
     const [product, setProduct] = useState<ProdutosDTO>({} as ProdutosDTO)
 
@@ -54,6 +56,7 @@ const EditProduct = ({ productID, setMenu }: Props) => {
                             <Step1
                                 setStep={setStep}
                                 productID={productID}
+                                category={category}
                                 setProduct={setProduct}
                             />
                         </motion.div>}
@@ -145,8 +148,10 @@ type Step1Props = {
     setStep: React.Dispatch<React.SetStateAction<number>>
     productID: number
     setProduct: React.Dispatch<React.SetStateAction<ProdutosDTO>>
+    category: { id: string; name: string; };
+
 }
-const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
+const Step1 = ({ setStep, productID, setProduct, category }: Step1Props) => {
     const queryClient = useQueryClient();
     const methods = useForm<Step1Form>({
         resolver: zodResolver(schemaStep1),
@@ -168,7 +173,7 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
                 if (error instanceof AxiosError && error.response) {
                     toast.error(error.response.data.message)
                 } else {
-                    toast.error('An unexpected error occurred')
+                    toast.error('Erro inesperado, tente novamente mais tarde.')
                 }
             }
         },
@@ -177,20 +182,24 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
         mutationKey: ['create-product'],
         mutationFn: async ({ descricao, imgs, limitItens, servingSize, titulo, valor, valorPromocional }: Step1Form) => {
             const formData = new FormData();
+
             formData.append('descricao', descricao);
             formData.append('limitItens', String(limitItens));
             formData.append('servingSize', String(servingSize));
             formData.append('titulo', titulo);
-            formData.append('valor', String(valor));
-            formData.append('valorPromocional', String(valorPromocional));
-            // formData.append('categoriaId', category.id);
+            formData.append('valor', String(valor.replaceAll('.','').replace(',','.')));
+            formData.append('valorPromocional', String(valorPromocional.replaceAll('.','').replace(',','.')));
+            formData.append('categoriaId', category.id);
             imgs.forEach((img) => formData.append('imgs', img));
+
             const { data } = await api.post('/produto/cadastrar', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            return data
+
+            return data;
+
         }, onSuccess(data) {
             setStep((prevStep) => prevStep + 1)
             setProduct(data)
@@ -229,7 +238,6 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
 
     React.useEffect(() => {
         if (!product) return;
-
         reset({
             titulo: product.titulo,
             limitItens: String(product.limitItens),
@@ -237,7 +245,6 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
             valorPromocional: numberToCurrencyString(product.valorPromocional),
             servingSize: String(product.servingSize),
             descricao: product.descricao,
-            // imgs: [], // Mantém imgs como array vazio
         });
     }, [product, reset, productID]);
 
@@ -274,7 +281,6 @@ const Step1 = ({ setStep, productID, setProduct }: Step1Props) => {
 
         fetchFilesFromUrls();
     }, [product, setValue]);
-
 
 
     return (
@@ -659,9 +665,6 @@ const Step2 = ({ product, setStep }: Step2Props) => {
         </form>
     )
 }
-
-
-
 
 {/* Vincular Adicional ao Produto */ }
 type Step3Props = {

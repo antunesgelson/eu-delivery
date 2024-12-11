@@ -1,20 +1,22 @@
 'use client'
 import React from "react";
+import { toast } from "sonner";
 
 import MenuProfile from "@/components/MenuProfile";
-import { CardapioDTO } from "@/dto/cardapioDTO";
-import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
-import { AxiosError } from "axios";
-import { toast } from "sonner";
 import Ingredients from "./components/Ingredients";
 import Products from "./components/Products/[cateogireID]";
 import EditProduct from "./components/Products/Edit";
 
+import { CardapioDTO } from "@/dto/cardapioDTO";
+import { CategoriaDTO } from "@/dto/categoriaDTO";
+import { api } from "@/service/api";
+import { useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+
 
 export default function Menu() {
     const [menu, setMenu] = React.useState('ingredients')
-    const [selectedCategory, setSelectedCategory] = React.useState<{ id: string, name: string } | null>(null);
+    const [selectedCategory, setSelectedCategory] = React.useState<CategoriaDTO>({} as CategoriaDTO);
     const [productID, setProductID] = React.useState<number | null>(null)
 
     const { data: cardapio, refetch: handleUpdateCategory } = useQuery({
@@ -56,6 +58,7 @@ export default function Menu() {
                 {menu === 'edit-products' && productID && (
                     <EditProduct
                         productID={productID}
+                        category={selectedCategory}
                         setMenu={setMenu}
                     />
                 )}

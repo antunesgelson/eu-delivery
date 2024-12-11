@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
+import { CategoriaDTO } from "@/dto/categoriaDTO";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
 import { AnimatePresence, motion } from "framer-motion";
@@ -26,7 +27,7 @@ import { z } from "zod";
 
 type Props = {
     setMenu: React.Dispatch<React.SetStateAction<string>>
-    setSelectedCategory: React.Dispatch<React.SetStateAction<{ id: string, name: string } | null>>
+    setSelectedCategory: React.Dispatch<React.SetStateAction<CategoriaDTO>>
     productID: number | null
     setProductID: React.Dispatch<React.SetStateAction<number | null>>
     handleUpdateCategory: () => void
@@ -50,8 +51,9 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
         setOpenModalRemoveCategory(!openModalRemoveCategory)
     }
 
-    function handleEditProduct(productID: number) {
+    function handleEditProduct(productID: number, categoriaID: string, categoriaTitulo: string) {
         setProductID(productID)
+        setSelectedCategory({ id: categoriaID, name: categoriaTitulo })
         setMenu('edit-products')
     }
 
@@ -112,7 +114,8 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
 
                                                     </div>
                                                 </AccordionTrigger>
-                                                <AccordionContent className="">
+                                                <AccordionContent>
+                                                    {/* Excluir Categoria */}
                                                     <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
                                                         <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Excluir Categoria</span>
                                                         <button
@@ -124,6 +127,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                                                             <Tooltip id={`remove-categoria-tooltip`} className="z-50" />
                                                         </button>
                                                     </div>
+                                                    {/* Adicionar Produto */}
                                                     <div className="group cursor-pointer flex justify-between items-center pb-4 -mt-1 ">
                                                         <span className="text-xs font-sans tracking-widest  dark:text-muted group-hover:dark:text-white line-clamp-1">Adicionar Produto</span>
                                                         <button
@@ -144,7 +148,7 @@ const MenuProfile = ({ setMenu, setSelectedCategory, setProductID, productID, ha
                                                             <motion.div key={produto.id}
                                                                 layout
                                                                 className="  text-xs w-full h-full dark:bg-dark-400/50 flex justify-between items-center group"
-                                                                onClick={() => { handleEditProduct(produto.id) }}
+                                                                onClick={() => { handleEditProduct(produto.id, String(item.id), item.titulo) }}
                                                                 onMouseEnter={() => setShowIcon(produto.id)}
                                                                 onMouseLeave={() => setShowIcon(null)}>
                                                                 <p className="line-clamp-1 cursor-pointer group-hover:text-dark-900 dark:group-hover:text-white group-hover:translate-x-1 group-hover:underline underline-offset-2 duration-300 text-muted py-2">
