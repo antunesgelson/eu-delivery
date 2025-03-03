@@ -55,6 +55,9 @@ const CurrencyField: React.FC<CurrencyInputProps> = ({ name, label, error, quest
                         placeholder="R$ 0,00"
                         value={field.value}
                         onValueChange={(value) => {
+                            console.log(typeof(value), "caiu aqui");
+                            console.log(value, "caiu aqui2");
+                            
                             field.onChange(value);
                         }}
                         decimalsLimit={2}

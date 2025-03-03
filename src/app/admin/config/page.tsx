@@ -69,9 +69,7 @@ const Config = () => {
 
 
 
-    React.useEffect(() => {
-        console.log('dias de funcinamento:', dias);
-    }, [dias]);
+
 
     return (
         <div className="p-6  mx-auto  -mt-16 min-h-screen h-fit ">

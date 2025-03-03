@@ -1,95 +1,178 @@
 'use client'
 import useFormatters from "@/hook/useFormatters";
 import React from "react";
+import { toast } from "sonner";
 
 import SliderDefault from "@/components/SliderDefault";
 import { Button } from "@/components/ui/button";
+import CurrencyField from "@/components/ui/current";
 import { Input } from "@/components/ui/input";
-
+import { Separator } from "@/components/ui/separator";
 
 import { BiSolidPhoneCall } from "react-icons/bi";
 import { FaMapLocationDot, FaPiggyBank } from "react-icons/fa6";
 import { HiSave } from "react-icons/hi";
 import { MdUpdate } from "react-icons/md";
 
-import CurrencyField from "@/components/ui/current";
-import { Separator } from "@/components/ui/separator";
+import { ConfiguracaoDTO } from "@/dto/configuracaoDTO";
 import { api } from "@/service/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import CashBack from "@/app/cashback/page";
-import { ConfiguracaoDTO } from "@/dto/configuracaoDTO";
 
-const DIAS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 
 const schemaEditConfig = z.object({
-    tel: z.string().optional().refine((value) => !value || (value.length >= 8 && value.length <= 15), {message: "Telefone inválido",}),
-    facebook: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), {message: "Facebook inválido",}),
-    instagram: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), {message: "Instagram inválido",}),
-    cashback: z.number().optional().refine((value) => !value || (value >= 0 && value <= 100), {message: "Cashback inválido",}),
-    endereco: z.string().optional().refine((value) => !value || (value.length <= 254), {message: "Endereço deve ser mais curto.",}),
-})
+    tel: z.string().optional().refine((value) => !value || (value.length >= 8 && value.length <= 15), { message: "Telefone inválido", }),
+    facebook: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), { message: "Facebook inválido", }),
+    instagram: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), { message: "Instagram inválido", }),
+    cashback: z.number().optional().refine((value) => !value || (value >= 0 && value <= 100), { message: "Cashback inválido", }),
+    endereco: z.string().optional().refine((value) => !value || (value.length <= 254), { message: "Endereço deve ser mais curto.", }),
+    taxaDeEntrega: z.string().optional(),
+    intervaloEntrega: z.string().optional(),
+    // Validação dos horários de atendimento
+    horarioAtendimento: z.record(
+        z.object({
+            abertura: z.string(),
+            fechamento: z.string(),
+            inicio_intervalo: z.string(),
+            fim_intervalo: z.string(),
+        })).optional(),
+});
 type EditConfigForm = z.infer<typeof schemaEditConfig>
-
-type Props = {
-
-}
+type Props = {}
 export default function ViewConfig({ }: Props) {
     const methods = useForm<EditConfigForm>({
         resolver: zodResolver(schemaEditConfig),
         defaultValues: {
-            cashback: 10
+            cashback: 10,
+            taxaDeEntrega: '5,00',
+            intervaloEntrega: '00:30',
+            horarioAtendimento: {
+                seg: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+                ter: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+                qua: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+                qui: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+                sex: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+                sab: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+                dom: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
+            }
         }
     })
     const { register, watch, handleSubmit, setValue, formState: { errors } } = methods;
     const { cellPhoneFormat } = useFormatters()
     const tel = watch('tel');
 
-
-    const { } = useMutation({
-        mutationKey: ['editConfig',],
-        mutationFn: async (response: EditConfigForm) => {
-            const { data } = await api.post('/configuracao', {
-            });
-            return data
-        }, onSuccess(data, variables, context) {
-        }, onError(error, variables, context) {
-        },
-    })
-
     React.useEffect(() => {
         setValue('tel', cellPhoneFormat(tel || ''));
     }, [tel, setValue, cellPhoneFormat]);
 
+    const { data: configData, isLoading } = useQuery({
+        queryKey: ['configAdmin'],
+        queryFn: async () => {
+            const res = await api.get('/configuracao');
+            return res.data;
+        },
+    });
 
-    const salvarDados = async (data: EditConfigForm) => {
-        const facebook = watch('facebook');
-        const instagram = watch('instagram');
-        const cashback = watch('cashback');
-        const endereco = watch('endereco');
-        console.log(endereco);
-        const redesSociais = { facebook: facebook, instagram: instagram }
+    const { isPending, ...mutation } = useMutation({
+        mutationFn: async ({ cashback, endereco, facebook, instagram, intervaloEntrega, taxaDeEntrega, tel, horarioAtendimento }: EditConfigForm) => {
+            const redesSociais = { facebook, instagram };
+            const editCashback = { chave: "cashback", valor: (cashback ?? 0).toString(), privado: false };
+            const editTelefone = { chave: "telefone", valor: tel, privado: false };
+            const editRedesSociais = { chave: "redesSociais", valor: JSON.stringify(redesSociais), privado: false };
+            const editEndereco = { chave: "endereco", valor: endereco, privado: false };
+            const intervaloEmMinutos = intervaloEntrega ? parseInt(intervaloEntrega.split(':')[0]) * 60 + parseInt(intervaloEntrega.split(':')[1]) : '';
+            const editIntervaloEntrega = { chave: "intervaloDeEntrega", valor: intervaloEmMinutos.toString(), privado: false };
+            const editTaxaDeEntrega = { chave: "taxaFrete", valor: taxaDeEntrega, privado: false };
 
+            // Cria o objeto para salvar os horários de atendimento
+            const editHorarioAtendimento = {
+                chave: "horarioAtendimento",
+                valor: JSON.stringify(horarioAtendimento), // Converte o objeto para JSON
+                privado: false,
+            };
+            console.log('intervaloEmMinutos', intervaloEmMinutos);
 
-        //
-        const editCashback = { chave: "cashback", valor: (cashback ?? 0).toString(), privado: false }
-        const editTelefone = { chave: "telefone", valor: tel, privado: false }
-        const editRedesSociais = { chave: "redesSociais", valor: JSON.stringify(redesSociais), privado: false }
+            const requests = [
+                api.put<ConfiguracaoDTO>('/configuracao', editCashback)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editCashback); }),
+                api.put<ConfiguracaoDTO>('/configuracao', editTelefone)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editTelefone); }),
+                api.put<ConfiguracaoDTO>('/configuracao', editRedesSociais)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editRedesSociais); }),
+                api.put<ConfiguracaoDTO>('/configuracao', editEndereco)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editEndereco); }),
+                api.put<ConfiguracaoDTO>('/configuracao', editIntervaloEntrega)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editIntervaloEntrega); }),
+                api.put<ConfiguracaoDTO>('/configuracao', editTaxaDeEntrega)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editTaxaDeEntrega); }),
+                api.put<ConfiguracaoDTO>('/configuracao', editHorarioAtendimento)
+                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editHorarioAtendimento); }),
+            ];
+            await Promise.all(requests);
+        },
+        onSuccess: () => {
+            toast.success("Configurações salvas com sucesso");
+        },
+        onError: () => {
+            toast.error("Erro ao salvar configurações");
+        },
+    });
 
-        const requests = [
-            api.put<ConfiguracaoDTO>(`/configuracao`, editCashback).catch(async (e) => { if (e.response.status == 404) { await api.post<ConfiguracaoDTO>(`/configuracao`, editCashback) } }),
-            api.put<ConfiguracaoDTO>(`/configuracao`, editTelefone).catch(async (e) => { if (e.response.status == 404) { await api.post<ConfiguracaoDTO>(`/configuracao`, editTelefone) } }),
-            api.put<ConfiguracaoDTO>(`/configuracao`, editRedesSociais).catch(async (e) => { if (e.response.status == 404) { await api.post<ConfiguracaoDTO>(`/configuracao`, editRedesSociais) } }),
-        ]
-        Promise.all(requests);
-    }
+    const onSubmit = (data: EditConfigForm) => {
+        mutation.mutate(data);
+    };
+
+    React.useEffect(() => {
+        if (configData) {
+            const telField = configData.find((item: any) => item.chave.toUpperCase() === 'TELEFONE')?.valor ?? '';
+            const redesSociaisData = configData.find((item: any) => item.chave.toUpperCase() === 'REDESSOCIAIS')?.valor;
+            const cashbackField = configData.find((item: any) => item.chave.toUpperCase() === 'CASHBACK')?.valor ?? '0';
+            const enderecoField = configData.find((item: any) => item.chave.toUpperCase() === 'ENDERECO')?.valor ?? '';
+            const intervaloEntregaField = configData.find((item: any) => item.chave.toUpperCase() === 'INTERVALODEENTREGA')?.valor ?? '0';
+            const taxaFreteField = configData.find((item: any) => item.chave.toUpperCase() === 'TAXAFRETE')?.valor ?? '0';
+            const horarioAtendimentoField = configData.find((item: any) => item.chave.toUpperCase() === 'HORARIOATENDIMENTO')?.valor ?? '';
+
+            setValue('tel', telField);
+
+            if (redesSociaisData) {
+                const { facebook, instagram } = JSON.parse(redesSociaisData);
+                setValue('facebook', facebook ?? '');
+                setValue('instagram', instagram ?? '');
+            }
+            console.log('intervaloEntregaField', intervaloEntregaField);
+
+            setValue('cashback', parseFloat(cashbackField));
+            setValue('endereco', enderecoField);
+            // Converte o valor numérico para o formato HH:MM
+            const intervaloEmMinutos = parseFloat(intervaloEntregaField.replace(',', '.'));
+            const horas = Math.floor(intervaloEmMinutos / 60);
+            const minutos = intervaloEmMinutos % 60;
+            const intervaloFormatado = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+            setValue('intervaloEntrega', intervaloFormatado); // Define o valor no formato HH:MM
+            setValue('taxaDeEntrega', taxaFreteField);
+
+            // Atualiza os horários de atendimento
+            if (horarioAtendimentoField) {
+                const horarioAtendimento = JSON.parse(horarioAtendimentoField);
+                DIAS.forEach((dia) => {
+                    if (horarioAtendimento[dia]) {
+                        setValue(`horarioAtendimento.${dia}.abertura`, horarioAtendimento[dia].abertura);
+                        setValue(`horarioAtendimento.${dia}.fechamento`, horarioAtendimento[dia].fechamento);
+                        setValue(`horarioAtendimento.${dia}.inicio_intervalo`, horarioAtendimento[dia].inicio_intervalo);
+                        setValue(`horarioAtendimento.${dia}.fim_intervalo`, horarioAtendimento[dia].fim_intervalo);
+                    }
+                });
+            }
+        }
+    }, [configData, setValue]);
 
     return (
         <section className="space-y-2">
             <FormProvider {...methods}>
-                <form onSubmit={handleSubmit(salvarDados)}>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="grid grid-cols-2 gap-2">
                         {/* Horário de Atendimento Section */}
                         <div className="bg-dark-300 p-4  rounded-md">
@@ -109,13 +192,34 @@ export default function ViewConfig({ }: Props) {
                                 <div key={dia} className="flex items-center justify-between border-b py-2  border-muted/20 ">
                                     <h2 className="uppercase mt-6  text-base text-muted tracking-wider">{dia}:</h2>
                                     <div className="grid grid-cols-4 gap-6">
-                                        <Input className="w-fit" label="Abertura" questionContent={`Defina o horário de abertura do estabelecimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
-                                        <Input className="w-fit" label="Fechamento" questionContent={`Defina o horário de fechamento do estabelecimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
-                                        <Input className="w-fit" label="Início Intervalo" questionContent={`Defina o horário de início do intervalo de atendimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
-                                        <Input className="w-fit" label="Final Intervalo" questionContent={`Defina o horário de término do intervalo de atendimento ${dia !== 'sábado' && dia !== 'domingo' ? 'na' : 'no'} ${dia}`} type="time" />
+                                        <Input
+                                            type="time"
+                                            placeholder="00:00"
+                                            className="w-fit"
+                                            label="Abertura" {...register(`horarioAtendimento.${dia}.abertura`)}
+                                        />
+                                        <Input
+                                            type="time"
+                                            placeholder="00:00"
+                                            className="w-fit"
+                                            label="Fechamento" {...register(`horarioAtendimento.${dia}.fechamento`)}
+                                        />
+                                        <Input
+                                            type="time"
+                                            placeholder="00:00"
+                                            className="w-fit"
+                                            label="Início Intervalo" {...register(`horarioAtendimento.${dia}.inicio_intervalo`)}
+                                        />
+                                        <Input
+                                            type="time"
+                                            placeholder="00:00"
+                                            className="w-fit"
+                                            label="Final Intervalo" {...register(`horarioAtendimento.${dia}.fim_intervalo`)}
+                                        />
                                     </div>
                                 </div>
                             ))}
+
                         </div>
 
                         {/* Informações de Contato Section */}
@@ -206,29 +310,34 @@ export default function ViewConfig({ }: Props) {
                                 <div className="grid grid-cols-2 gap-2">
                                     <Input
                                         type="time"
-                                        placeholder="00:00"
+                                        placeholder="00"
                                         label="Intervalo entre entregas:"
-                                        questionContent="Defina o intervalo de tempo entre as entregas realizadas pelo estabelecimento."
+                                        questionContent="Defina o intervalo de tempo entre as entregas realizadas pelo estabelecimento. Ex: 30 minutos."
+                                        {...register('intervaloEntrega')}
+                                        error={errors.intervaloEntrega?.message}
+
                                     />
                                     <CurrencyField
-                                        name="cashback"
+                                        name="taxaDeEntrega"
                                         label="Taxa de Frete:"
                                         questionContent="Esse campo indica o valor da taxa de entrega cobrada pelo estabelecimento. EX: R$ 5,00 por km."
-                                        error={errors.cashback?.message}
+                                        error={errors.taxaDeEntrega?.message}
                                     />
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className=" flex items-center justify-end my-4">
-                        <Button
-                            className="flex items-center gap-1"
-                            variant={'outline'}
-                            // onClick={salvarDados}
-                            type="submit">
-                            <HiSave size={20} />
-                            Salvar Configurações
-                        </Button>
+                    <div className="flex justify-end items-center">
+                        <div className="my-4 w-3/12">
+                            <Button
+                                className="flex items-center gap-1 w-full"
+                                variant={'outline'}
+                                loading={isPending}
+                                type="submit">
+                                <HiSave size={20} />
+                                Salvar Configurações
+                            </Button>
+                        </div>
                     </div>
                 </form>
             </FormProvider>
