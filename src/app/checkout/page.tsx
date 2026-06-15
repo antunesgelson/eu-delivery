@@ -195,7 +195,7 @@ export default function Checkout() {
                         <FaPiggyBank size={25} className="text-muted-foreground" />
                         <div className="flex justify-between items-center w-full ">
                             <div className="flex flex-col items-start leading-4 ml-3">
-                                <span className="font-semibold">Saldo disponível: <span className="text-emerald-500">R$ {cart?.cashBack.toFixed(2)}</span></span>
+                                <span className="font-semibold">Saldo disponível: <span className="text-emerald-500">R$ {cart?.cashBack}</span></span>
                                 <span className="text-muted-foreground text-sm">Utilizar o saldo disponível nesta compra?</span>
                             </div>
                             <Switch className="" />

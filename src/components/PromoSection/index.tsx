@@ -1,13 +1,26 @@
 
+'use client'
+
 import { ModalChooseAdress } from "@/components/Modal/ChooseAddress";
 import { Button } from "@/components/ui/button";
+import useCart from "@/hook/useCart";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaChevronRight } from "react-icons/fa";
 import { FaCircleQuestion, FaLocationDot, FaMotorcycle, FaPiggyBank } from "react-icons/fa6";
 
 export default function PromoSection() {
     const [openModalAdress, setOpenModalAdress] = useState(false);
+    const [cashBack, setCashBack] = useState(0);
+    const { configData } = useCart()
+
+    useEffect(() => {
+        if (configData) {
+            const cashbackField = configData.find((item: any) => item.chave.toUpperCase() === 'CASHBACK')?.valor ?? '0';
+            setCashBack(Number(cashbackField));
+        }
+    }, [configData]);
+
     return (
         <div className="w-11/12 lg:w-6/12 mx-auto my-2 space-y-2  ">
             <Link href={"/cashback"} className=" border-dashed border-[2px]  border-muted rounded-lg bg-white p-2 flex justify-between items-center">
@@ -16,7 +29,7 @@ export default function PromoSection() {
                 </div>
                 <div className=" w-full ml-3">
                     <h3 className="font-semibold text-sm">Programa de Cashback:</h3>
-                    <p className="text-[12px] text-muted-foreground">Receba <strong>10%</strong> de volta em suas compras!</p>
+                    <p className="text-[12px] text-muted-foreground">Receba <strong>{cashBack}%</strong> de volta em suas compras!</p>
                 </div>
                 <div>
                     <FaCircleQuestion className="text-red-600" />

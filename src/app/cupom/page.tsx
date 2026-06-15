@@ -24,6 +24,31 @@ export default function Cupom() {
     const [checked, setChecked] = React.useState<string | null>(null);
     const { cuponsFree, handleUpdateCart, handleUpdateCupom, cupom: cupomActive } = useCart()
     const router = useRouter()
+    const [cupom, setCupom] = React.useState<string>('')
+
+    const { mutateAsync: handleCupom, isPending } = useMutation({
+        mutationKey: ['apply-cupom'],
+        mutationFn: async ({ nome }: { nome: string }) => {
+            const { data } = await api.put('/pedido', {
+                cupom: nome
+            })
+
+            return data
+        }, onSuccess(data) {
+            console.log('data => ', data)
+            handleUpdateCart()
+            handleUpdateCupom()
+            router.replace('/checkout');
+            toast.success('Cupom aplicado com sucesso!')
+
+        }, onError(error: unknown) {
+            if (error instanceof AxiosError && error.response) {
+                toast.error(error.response.data.message)
+            } else {
+                toast.error('Erro inesperado, tente novamente mais tarde.')
+            }
+        }
+    })
 
     const { mutateAsync: handleAppyCupom } = useMutation({
         mutationKey: ['apply-cupom-free'],
@@ -73,11 +98,17 @@ export default function Cupom() {
                 <div className="grid grid-cols-6 gap-2">
                     <div className="col-span-4">
                         <Input
+                            value={cupom}
+                            onChange={(e) => setCupom(e.target.value)}
                             placeholder="código do cupom"
                             className=" bg-white border-[2px] border-dashed uppercase text-muted"
                         />
                     </div>
-                    <Button className="w-full col-span-2 flex items-center gap-1" variant={'success'}>
+                    <Button
+                        className="w-full col-span-2 flex items-center gap-1"
+                        loading={isPending}
+                        onClick={() => handleCupom({ nome: cupom })}
+                        variant={'success'}>
                         Aplicar
                         <IoTicketSharp size={20} />
                     </Button>
@@ -113,8 +144,6 @@ export default function Cupom() {
                         </div>
                     ))}
                 </ScrollArea>
-
-
             </div>
         </motion.main>
     )

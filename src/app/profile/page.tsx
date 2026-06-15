@@ -114,7 +114,6 @@ export default function Profile() {
                     <div>
                         <Label className="uppercase">telefone</Label>
                         <Input
-                            disabled
                             type="tel"
                             placeholder="(00) 00000-0000"
                             {...register('telefone')}

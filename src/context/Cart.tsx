@@ -18,6 +18,7 @@ type CartContextData = {
     handleUpdateCuponsFree: () => void;
     cupom?: CupomDTO | undefined;
     handleUpdateCupom: () => void;
+    configData: any;
 }
 
 export const CartContext = createContext<CartContextData>({} as CartContextData);
@@ -82,9 +83,13 @@ export function CartProvider({ children }: CartProviderProps) {
         }, enabled: !!isAuthenticated
     })
 
-    React.useEffect(() => {
-        console.log('cart', cart)
-    }, [cart]);
+    const { data: configData } = useQuery({
+        queryKey: ['configAdmin'],
+        queryFn: async () => {
+            const res = await api.get('/configuracao');
+            return res.data;
+        },
+    });
 
     return (
         <CartContext.Provider value={{
@@ -95,7 +100,8 @@ export function CartProvider({ children }: CartProviderProps) {
             cuponsFree,
             handleUpdateCuponsFree,
             cupom,
-            handleUpdateCupom
+            handleUpdateCupom,
+            configData
         }}>
             {children}
         </CartContext.Provider>

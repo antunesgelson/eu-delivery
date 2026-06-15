@@ -64,18 +64,6 @@ export default function ViewConfig({ }: Props) {
     const { cellPhoneFormat } = useFormatters()
     const tel = watch('tel');
 
-    React.useEffect(() => {
-        setValue('tel', cellPhoneFormat(tel || ''));
-    }, [tel, setValue, cellPhoneFormat]);
-
-    const { data: configData, isLoading } = useQuery({
-        queryKey: ['configAdmin'],
-        queryFn: async () => {
-            const res = await api.get('/configuracao');
-            return res.data;
-        },
-    });
-
     const { isPending, ...mutation } = useMutation({
         mutationFn: async ({ cashback, endereco, facebook, instagram, intervaloEntrega, taxaDeEntrega, tel, horarioAtendimento }: EditConfigForm) => {
             const redesSociais = { facebook, instagram };
@@ -124,6 +112,13 @@ export default function ViewConfig({ }: Props) {
     const onSubmit = (data: EditConfigForm) => {
         mutation.mutate(data);
     };
+    const { data: configData } = useQuery({
+        queryKey: ['configAdmin'],
+        queryFn: async () => {
+            const res = await api.get('/configuracao');
+            return res.data;
+        },
+    });
 
     React.useEffect(() => {
         if (configData) {
@@ -142,7 +137,6 @@ export default function ViewConfig({ }: Props) {
                 setValue('facebook', facebook ?? '');
                 setValue('instagram', instagram ?? '');
             }
-            console.log('intervaloEntregaField', intervaloEntregaField);
 
             setValue('cashback', parseFloat(cashbackField));
             setValue('endereco', enderecoField);
@@ -168,6 +162,10 @@ export default function ViewConfig({ }: Props) {
             }
         }
     }, [configData, setValue]);
+
+    React.useEffect(() => {
+        setValue('tel', cellPhoneFormat(tel || ''));
+    }, [tel, setValue, cellPhoneFormat]);
 
     return (
         <section className="space-y-2">
