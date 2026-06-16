@@ -41,15 +41,15 @@ export default function OrderSummaryBar() {
         <AnimatePresence>
             {showMenu &&
                 <motion.div
-                    className='fixed bottom-0 left-0 right-0 bg-white p-2 flex justify-between items-center border z-50'
+                    className='fixed bottom-14 left-0 right-0 z-40 flex items-center justify-between border bg-white p-2 lg:bottom-0'
                     initial={{ y: 100 }}
                     animate={{ y: 0 }}
                     exit={{ y: 100 }}
                     transition={{ duration: 0.5 }}>
 
                     <Button asChild className='w-full flex justify-between p-2 text-lg h-12' variant={'success'}>
-                        <Link href={'/checkout'}>
-                            <span className='ml-3 flex items-center gap-2'> <IoMdCheckmarkCircleOutline size={25} /> Finalizar Pedido</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ {cart?.valorTotalPedido.toFixed(2)}</div>
+                        <Link href={'/cart'}>
+                            <span className='ml-3 flex items-center gap-2'> <IoMdCheckmarkCircleOutline size={25} /> Ver carrinho</span> <div className='bg-white text-primary p-1 rounded-lg text-base font-bold'> R$ {cart?.valorTotalPedido.toFixed(2)}</div>
                         </Link>
                     </Button>
                 </motion.div>

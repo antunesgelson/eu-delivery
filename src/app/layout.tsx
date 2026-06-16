@@ -1,6 +1,5 @@
 
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import { Inter } from "next/font/google";
 import React from "react";
 import "./globals.css";
@@ -18,8 +17,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Emporio Urubici",
-  description: "Feito com amor e carinho 💖",
+  title: "Assados Zanini",
+  description: "Assados e defumados prontos para pedir.",
 };
 
 export default async function RootLayout({
@@ -27,8 +26,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession();
-
   return (
     <html lang="pt-br">
       <body className={inter.className}>
@@ -37,7 +34,7 @@ export default async function RootLayout({
           {/* Contexto do carrinho */}
           <CartProvider>
             {/* */}
-            <SessionProvider session={session}>
+            <SessionProvider>
               {/* Provider para alterar thema*/}
               <ThemeWrapper>
                 {/* Wrapper para renderizar Header Adequado*/}

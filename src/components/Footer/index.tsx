@@ -122,7 +122,7 @@ export default function Footer() {
             </div>
 
             <div className=" flex justify-center  items-center h-14 mb-14 lg:mb-0  ">
-                <span className="text-muted text-sm ">@2024 Empório Urubici - Urubici</span>
+                <span className="text-muted text-sm ">@2024 Assados Zanini</span>
             </div>
         </footer>
     )

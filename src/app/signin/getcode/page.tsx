@@ -10,19 +10,9 @@ import { api } from "@/service/api";
 import { useMutation } from "@tanstack/react-query";
 
 import { motion } from "framer-motion";
-import { JwtPayload, decode } from 'jsonwebtoken';
-import { setCookie } from "nookies";
 import { toast } from "sonner";
-
-export type DecodedToken = JwtPayload & {
-    sub: number,
-    email: string,
-    nome: string,
-    tel: string,
-    isAdmin: boolean,
-    iat: number,
-    exp: number
-}
+import { decodeJwtPayload, DecodedToken } from "@/utils/jwt";
+import { setClientCookie } from "@/utils/cookies";
 
 type Props = {
     searchParams?: { tel?: string }
@@ -42,17 +32,21 @@ export default function GetCode({ searchParams }: Props) {
             return data;
         },
         onSuccess(data, variables, context) {
-            const userToken = decode(data.token) as DecodedToken;
+            const userToken = decodeJwtPayload<DecodedToken>(data.token);
+            if (!userToken) {
+                toast.error('Não foi possível validar o token de acesso.');
+                return;
+            }
             const maxAgeToken = userToken?.exp - userToken?.iat
 
-            const maxAge = [{ name: '@eu:token', maxAge: maxAgeToken, token: data.token }]
-            maxAge.map(({ name, maxAge, token }) => (
-                setCookie(undefined, name, token, {
+            const cookiesToPersist = [{ name: '@eu:token', maxAge: maxAgeToken, token: data.token }]
+            cookiesToPersist.forEach(({ name, maxAge, token }) => {
+                setClientCookie(name, token, {
                     maxAge: maxAge,
                     path: "/",
 
                 })
-            ))
+            })
             toast.success('Código verificado com sucesso!');
             window.location.href = '/?firstLogin=true';
             // router.push(`/?firstLogin=true`);

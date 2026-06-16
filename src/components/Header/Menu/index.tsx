@@ -3,7 +3,6 @@ import useCart from "@/hook/useCart";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +11,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 import useAuth from "@/hook/useAuth";
 import { signOut } from "next-auth/react";
-import { destroyCookie } from 'nookies';
+import { deleteClientCookie } from '@/utils/cookies';
 
 import { BiSolidFoodMenu } from "react-icons/bi";
 import { BsPersonVcardFill } from "react-icons/bs";
@@ -22,9 +21,7 @@ import { HiHome } from "react-icons/hi";
 import { PiListChecksFill } from "react-icons/pi";
 
 import { CardapioDTO } from "@/dto/cardapioDTO";
-import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import { localCardapio } from "@/data/menu";
 
 type Props = {
     open: boolean
@@ -51,26 +48,11 @@ export function Menu({ onClose, open }: Props) {
 
 
     async function handleSignOut() {
-        destroyCookie(undefined, "@eu:token");
+        deleteClientCookie("@eu:token");
         await signOut();
     }
 
-    const { data } = useQuery({
-        queryKey: ['list-categories-details'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get('/categoria/lista/detalhes')
-                return data
-            } catch (error: unknown) {
-                console.log(error)
-                if (error instanceof AxiosError && error.response) {
-                    toast.error(error.response.data.message)
-                } else {
-                    toast.error('An unexpected error occurred')
-                }
-            }
-        },
-    });
+    const data = localCardapio;
 
 
     React.useEffect(() => {
@@ -79,7 +61,7 @@ export function Menu({ onClose, open }: Props) {
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent side={'left'} className="bg-primary border-0 p-4">
+            <SheetContent side={'right'} className="bg-primary border-0 p-4">
                 <SheetHeader>
                     {!isAuthenticated &&
                         <Button asChild className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">

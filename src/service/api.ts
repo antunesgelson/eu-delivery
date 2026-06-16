@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { parseCookies } from 'nookies';
+import { getClientCookies } from '@/utils/cookies';
 
 
 const api = axios.create({
@@ -9,7 +9,7 @@ const api = axios.create({
 
 // interceptador de requisição
 api.interceptors.request.use((config) => {
-    const cookies = parseCookies()
+    const cookies = getClientCookies()
     const token = cookies['@eu:token'];
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -23,4 +23,3 @@ api.interceptors.request.use((config) => {
 
 
 export { api };
-

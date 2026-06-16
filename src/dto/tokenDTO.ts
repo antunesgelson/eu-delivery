@@ -1,6 +1,4 @@
-import { JwtPayload } from "jsonwebtoken"
-
-export type DecodedToken = JwtPayload & {
+export type DecodedToken = {
     sub: number,
     email: string,
     tel: string,
@@ -8,5 +6,4 @@ export type DecodedToken = JwtPayload & {
     iat: number,
     exp: number
 }
-
 

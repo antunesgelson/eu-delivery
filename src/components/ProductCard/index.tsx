@@ -4,86 +4,66 @@ import Link from 'next/link';
 
 import { ProdutosDTO } from '@/dto/productDTO';
 
-import { FaPeopleGroup } from "react-icons/fa6";
-
 import Thumb from '@/assets/products/box.png';
-import { Tooltip } from 'react-tooltip';
 
-export default function ProductCard({ titulo, descricao, imgs, valor, valorPromocional, servingSize, id }: ProdutosDTO) {
-    const value = parseInt(valor)
-    const discountPercentage = ((value - valorPromocional) / value) * 100;
+type ProductCardProps = ProdutosDTO & {
+    variant?: 'compact' | 'list';
+}
 
+function formatCurrency(value: number) {
+    return value.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    });
+}
 
-    const originalPrice = (
-        <div className='flex justify-between items-center mt-3'>
-            <p className='uppercase text-muted font-semibold text-sm'>
-                A partir de: <span className='text-primary font-semibold text-base ml-1'>R$ {value?.toFixed(2)}</span>
-            </p>
-            <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted'>
-                <FaPeopleGroup
-                    size={20}
-                    data-tooltip-id={`${titulo}-tooltip`}
-                    data-tooltip-content={`Serve ${servingSize > 1 && 'até'} ${servingSize} ${servingSize > 1 ? 'pessoas' : 'pessoa'} `}
-                />
-                {servingSize}
-            </span>
-            <Tooltip id={`${titulo}-tooltip`} />
-        </div>
-    );
+export default function ProductCard({ titulo, descricao, valor, valorPromocional, id, variant = 'list' }: ProductCardProps) {
+    const value = parseFloat(valor)
+    const price = valorPromocional > 0 ? valorPromocional : value;
 
-    const discountedPrice = (
-        <div className='flex flex-col  mt-3'>
-            <p className='uppercase text-muted font-semibold text-sm'>
-                De: <del className='text-red-700'>R$ {value?.toFixed(2)}</del>
-            </p>
-            <div className='flex items-center justify-between'>
-                <p className='uppercase text-muted font-semibold text-sm'>
-                    Por a partir de: <span className='text-primary font-semibold text-base ml-1'>R$ {valorPromocional?.toFixed(2)}</span>
-                </p>
-                <span className='uppercase font-semibold text-sm flex items-center gap-1 text-muted'>
-                    <FaPeopleGroup
-                        size={20}
-                        data-tooltip-id={`${titulo}-tooltip`}
-                        data-tooltip-content={`Serve ${servingSize > 1 ? 'até' : ''} ${servingSize} ${servingSize > 1 ? 'pessoas' : 'pessoa'} `}
+    if (variant === 'compact') {
+        return (
+            <Link href={`/productdetails/${id}`} className="block w-full">
+                <article className="overflow-hidden rounded-md bg-white">
+                    <Image
+                        className="h-[120px] w-full rounded-md object-cover"
+                        width={160}
+                        height={130}
+                        src={Thumb}
+                        alt={titulo}
                     />
-                    {servingSize}
-                </span>
-            </div>
-            <Tooltip id={`${titulo}-tooltip`} />
-        </div>
-    );
+                    <div className="pt-1">
+                        <h3 className="line-clamp-2 min-h-[32px] text-[12px] font-extrabold uppercase leading-4 text-dark-900">{titulo}</h3>
+                        <span className="text-[12px] font-bold leading-4 text-dark-500">{formatCurrency(price)}</span>
+                    </div>
+                </article>
+            </Link>
+        )
+    }
 
     return (
-        <Link href={`/productdetails/${id}`}>
-            <div className="bg-white grid grid-cols-2 p-2 rounded-md">
-                <div className='px-1'>
-                    <h3 className="uppercase font-semibold my-1">{titulo}</h3>
-                    <p className="text-[12px] line-clamp-6 ">{descricao}</p>
-                </div>
-
-                <div className='relative'>
-                    <div className=' bg-stone-200 blur-sm rounded-md absolute top-0 bottom-0 right-0 left-0 ' />
-                    <div className="relative">
-                        {valorPromocional !== 0 &&
-                            <div className="absolute -top-1 right-0 text-white bg-red-600 px-2 py-1 transform translate-x-1/2">
-                                <span className="font-bold mr-14 ml-2 ">-{discountPercentage?.toFixed(2)}%</span>
-                                <div className="absolute top-0 left-3 h-full w-6  bg-red-600 -translate-x-full skew-x-[30deg] z-10" />
-                            </div>
-                        }
-                        <Image
-                            className="rounded-lg object-cover object-center 2xl:h-[450px] lg:h-[300px] h-[150px] max-h-[200px] lg:max-h-none    "
-                            width={200}
-                            height={200}
-                            src={Thumb}
-                            alt={titulo}
-                        />
+        <Link href={`/productdetails/${id}`} className="block">
+            <article className="grid grid-cols-[1fr_116px] gap-3 rounded-md bg-white p-3 shadow-sm">
+                <div className="min-w-0">
+                    <h3 className="line-clamp-2 text-[13px] font-extrabold uppercase leading-4 text-dark-900">{titulo}</h3>
+                    <p className="mt-1 line-clamp-3 text-[11px] leading-4 text-dark-500">{descricao}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                        {valorPromocional > 0 && (
+                            <del className="text-[11px] font-semibold text-red-700">{formatCurrency(value)}</del>
+                        )}
+                        <span className="text-[13px] font-extrabold text-dark-700">{formatCurrency(price)}</span>
                     </div>
                 </div>
-
-                <div className=' col-span-2'>
-                    {valorPromocional == 0 ? originalPrice : discountedPrice}
+                <div className="relative h-[104px] overflow-hidden rounded-md bg-stone-100">
+                    <Image
+                        className="h-full w-full object-cover"
+                        width={132}
+                        height={112}
+                        src={Thumb}
+                        alt={titulo}
+                    />
                 </div>
-            </div>
+            </article>
         </Link>
     )
 }

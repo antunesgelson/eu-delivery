@@ -1,9 +1,7 @@
-import { decode } from 'jsonwebtoken';
 import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { DecodedToken } from './dto/tokenDTO';
-import { api } from './service/api';
+import { decodeJwtPayload } from './utils/jwt';
 
 export async function middleware(request: NextRequest) {
     const tokenGoogle = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
@@ -19,13 +17,21 @@ export async function middleware(request: NextRequest) {
 
     if (nextUrl.pathname.startsWith('/signin') && isAuthenticate) {
         try {
-            const { data, status } = await api.post('/auth/entraroucadastrar', {
-                nome: tokenGoogle?.name,
-                email: tokenGoogle?.email,
-                token: process.env.TOKEN_SECRET,
-            })
+            const authResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/entraroucadastrar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nome: tokenGoogle?.name,
+                    email: tokenGoogle?.email,
+                    token: process.env.TOKEN_SECRET,
+                }),
+            });
 
-            if (status !== 201) return NextResponse.redirect(ToHomeFirst);
+            if (authResponse.status !== 201) return NextResponse.redirect(ToHomeFirst);
+
+            const data = await authResponse.json();
 
             const expires = new Date();
             expires.setDate(expires.getDate() + 30);   // Definir a data de expiração do cookie (por exemplo, 30 dias a partir de agora)
@@ -33,14 +39,13 @@ export async function middleware(request: NextRequest) {
             response.cookies.set('@eu:token', data.token, { httpOnly: false, expires });
 
             return response;    // Redirecionar para a home com cookies definido.
-        } catch (error) {
-            console.log("error -> ", error);
+        } catch {
             return NextResponse.next();
         }
     }
 
     if (nextUrl.pathname.startsWith('/admin') && token) { // Verifica se o usuário está tentando acessar a rota de admin
-        const token_decoded = decode(token.value) as DecodedToken;
+        const token_decoded = decodeJwtPayload(token.value);
         const isPermit = token_decoded?.isAdmin;
         if (!isPermit) return NextResponse.redirect(ToHome);// Verifica se o usuário tem permissão admin
     }

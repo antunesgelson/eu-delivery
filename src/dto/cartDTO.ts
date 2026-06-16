@@ -19,8 +19,10 @@ export type CartDTO = {
     itens: ItensDTO[]
     cupomId: string
     cashBack: number
-    dataEntrega: null
+    dataEntrega: string | null
     endereco: AddressDTO
     obs: string
     valorTotalPedido: number
+    tipoRecebimento?: 'pickup' | 'delivery'
+    formaPagamento?: string
 }

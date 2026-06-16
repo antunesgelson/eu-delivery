@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 
@@ -14,15 +14,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { FaMinusCircle } from 'react-icons/fa';
 import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
 
+import { getLocalProduct } from '@/data/menu';
 import { AdicionaisDTO, IngredientesDTO, ProdutosDTO } from '@/dto/productDTO';
 import useCart from '@/hook/useCart';
-import { api } from "@/service/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { AxiosError } from 'axios';
 
 type Props = {
     params: { productID: string }
 }
+
+const showCustomizationSections = false;
+
 export default function ProductorDetails({ params }: Props) {
     const [removeSelectedItems, setRemoveSelectedItems] = React.useState<Record<number, boolean>>({});
     const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
@@ -33,13 +34,41 @@ export default function ProductorDetails({ params }: Props) {
     const [countProduct, setCountProduct] = useState<number>(1);
     const [showMenu, setShowMenu] = useState<boolean>(true);
     const [lastScrollY, setLastScrollY] = useState<number>(0);
+    const [ingredientReplacements, setIngredientReplacements] = useState<Record<string, IngredientesDTO | null>>({});
 
     const [itemValueUnit, setItemValueUnit] = useState(0); //valor de cada unidade do produto
     const [itemValueFinish, setItemValueFinish] = useState(0); // valor final do produto
     const [desconto, setDesconto] = useState<number>(0);
     const [obs, setObs] = useState<string>('');
     const router = useRouter();
-    const { handleUpdateCart } = useCart();
+    const { addItemToCart } = useCart();
+    const baseProductDetails = getLocalProduct(params.productID);
+    const productDetails = useMemo(() => {
+        if (!baseProductDetails) return undefined;
+
+        return {
+            ...baseProductDetails,
+            ingredientes: baseProductDetails.ingredientes.map((ingrediente) => {
+                if (!(ingrediente.id in ingredientReplacements)) return ingrediente;
+
+                const replacement = ingredientReplacements[ingrediente.id];
+
+                return {
+                    ...ingrediente,
+                    replace: replacement
+                        ? {
+                            id: replacement.id,
+                            nome: replacement.nome,
+                            valor: replacement.valor,
+                            removivel: replacement.removivel,
+                            quantia: replacement.quantia,
+                        }
+                        : undefined,
+                };
+            }),
+        };
+    }, [baseProductDetails, ingredientReplacements]);
+    const isPending = false;
 
 
     function handleRemove(index: number) {
@@ -55,11 +84,15 @@ export default function ProductorDetails({ params }: Props) {
 
     function handleAdicional(item: AdicionaisDTO) {
         const adicionalID = parseInt(item.id)
-        let checked
-        setAddSelectedItems(prev => {
-            checked = prev[adicionalID];
-            return { ...prev, [adicionalID]: !prev[adicionalID] }
-        });
+        const checked = !!addSelectedItems[adicionalID];
+        const selectedAdditionalCount = Object.values(addSelectedItems).filter(Boolean).length;
+
+        if (!checked && productDetails?.limitItens && selectedAdditionalCount >= productDetails.limitItens) {
+            toast.warning(`Selecione até ${productDetails.limitItens} adicionais.`);
+            return;
+        }
+
+        setAddSelectedItems(prev => ({ ...prev, [adicionalID]: !prev[adicionalID] }));
         const valorTotal = item.valor * countProduct;
         if (checked) {
             setItemValueUnit(prev => prev - item.valor)
@@ -81,62 +114,23 @@ export default function ProductorDetails({ params }: Props) {
     }
 
 
-    const { data: productDetails, } = useQuery({
-        queryKey: ['product-details', params.productID],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get<ProdutosDTO>(`/produto/${params.productID}`)
-                console.log('ProdutosDTO', data);
-                return data
-            } catch (error: unknown) {
-                console.log(error)
-                if (error instanceof AxiosError && error.response) {
-                    toast.error(error.response.data.message)
-                } else {
-                    toast.error('An unexpected error occurred')
-                }
-            }
-        },
-        staleTime: Infinity, // Para garantir que o cache não seja sobrescrito automaticamente
-    });
+    function handleAddItem() {
+        if (!productDetails) {
+            toast.error('Produto não encontrado.');
+            return;
+        }
 
-    const { mutateAsync: handleAddItem, isPending } = useMutation({
-        mutationKey: ['add-product'],
-        mutationFn: async () => {
-            const ingredientesIds = productDetails?.ingredientes
-                .filter(item => item.removivel !== false)
-                .map(item => {
-                    const isRemoved = removeSelectedItems[productDetails.ingredientes.indexOf(item)];
-                    return isRemoved && item.replace ? item.replace.id : item.id;
-                });
+        addItemToCart(productDetails, countProduct, obs);
+        toast.success('Item selecionado para o novo cardápio.');
+        router.push('/');
+    }
 
-            const adicionaisIds = Object.keys(addSelectedItems)
-                .filter(key => addSelectedItems[parseInt(key)])
-                .map(key => parseInt(key));
-
-            const { data } = await api.post('/pedido/carrinho', {
-                produtoId: parseInt(params.productID),
-                ingredientes: ingredientesIds,
-                adicionais: adicionaisIds,
-                obs: obs,
-                quantidade: countProduct
-            });
-            return data;
-        },
-        onSuccess(data) {
-            console.log(data);
-            handleUpdateCart()
-            router.push('/');
-        },
-        onError(error: unknown) {
-            console.log(error)
-            if (error instanceof AxiosError && error.response) {
-                toast.error(error.response.data.message)
-            } else {
-                toast.error('Erro inesperado, tente novamente mais tarde.')
-            }
-        },
-    });
+    function handleReplaceIngredient(removeProductId: string, replacement: IngredientesDTO | null) {
+        setIngredientReplacements(prev => ({
+            ...prev,
+            [removeProductId]: replacement,
+        }));
+    }
 
 
     const controlMenu = useCallback(() => {
@@ -157,11 +151,10 @@ export default function ProductorDetails({ params }: Props) {
 
     useEffect(() => {
         if (!productDetails) return
-        const value = parseInt(productDetails?.valor)
+        const value = parseFloat(productDetails?.valor)
         const discountPercentage = ((value - productDetails?.valorPromocional) / value) * 100;
         setDesconto(discountPercentage)
-        console.log('productDetails atualizado', productDetails);
-        const valueItem = parseInt(productDetails.valor)
+        const valueItem = parseFloat(productDetails.valor)
         setItemValueUnit(valueItem)
         setItemValueFinish(valueItem)
     }, [productDetails]);
@@ -225,56 +218,60 @@ export default function ProductorDetails({ params }: Props) {
                         serve até: {productDetails?.servingSize} {productDetails && productDetails?.servingSize > 1 ? 'pessoas' : 'pessoa'}
                     </span>
                 </div>
-                {/* REMOVER/SUBISTITUIR INGREDIENTE */}
-                <div className='p-4 leading-3 -mt-3'>
-                    <h2 className="uppercase text-xl font-bold">deseja remover algo?</h2>
-                    <span className='text-xs'>Selecione os itens que você <strong>NÃO</strong> quer no seu produto.</span>
-                </div>
-                <div className='bg-white p-4 flex flex-col gap-5'>
-                    {productDetails?.ingredientes.filter(item => item.removivel !== false).map((item, index) => (
-                        <div key={index} className="flex flex-col gap-2 text-sm duration-300">
-                            <div className={`flex items-center gap-2 ${removeSelectedItems[index] && 'line-through text-red-700'}`} onClick={() => { handleRemove(index); setRemoveItem(item) }}>
-                                <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
-                                <span className='capitalize'>Remover {item.nome}</span>
-                            </div>
-                            <AnimatePresence>
-                                {removeSelectedItems[index] && item.replace && (
-                                    <motion.div
-                                        className="ml-6"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.3 }}>
-                                        <p className="text-sm text-gray-500">Substituído por:</p>
-                                        <ul className="list-disc list-inside">
-                                            <li className="text-sm text-blue-500 capitalize">{item?.replace?.nome}</li>
-                                        </ul>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                {showCustomizationSections && (
+                    <>
+                        {/* REMOVER/SUBISTITUIR INGREDIENTE */}
+                        <div className='p-4 leading-3 -mt-3'>
+                            <h2 className="uppercase text-xl font-bold">deseja remover algo?</h2>
+                            <span className='text-xs'>Selecione os itens que você <strong>NÃO</strong> quer no seu produto.</span>
                         </div>
-                    ))}
-                </div>
+                        <div className='bg-white p-4 flex flex-col gap-5'>
+                            {productDetails?.ingredientes.filter(item => item.removivel !== false).map((item, index) => (
+                                <div key={index} className="flex flex-col gap-2 text-sm duration-300">
+                                    <div className={`flex items-center gap-2 ${removeSelectedItems[index] && 'line-through text-red-700'}`} onClick={() => { handleRemove(index); setRemoveItem(item) }}>
+                                        <Checkbox variant='remove' checked={!!removeSelectedItems[index]} onChange={() => { }} />
+                                        <span className='capitalize'>Remover {item.nome}</span>
+                                    </div>
+                                    <AnimatePresence>
+                                        {removeSelectedItems[index] && item.replace && (
+                                            <motion.div
+                                                className="ml-6"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.3 }}>
+                                                <p className="text-sm text-gray-500">Substituído por:</p>
+                                                <ul className="list-disc list-inside">
+                                                    <li className="text-sm text-blue-500 capitalize">{item?.replace?.nome}</li>
+                                                </ul>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            ))}
+                        </div>
 
-                {/* ADICIONAIS */}
-                <div className='p-4 leading-3 relative'>
-                    <h2 className="uppercase text-xl font-bold">adicionais</h2>
-                    <span className='text-xs'>Que tal turbinar seu pedido?</span>
-                    <div className='absolute top-18 right-3 bg-gray-400 text-white rounded-xl p-1 font-semibold text-sm'>
-                        Selecione até {productDetails?.limitItens} itens
-                    </div>
-                </div>
-                <div className='bg-white p-4 flex flex-col gap-5'>
-                    {productDetails?.adicionais?.map((item) => {
-                        const adicionalID = parseInt(item.id)
-                        return (
-                            <div key={adicionalID} className={`flex items-center gap-2 text-sm ${addSelectedItems[adicionalID] && 'text-emerald-600'}`} onClick={() => handleAdicional(item)}>
-                                <Checkbox variant='add' checked={!!addSelectedItems[adicionalID]} />
-                                <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
+                        {/* ADICIONAIS */}
+                        <div className='p-4 leading-3 relative'>
+                            <h2 className="uppercase text-xl font-bold">adicionais</h2>
+                            <span className='text-xs'>Que tal turbinar seu pedido?</span>
+                            <div className='absolute top-18 right-3 bg-gray-400 text-white rounded-xl p-1 font-semibold text-sm'>
+                                Selecione até {productDetails?.limitItens} itens
                             </div>
-                        )
-                    })}
-                </div>
+                        </div>
+                        <div className='bg-white p-4 flex flex-col gap-5'>
+                            {productDetails?.adicionais?.map((item) => {
+                                const adicionalID = parseInt(item.id)
+                                return (
+                                    <div key={adicionalID} className={`flex items-center gap-2 text-sm ${addSelectedItems[adicionalID] && 'text-emerald-600'}`} onClick={() => handleAdicional(item)}>
+                                        <Checkbox variant='add' checked={!!addSelectedItems[adicionalID]} />
+                                        <span className='capitalize'>{item.nome} + <strong>R$ {item.valor.toFixed(2)}</strong></span>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </>
+                )}
                 <div className='p-4 leading-3'>
                     <h2 className="uppercase text-xl font-bold">observação</h2>
                     <span className='text-xs'>Utilize somente para observações.</span>
@@ -287,13 +284,14 @@ export default function ProductorDetails({ params }: Props) {
                         onChange={(e) => setObs(e.target.value)}
                     />
                 </div>
-                {productDetails && (
+                {showCustomizationSections && productDetails && (
                     <ModalSubstituir
                         open={openModal}
                         onClose={() => setOpenModal(false)}
                         removeProduct={removeItem}
                         productDetails={productDetails}
                         itemValueFinish={itemValueFinish}
+                        onReplace={handleReplaceIngredient}
                     />
                 )}
             </motion.main>

@@ -22,11 +22,19 @@ type Props = {
     removeProduct: IngredientesDTO
     productDetails: ProdutosDTO
     itemValueFinish: number
+    onReplace?: (removeProductId: string, replacement: IngredientesDTO | null) => void
 }
-export function ModalSubstituir({ open, onClose, removeProduct, productDetails, itemValueFinish }: Props) {
+export function ModalSubstituir({ open, onClose, removeProduct, productDetails, itemValueFinish, onReplace }: Props) {
     const [checked, setChecked] = React.useState<number | null>(-1);
     const [replace, setReplace] = React.useState<IngredientesDTO | null>(null);
     const queryClient = useQueryClient();
+
+    React.useEffect(() => {
+        if (!open) return;
+
+        setChecked(removeProduct.replace ? parseInt(removeProduct.replace.id) : -1);
+        setReplace(removeProduct.replace ? removeProduct.replace : null);
+    }, [open, removeProduct]);
 
     function handleChecked(item: IngredientesDTO | null) {
         setReplace(item);
@@ -34,6 +42,8 @@ export function ModalSubstituir({ open, onClose, removeProduct, productDetails, 
     }
 
     function handleReplace() {
+        onReplace?.(removeProduct.id, replace);
+
         // Recuperar o cache atual
         const cachedData = queryClient.getQueryData<ProdutosDTO>(['product-details', String(productDetails.id)]);
         if (cachedData) {

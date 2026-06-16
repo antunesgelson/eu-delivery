@@ -1,15 +1,13 @@
 'use client'
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 import { CategoriaCardapioDTO } from "@/dto/cardapioDTO";
+import { localCategorias } from "@/data/menu";
 import useCart from "@/hook/useCart";
-import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { BsSearch } from "react-icons/bs";
@@ -31,31 +29,18 @@ export default function Navegation() {
         }
     };
 
-
-
-    const { data: cardapio } = useQuery({
-        queryKey: ['list-categories'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get('/categoria/listar')
-                return data
-            } catch (error: any) {
-                console.log(error)
-                toast.error(error.response.data.message)
-            }
-        },
-    });
+    const cardapio = localCategorias;
 
     return (
-        <div className="flex items-center w-full bg-white lg:w-6/12 mx-auto">
+        <div className="sticky top-14 z-20 flex items-center w-full bg-white border-b lg:w-6/12 mx-auto">
             <Button
                 variant={'icon'}
-                className="bg-white rounded-none  h-14 "
+                className="bg-white rounded-none h-11 w-12 shrink-0"
                 onClick={() => setShowSearch(true)}>
-                <BsSearch className={`duration-300 ${showSearch ? 'text-muted' : 'text-[#474747]'}`} size={20} />
+                <BsSearch className={`duration-300 ${showSearch ? 'text-muted' : 'text-[#474747]'}`} size={18} />
             </Button>
 
-            <div className="border-r-2 border-[#909090] h-10" />
+            <div className="border-r border-[#e5e5e5] h-7" />
 
             {showSearch &&  // Barra de pesquisa
                 <AnimatePresence>
@@ -66,14 +51,14 @@ export default function Navegation() {
                         transition={{ duration: 0.3 }}>
                         <Input
                             placeholder="Buscar.."
-                            className="bg-white placeholder:text-muted rounded-none border-0 w-full h-14 px-4 "
+                            className="bg-white placeholder:text-muted rounded-none border-0 w-full h-11 px-4 text-sm"
                         />
 
                         <Button
                             variant={'icon'}
-                            className="absolute right-3 top-1/2 transform translate-y-[-50%] "
+                            className="absolute right-2 top-1/2 transform translate-y-[-50%] h-8 w-8"
                             onClick={() => setShowSearch(false)} >
-                            <IoIosCloseCircle className="text-[#474747] " size={26} />
+                            <IoIosCloseCircle className="text-[#474747] " size={22} />
                         </Button>
                     </motion.div>
                 </AnimatePresence>
@@ -81,16 +66,16 @@ export default function Navegation() {
 
             {!showSearch && // Navegação do cardápio
                 <AnimatePresence>
-                    <ScrollArea scrollY={false} className=" whitespace-nowrap rounded-none bg-white h-14   ">
+                    <ScrollArea scrollY={false} className="whitespace-nowrap rounded-none bg-white h-11">
                         <motion.div
                             initial={{ opacity: 0, }}
                             animate={{ opacity: 1, }}
                             transition={{ duration: 0.5 }}>
                             <nav>
-                                <ul className="flex w-max space-x-10 px-10 p-4 uppercase text-muted">
+                                <ul className="flex w-max items-center gap-5 px-4 py-3 text-[13px] font-bold text-dark-700">
                                     {cardapio?.map((categoria: CategoriaCardapioDTO) => (
                                         <li key={categoria.id}
-                                            className={`cursor-pointer duration-300 lg:hover:text-primary border-b-2  lg:hover:border-primary ${selectedItemId === categoria.id ? 'border-primary text-primary' : 'border-transparent'}`}
+                                            className={`cursor-pointer duration-300 border-b-2 pb-1 hover:text-[#f97316] hover:border-[#f97316] ${selectedItemId === categoria.id ? 'border-[#f97316] text-[#f97316]' : 'border-transparent'}`}
                                             onClick={() => handleSectionClick(categoria.id)}>
                                             <span>{categoria.titulo}</span>
                                         </li>

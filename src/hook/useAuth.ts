@@ -1,12 +1,12 @@
 'use client'
-import { parseCookies } from "nookies";
+import { getClientCookies } from "@/utils/cookies";
 import { useEffect, useState } from "react";
 
 export default function useAuth() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        const cookies = parseCookies();
+        const cookies = getClientCookies();
         const token = cookies['@eu:token'];
         setIsAuthenticated(!!token);
     }, []);

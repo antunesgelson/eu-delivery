@@ -2,18 +2,24 @@
 
 import { CartDTO } from "@/dto/cartDTO";
 import { CupomDTO } from "@/dto/cupomDTO";
-import useAuth from "@/hook/useAuth";
-import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import { localConfigData } from "@/data/menu";
 import React, { createContext } from "react";
-import { toast } from "sonner";
+import { ProdutosDTO } from "@/dto/productDTO";
+import { STORE_PICKUP_ADDRESS } from "@/data/store";
 
 type CartContextData = {
     selectedItemId: null | string;
     setSelectedItemId: (id: string) => void;
     cart: CartDTO | undefined;
     handleUpdateCart: () => void;
+    addItemToCart: (produto: ProdutosDTO, quantidade: number, obs?: string) => void;
+    increaseItemQuantity: (itemID: number) => void;
+    removeItemFromCart: (itemID: number) => void;
+    clearCart: () => void;
+    choosePickupLocation: () => void;
+    setCartSchedule: (dataEntrega: string) => void;
+    setPaymentMethod: (formaPagamento: string) => void;
+    sendLocalOrder: () => void;
     cuponsFree: CupomDTO[] | undefined;
     handleUpdateCuponsFree: () => void;
     cupom?: CupomDTO | undefined;
@@ -29,67 +35,137 @@ type CartProviderProps = {
 }
 
 export function CartProvider({ children }: CartProviderProps) {
-    const { isAuthenticated } = useAuth()
     const [selectedItemId, setSelectedItemId] = React.useState<null | string>(null);
+    const [cart, setCart] = React.useState<CartDTO | undefined>(undefined);
+    const cuponsFree = [] as CupomDTO[];
+    const cupom = undefined as CupomDTO | undefined;
+    const configData = localConfigData;
+    const handleUpdateCart = () => { };
+    const handleUpdateCuponsFree = () => { };
+    const handleUpdateCupom = () => { };
+    const getProductValue = (produto: ProdutosDTO) => Number(produto.valorPromocional > 0 ? produto.valorPromocional : produto.valor);
+    const sumCartValue = (itens: CartDTO['itens']) => itens.reduce((total, item) => total + item.valor, 0);
+    const buildCart = (currentCart: CartDTO | undefined, updates: Partial<CartDTO> = {}) => {
+        const itens = updates.itens ?? currentCart?.itens ?? [];
 
-    const { data: cart, refetch: handleUpdateCart } = useQuery({
-        queryKey: ['list-cart-details'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get<CartDTO>('/pedido/carrinho')
-                return data
-            } catch (error: unknown) {
-                if (error instanceof AxiosError && error.response) {
-                    // toast.error(error.response.data.message)
-                    console.log('error ->', console.log(error.response.data.message))
+        return {
+            id: currentCart?.id ?? 1,
+            status: currentCart?.status ?? 'local',
+            itens,
+            cupomId: currentCart?.cupomId ?? '',
+            cashBack: currentCart?.cashBack ?? 0,
+            dataEntrega: currentCart?.dataEntrega ?? null,
+            endereco: currentCart?.endereco ?? {},
+            obs: currentCart?.obs ?? '',
+            valorTotalPedido: sumCartValue(itens),
+            tipoRecebimento: currentCart?.tipoRecebimento,
+            formaPagamento: currentCart?.formaPagamento,
+            ...updates,
+        } as CartDTO;
+    };
 
-                } else {
-                    console.log('error ->', console.log(error))
-                    toast.error('Erro inesperado, tente novamente mais tarde.')
+    const addItemToCart = (produto: ProdutosDTO, quantidade: number, obs = '') => {
+        const productValue = getProductValue(produto);
+        const itemValue = productValue * quantidade;
+
+        setCart((currentCart) => {
+            const currentItems = currentCart?.itens ?? [];
+            const nextItemId = currentItems.length > 0
+                ? Math.max(...currentItems.map((item) => item.id)) + 1
+                : 1;
+            const nextItems = [
+                ...currentItems,
+                {
+                    id: nextItemId,
+                    adicionais: [],
+                    ingredientes: produto.ingredientes,
+                    obs,
+                    quantidade,
+                    valor: itemValue,
+                    valorAdicionais: 0,
+                    produto,
+                },
+            ];
+            const valorTotalPedido = sumCartValue(nextItems);
+
+            return buildCart(currentCart, {
+                itens: nextItems,
+                valorTotalPedido,
+            });
+        });
+    };
+    const increaseItemQuantity = (itemID: number) => {
+        setCart((currentCart) => {
+            if (!currentCart) {
+                return currentCart;
+            }
+
+            const nextItems = currentCart.itens.map((item) => {
+                if (item.id !== itemID) {
+                    return item;
                 }
+
+                const quantidade = item.quantidade + 1;
+                return {
+                    ...item,
+                    quantidade,
+                    valor: getProductValue(item.produto) * quantidade + item.valorAdicionais,
+                };
+            });
+
+            return buildCart(currentCart, {
+                itens: nextItems,
+                valorTotalPedido: sumCartValue(nextItems),
+            });
+        });
+    };
+    const removeItemFromCart = (itemID: number) => {
+        setCart((currentCart) => {
+            if (!currentCart) {
+                return currentCart;
             }
-        }, enabled: !!isAuthenticated
-    });
 
-    const { data: cupom, refetch: handleUpdateCupom } = useQuery({
-        queryKey: ['list-cupom-id', cart?.cupomId],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get<CupomDTO>(`/cupom/${cart?.cupomId}`)
-                return data
-            } catch (error: unknown) {
-                console.log(error)
-                if (error instanceof AxiosError && error.response) {
-                    toast.error(error.response.data.message)
-                } else {
-                    toast.error('Erro inesperado, tente novamente mais tarde.')
-                }
+            const nextItems = currentCart.itens.filter((item) => item.id !== itemID);
+
+            return buildCart(currentCart, {
+                itens: nextItems,
+                valorTotalPedido: sumCartValue(nextItems),
+            });
+        });
+    };
+    const clearCart = () => {
+        setCart((currentCart) => {
+            if (!currentCart) {
+                return currentCart;
             }
-        }, enabled: !!cart?.cupomId
-    })
 
-
-
-    const { data: cuponsFree, refetch: handleUpdateCuponsFree } = useQuery({
-        queryKey: ['list-cupons-free'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get<CupomDTO[]>('/cupom/free')
-                return data
-            } catch (error: unknown) {
-                console.error(error)
-                throw error
-            }
-        }, enabled: !!isAuthenticated
-    })
-
-    const { data: configData } = useQuery({
-        queryKey: ['configAdmin'],
-        queryFn: async () => {
-            const res = await api.get('/configuracao');
-            return res.data;
-        },
-    });
+            return buildCart(currentCart, {
+                itens: [],
+                valorTotalPedido: 0,
+            });
+        });
+    };
+    const choosePickupLocation = () => {
+        setCart((currentCart) => buildCart(currentCart, {
+            endereco: STORE_PICKUP_ADDRESS,
+            tipoRecebimento: 'pickup',
+        }));
+    };
+    const setCartSchedule = (dataEntrega: string) => {
+        setCart((currentCart) => buildCart(currentCart, {
+            dataEntrega,
+        }));
+    };
+    const setPaymentMethod = (formaPagamento: string) => {
+        setCart((currentCart) => buildCart(currentCart, {
+            formaPagamento,
+        }));
+    };
+    const sendLocalOrder = () => {
+        setCart((currentCart) => buildCart(currentCart, {
+            status: 'Pedido recebido',
+        }));
+    };
 
     return (
         <CartContext.Provider value={{
@@ -97,6 +173,14 @@ export function CartProvider({ children }: CartProviderProps) {
             setSelectedItemId,
             cart,
             handleUpdateCart,
+            addItemToCart,
+            increaseItemQuantity,
+            removeItemFromCart,
+            clearCart,
+            choosePickupLocation,
+            setCartSchedule,
+            setPaymentMethod,
+            sendLocalOrder,
             cuponsFree,
             handleUpdateCuponsFree,
             cupom,

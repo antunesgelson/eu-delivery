@@ -2,61 +2,43 @@
 import React from "react";
 
 import { useSession } from "next-auth/react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import Banner from "@/components/Banner";
-import Footer from "@/components/Footer";
 import Navegation from "@/components/Navegation";
 import OrderSummaryBar from "@/components/OrderSummaryBar";
 import ProductCard from "@/components/ProductCard";
-import PromoSection from "@/components/PromoSection";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 
-import Background from "@/assets/background/background.jpg";
-import Logotipo from "@/assets/logo/logotipo.jpg";
-
 import { CardapioDTO } from "@/dto/cardapioDTO";
-import useAuth from "@/hook/useAuth";
+import { localCardapio } from "@/data/menu";
 
 import useCart from "@/hook/useCart";
-import { api } from "@/service/api";
-import { useQuery } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import { FaGift, FaHome, FaRegClock } from "react-icons/fa";
+import { FaStore } from "react-icons/fa6";
+import { HiShoppingCart } from "react-icons/hi";
+import Link from "next/link";
 
 type Props = {
   searchParams?: { firstLogin?: string }
 }
-const background = {
-  backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${Background.src})`,
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-};
+
 export default function Home({ searchParams }: Props) {
   const router = useRouter();
   const { data: session } = useSession()
-  const { isAuthenticated } = useAuth();
   const { cart } = useCart();
   const userName = session?.user?.name ? session?.user?.name : 'Visitante'
-
-  const { data: cardapio } = useQuery({
-    queryKey: ['list-categories-details'],
-    queryFn: async () => {
-      try {
-        const { data } = await api.get('/categoria/lista/detalhes')
-        return data
-      } catch (error: unknown) {
-        console.log(error)
-        if (error instanceof AxiosError && error.response) {
-          toast.error(error.response.data.message)
-        } else {
-          toast.error('Erro inesperado, tente novamente mais tarde.')
-        }
-      }
-    },
-  });
+  const cardapio = localCardapio;
+  const featuredProducts = cardapio.flatMap((categoria) => categoria.produtos).slice(0, 4);
+  const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
 
 
   React.useEffect(() => {
@@ -82,37 +64,63 @@ export default function Home({ searchParams }: Props) {
   }, [searchParams, session, router, userName]);
 
   return (
-    <main className="overflow-x-hidden mt-14  ">
-      <section
-        style={background}
-        className="flex flex-col justify-center items-center h-[40vh] ">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-          animate={{ opacity: 1, scale: 1, rotate: '0deg', filter: 'blur(0px)' }}
-          whileTap={{ scale: 1.2 }}
-          exit={{ opacity: 0, scale: 0.2, rotate: '100deg', filter: 'blur(20px)' }}
-          transition={{ duration: 0.8 }} >
-          <Image
-            src={Logotipo}
-            alt="Emporio Urubici"
-            className="rounded-full  drop-shadow-2xl  shadow-2xl brightness-90  "
-            width={200}
-            height={200}
-          />
-        </motion.div>
+    <main className="mt-14 min-h-screen overflow-x-hidden bg-[#f7f7f7] pb-20">
+      <section className="bg-[#fff2ea] px-4 py-3 text-[11px] font-semibold text-dark-800 lg:mx-auto lg:w-6/12">
+        Apenas pedidos agendados. Faça já o seu!
       </section>
 
-      {isAuthenticated && <PromoSection />}
+      <section className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-b bg-white px-4 py-3 text-[11px] text-dark-500 lg:mx-auto lg:w-6/12">
+        <div className="flex min-w-0 items-center gap-2">
+          <FaRegClock className="shrink-0 text-[#f97316]" />
+          <span className="truncate">A partir das 11h30</span>
+        </div>
+        <div className="flex items-center gap-2 text-right">
+          <span className="whitespace-nowrap">Mín. R$ 35,00</span>
+          <FaStore className="shrink-0 text-[#f97316]" />
+        </div>
+      </section>
+
+      <section className="bg-white px-4 py-3 lg:mx-auto lg:w-6/12">
+        <div className="rounded-md bg-gradient-to-r from-[#7315f5] to-[#5900d9] px-4 py-3 text-white">
+          <div className="text-center">
+            <strong className="block text-[18px] leading-5">3% cashback</strong>
+            <span className="block text-[12px] leading-4">compre e ganhe na hora</span>
+            <span className="mt-1 block text-[12px] font-extrabold">Aproveite já!</span>
+          </div>
+        </div>
+      </section>
+
       <Navegation />
       <Banner />
 
-      <section className="w-11/12 lg:w-6/12 mx-auto">
+      <section className="bg-white px-4 pb-4 lg:mx-auto lg:w-6/12">
+        <h2 className="mb-2 text-[17px] font-extrabold text-dark-800">Os mais pedidos</h2>
+        <Carousel
+          opts={{
+            align: "start",
+            dragFree: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {featuredProducts.map((item) => (
+              <CarouselItem key={item.id} className="basis-[39%] sm:basis-1/4">
+                <ProductCard {...item} variant="compact" />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-auto right-10 -top-9 hidden border-dark-200 text-dark-700 shadow-sm disabled:opacity-30 sm:inline-flex" />
+          <CarouselNext className="right-0 -top-9 hidden border-dark-200 text-dark-700 shadow-sm disabled:opacity-30 sm:inline-flex" />
+        </Carousel>
+      </section>
+
+      <section className="px-4 lg:mx-auto lg:w-6/12">
         {cardapio?.map((produto: CardapioDTO) => (
-          <div id={`section-${produto.id}`} key={produto.titulo}>
-            <h2 className="uppercase text-2xl font-bold mt-6 mb-2">
+          <div id={`section-${produto.id}`} key={produto.titulo} className="pt-5">
+            <h2 className="mb-2 text-[20px] font-extrabold text-dark-800">
               {produto.titulo}
             </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3">
               {produto.produtos.map((item) => (
                 <ProductCard key={item.id} {...item} />
               ))}
@@ -120,8 +128,36 @@ export default function Home({ searchParams }: Props) {
           </div>
         ))}
       </section>
-      {cart?.itens && <OrderSummaryBar />}
-      <Footer />
+      {cartItemCount > 0 && <OrderSummaryBar />}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white lg:hidden">
+        <ul className="grid h-14 grid-cols-4 text-[10px] text-dark-500">
+          <li className="flex flex-col items-center justify-center gap-1 border-t-2 border-[#f97316] text-[#f97316]">
+            <FaHome size={18} />
+            Início
+          </li>
+          <li className="flex flex-col items-center justify-center gap-1">
+            <FaStore size={17} />
+            Pedidos
+          </li>
+          <li className="flex flex-col items-center justify-center gap-1">
+            <FaGift size={17} />
+            Promos
+          </li>
+          <li>
+            <Link href="/cart" className="flex h-full flex-col items-center justify-center gap-1">
+              <span className="relative">
+                <HiShoppingCart size={18} />
+                {cartItemCount > 0 && (
+                  <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f97316] px-1 text-[9px] font-extrabold leading-none text-white">
+                    {cartItemCount}
+                  </span>
+                )}
+              </span>
+              Carrinho
+            </Link>
+          </li>
+        </ul>
+      </nav>
     </main>
   );
 }

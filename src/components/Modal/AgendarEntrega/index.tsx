@@ -1,238 +1,189 @@
 'use client'
-import useCart from "@/hook/useCart"
-import { AnimatePresence, motion } from "framer-motion"
-import React, { useState } from "react"
-import { toast } from "sonner"
 
-import MultiStep from "@/components/MultiStep"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-
-import { api } from "@/service/api"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { AxiosError } from "axios"
-
-import { BsCalendarDate } from "react-icons/bs"
-import { FaRegCalendarCheck } from "react-icons/fa6"
-import { IoIosArrowRoundForward } from "react-icons/io"
-
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { STORE_PICKUP_TIME_WINDOWS, STORE_PICKUP_WEEKDAYS } from "@/data/store";
+import useCart from "@/hook/useCart";
+import React from "react";
+import { toast } from "sonner";
+import { FaCircleCheck, FaRegCircle } from "react-icons/fa6";
+import { IoWarning } from "react-icons/io5";
 
 type Props = {
     open: boolean
     onClose: () => void
 }
 
-export function ModalAgendarEntrega({ open, onClose }: Props) {
-    const [date, setDate] = useState<Date | undefined>(new Date());
-    const [step, setStep] = useState(1);
-    const [selectedTime, setSelectedTime] = React.useState('');
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const { handleUpdateCart } = useCart()
+type PickupDate = {
+    date: Date
+    label: string
+    day: string
+    month: string
+}
 
-    const { data: time } = useQuery({
-        queryKey: ['list-times'],
-        queryFn: async () => {
-            const formattedDate = date ? date.toISOString().split("T")[0] : "";
-            try {
-                const { data } = await api.get(`/pedido/horarios/${formattedDate}`)
-                return data
-            } catch (error: unknown) {
-                if (error instanceof AxiosError && error.response) {
-                    throw new Error(error.response.data.message)
-                } else {
-                    throw new Error('Erro inesperado, tente novamente mais tarde.')
+type PickupWindow = typeof STORE_PICKUP_TIME_WINDOWS[number];
 
-                }
-            }
-        },
-        enabled: step === 2
-    })
+const dayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const monthLabels = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-    const { mutateAsync: handleChooseDate, isPending } = useMutation({
-        mutationKey: ['choose-date'],
-        mutationFn: async () => {
-            if (!date || (!selectedTime && !selectedPeriod)) {
-                throw new Error('Data e horário ou período devem ser selecionados');
-            }
-            const formattedDate = date.toISOString().split('T')[0]; // Formata a data como YYYY-MM-DD
+function startOfDay(value: Date) {
+    const nextDate = new Date(value);
+    nextDate.setHours(0, 0, 0, 0);
+    return nextDate;
+}
 
-            console.log('formattedDate => ', formattedDate)
-            const dataEntrega = selectedPeriod
-                ? `${formattedDate} ${selectedPeriod === 'morning' ? 'Manhã' : 'Tarde'}`
-                : `${formattedDate} ${selectedTime}`; // Combina a data e o horário ou período
+function formatDateForSchedule(value: Date) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
-            console.log('dataEntrega => ', dataEntrega)
+function getPickupDates() {
+    const today = startOfDay(new Date());
+    const dates: PickupDate[] = [];
+    const maxDaysToCheck = 21;
 
-            const { data } = await api.put('/pedido', {
-                dataEntrega
-            });
+    for (let offset = 0; offset <= maxDaysToCheck && dates.length < 4; offset += 1) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + offset);
 
-
-            return data
-        }, onSuccess(data) {
-            console.log('Sucessooo data => ', data)
-            handleUpdateCart()
-            onClose()
-            toast.success('Data de entrega agendada com sucesso!')
-
-        }, onError(error: unknown) {
-            if (error instanceof AxiosError && error.response) {
-                toast.error(error.response.data.message)
-            } else {
-                toast.error('Erro inesperado, tente novamente mais tarde.')
-            }
+        if (!STORE_PICKUP_WEEKDAYS.includes(date.getDay())) {
+            continue;
         }
-    })
 
+        dates.push({
+            date,
+            label: offset === 0 ? 'Hoje' : dayLabels[date.getDay()],
+            day: String(date.getDate()),
+            month: monthLabels[date.getMonth()],
+        });
+    }
+
+    return dates;
+}
+
+function getScheduleValue(date: Date, window: PickupWindow) {
+    return `${formatDateForSchedule(date)}T${window.start}:00`;
+}
+
+function formatWindowLabel(window: PickupWindow) {
+    return `Retirar entre ${window.start} e ${window.end}`;
+}
+
+export function ModalAgendarEntrega({ open, onClose }: Props) {
+    const [pickupDates, setPickupDates] = React.useState<PickupDate[]>([]);
+    const [selectedDate, setSelectedDate] = React.useState<PickupDate | undefined>(undefined);
+    const [selectedWindow, setSelectedWindow] = React.useState<PickupWindow | undefined>(undefined);
+    const { setCartSchedule } = useCart();
+
+    React.useEffect(() => {
+        if (!open) return;
+        const nextPickupDates = getPickupDates();
+        setPickupDates(nextPickupDates);
+        setSelectedDate(nextPickupDates[0]);
+        setSelectedWindow(undefined);
+    }, [open]);
+
+    const handleConfirm = () => {
+        if (!selectedDate || !selectedWindow) {
+            toast.error('Selecione um horário para retirada.');
+            return;
+        }
+
+        setCartSchedule(getScheduleValue(selectedDate.date, selectedWindow));
+        onClose();
+        toast.success('Horário de retirada agendado com sucesso!');
+    };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className=" min-h-[600px]  h-[600px] w-11/12  rounded-md  ">
-                <DialogHeader className=" -mb-8">
-                    <DialogTitle className="uppercase text-xl font-bold flex justify-center items-center w-full ">
-                        <h1 className=" flex items-center gap-2 "> <BsCalendarDate />Agendar Entrega</h1>
+            <DialogContent className="h-[82vh] w-11/12 max-w-[390px] overflow-hidden rounded-md bg-white p-0">
+                <DialogHeader className="border-b px-5 pb-4 pt-5">
+                    <DialogTitle className="text-center text-[19px] font-extrabold text-dark-900">
+                        Quando quer retirar?
                     </DialogTitle>
-                    <MultiStep size={2} currentStep={step} />
+                    <DialogDescription className="text-center text-[12px] leading-4 text-dark-500">
+                        Atendemos aos sábados e domingos, geralmente a partir das 11h30.
+                    </DialogDescription>
                 </DialogHeader>
-                <DialogDescription>
-                    {step === 1 &&
-                        <div className="absolute top-24 left-0 right-0 ">
-                            <h2 className="text-center font-bold text-black">Selecione o Dia de Entrega</h2>
-                            <p className="text-center text-xs text-muted-foreground">Escola o dia que deseja receber o produto.</p>
-                        </div>
-                    }
-                    {step === 2 &&
-                        <div className="absolute top-24 left-0 right-0">
-                            <h2 className="text-center font-bold text-black">Horários Disponíveis</h2>
-                            <p className="text-center text-xs text-muted-foreground">Selecione o horário desejado para receber o produto.</p>
-                        </div>
-                    }
-                </DialogDescription>
 
-                <AnimatePresence initial={false} mode="popLayout">
-                    {step === 1 &&
-                        <motion.div
-                            className="absolute top-36 left-0 right-0 "
-                            layout
-                            initial={{ opacity: 0, x: 35 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 35 }}
-                            transition={{ duration: 0.2, }} >
-                            <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={setDate}
-                                className=" flex justify-center items-center w-full"
-                                disabled={(date) =>
-                                    date < new Date()
-                                } />
-                        </motion.div>
-                    }
-                </AnimatePresence>
-                <AnimatePresence initial={false} mode="popLayout">
-                    {step === 2 &&
-                        <motion.div
-                            className="-mt-4"
-                            layout
-                            initial={{ opacity: 0, x: -35 }}
-                            animate={{ opacity: 1, x: -0 }}
-                            exit={{ opacity: 0, x: -35 }}
-                            transition={{ duration: 0.2, }} >
-                            <div className="grid grid-cols-4 gap-2 mt-2 h-72">
-                                <AnimatePresence mode="popLayout">
-                                    {time?.map((time: { horario: string, disponivel: boolean }) => (
-                                        <motion.button
-                                            layout
-                                            key={time.horario}
-                                            onClick={() => setSelectedTime(time.horario)}
-                                            disabled={!!selectedPeriod || !time.disponivel}
-                                            className={`py-2 px-4 rounded-md text-sm duration-200 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed ${selectedTime === time.horario ? 'bg-emerald-500 text-white' : 'bg-dark-400 text-white-off'}`}>
-                                            {time.horario}
-                                        </motion.button>
-                                    ))}
-                                </AnimatePresence>
+                <div className="flex-1 overflow-y-auto px-5 py-4">
+                    <div className="grid grid-cols-4 gap-2 pb-4">
+                        {pickupDates.map((item) => {
+                            const isSelected = selectedDate?.date.getTime() === item.date.getTime();
 
-                                {time?.length === 0 && <span className="col-span-4 h-72 flex justify-center items-center text-muted-foreground">Nenhum horário disponível para este dia.</span>}
-                            </div>
-
-                            <div className="mt-3">
-                                <div className="leading-3 flex flex-col justify-center items-center">
-                                    <span className="text-xs text-muted-foreground ">Ou</span>
-                                    <span className="text-xs text-muted-foreground">Escolha o melhor período para receber sua entrega.</span>
-                                </div>
-                                <Separator className="my-2" />
-                                <div className="grid grid-cols-2 text-xs mt-3">
-                                    <div className="flex items-center gap-1">
-                                        <Checkbox
-                                            disabled={time?.length === 0}
-                                            variant="add"
-                                            checked={selectedPeriod === 'morning'}
-                                            onCheckedChange={() => setSelectedPeriod(selectedPeriod === 'morning' ? null : 'morning')}
-                                            className="h-5 w-5"
-                                        />
-                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ' : ''}`}>Na parte da manhã</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Checkbox
-                                            disabled={time?.length === 0}
-                                            variant="add"
-                                            checked={selectedPeriod === 'afternoon'}
-                                            onCheckedChange={() => setSelectedPeriod(selectedPeriod === 'afternoon' ? null : 'afternoon')}
-                                            className="h-5 w-5"
-                                        />
-                                        <span className={` ${time?.length === 0 ? 'text-muted cursor-not-allowed ' : ''}`}>Na parte da tarde</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    }
-                </AnimatePresence>
-                <DialogFooter className=" fixed bottom-4 right-4 left-4 ">
-                    <div className="flex justify-center items-center ">
-                        {step == 1 &&
-                            <Button
-                                variant={'success'}
-                                onClick={() => setStep((prev) => prev + 1)}
-                                className="w-full flex items-center justify-center gap-1">
-                                Selecione um horário
-                                <IoIosArrowRoundForward size={20} />
-                            </Button>
-                        }
+                            return (
+                                <button
+                                    type="button"
+                                    key={item.date.toISOString()}
+                                    onClick={() => {
+                                        setSelectedDate(item);
+                                        setSelectedWindow(undefined);
+                                    }}
+                                    className={`h-[74px] min-w-0 rounded-md border bg-white text-center duration-200 ${isSelected ? 'border-2 border-emerald-500 text-emerald-600' : 'border-neutral-200 text-dark-500'}`}>
+                                    <span className="block text-[12px] font-semibold leading-4">{item.label}</span>
+                                    <strong className="block text-[31px] leading-8">{item.day}</strong>
+                                    <span className="block text-[10px] font-bold uppercase leading-3">{item.month}</span>
+                                </button>
+                            );
+                        })}
                     </div>
-                    {step == 2 &&
-                        <div className="flex justify-between items-center gap-2 px-2">
-                            <Button
-                                variant={'success'}
-                                onClick={() => setStep((prev) => prev - 1)}
-                                className="w-full flex items-center justify-center gap-1">
-                                <IoIosArrowRoundForward size={20} className={` rotate-180`} />
-                                Voltar
-                            </Button>
 
-                            <Button
-                                disabled={time?.length === 0}
-                                variant={'success'}
-                                loading={isPending}
-                                onClick={() => handleChooseDate()}
-                                className="w-full flex items-center justify-center gap-1">
-                                Agendar
-                                <FaRegCalendarCheck />
-                            </Button>
+                    <div className="border-t pt-4">
+                        <h3 className="mb-3 text-[14px] font-extrabold text-dark-800">Para agora:</h3>
+                        <div className="grid grid-cols-[32px_1fr] items-center gap-3 rounded-md border-2 border-red-700 bg-white p-4 text-dark-500">
+                            <IoWarning size={25} className="text-dark-500" />
+                            <p className="text-[13px] font-semibold leading-5">
+                                No momento não estamos aceitando pedidos para retirar agora.
+                            </p>
                         </div>
-                    }
+                    </div>
+
+                    <div className="mt-4">
+                        <h3 className="mb-3 text-[14px] font-extrabold text-dark-800">Para agendar:</h3>
+                        <div className="space-y-2 pb-20">
+                            {STORE_PICKUP_TIME_WINDOWS.map((window) => {
+                                const isSelected = selectedWindow?.start === window.start && selectedWindow?.end === window.end;
+
+                                return (
+                                    <button
+                                        type="button"
+                                        key={`${window.start}-${window.end}`}
+                                        onClick={() => setSelectedWindow(window)}
+                                        className={`flex h-[58px] w-full items-center justify-between rounded-md border bg-white px-4 text-left duration-200 ${isSelected ? 'border-2 border-emerald-500' : 'border-neutral-200'}`}>
+                                        <span className="text-[14px] font-semibold text-dark-700">
+                                            {formatWindowLabel(window)}
+                                        </span>
+                                        {isSelected
+                                            ? <FaCircleCheck size={25} className="text-emerald-500" />
+                                            : <FaRegCircle size={25} className="text-dark-500" />
+                                        }
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter className="absolute bottom-0 left-0 right-0 border-t bg-white p-4">
+                    <Button
+                        type="button"
+                        variant="success"
+                        disabled={!selectedDate || !selectedWindow}
+                        className="h-12 w-full text-[15px] font-extrabold"
+                        onClick={handleConfirm}>
+                        Confirmar horário
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
-

@@ -13,10 +13,10 @@ export default function Banner() {
     const BannerSlide = [Thumb, Thumb, Thumb]
 
     return (
-        <div className='w-full my-5 lg:w-6/12 mx-auto  '>
-            <Swiper className='w-full h-[170px]'
+        <div className='w-full py-3 lg:w-6/12 mx-auto bg-white'>
+            <Swiper className='w-full h-[112px]'
                 modules={[Autoplay, Pagination]}
-                spaceBetween={33}
+                spaceBetween={16}
                 slidesPerView={1}
                 speed={1500}
                 autoplay={{
@@ -28,13 +28,13 @@ export default function Banner() {
                 {BannerSlide.map((img, index) => {
                     return (
                         <SwiperSlide key={index}>
-                            <div className="w-full flex justify-center items-center ">
+                            <div className="w-full flex justify-center items-center px-4">
                                 <Image
                                     src={img.src}
-                                    className="w-11/12 mx-auto rounded-xl max-h-[180px]"
+                                    className="h-[96px] w-full rounded-md object-cover"
                                     width={500}
-                                    height={500}
-                                    alt=""
+                                    height={112}
+                                    alt="Promoção Assados Zanini"
 
                                 />
                             </div>
@@ -46,4 +46,3 @@ export default function Banner() {
         </div>
     );
 };
-
