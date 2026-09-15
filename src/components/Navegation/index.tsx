@@ -1,5 +1,5 @@
 'use client'
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,27 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BsSearch } from "react-icons/bs";
 import { IoIosCloseCircle } from "react-icons/io";
 
-export default function Navegation() {
+type NavegationProps = {
+    isSearchOpen: boolean;
+    searchTerm: string;
+    onSearchOpenChange: (open: boolean) => void;
+    onSearchTermChange: (value: string) => void;
+}
+
+export default function Navegation({
+    isSearchOpen,
+    searchTerm,
+    onSearchOpenChange,
+    onSearchTermChange,
+}: NavegationProps) {
     const { setSelectedItemId, selectedItemId } = useCart();
-    const [showSearch, setShowSearch] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isSearchOpen) {
+            searchInputRef.current?.focus();
+        }
+    }, [isSearchOpen]);
 
     const handleSectionClick = (secaoId: string) => {
         setSelectedItemId(secaoId);
@@ -30,41 +48,54 @@ export default function Navegation() {
     };
 
     const cardapio = localCategorias;
+    const handleCancelSearch = () => {
+        onSearchTermChange('');
+        onSearchOpenChange(false);
+    };
 
     return (
         <div className="sticky top-14 z-20 flex items-center w-full bg-white border-b lg:w-6/12 mx-auto">
             <Button
                 variant={'icon'}
-                className="bg-white rounded-none h-11 w-12 shrink-0"
-                onClick={() => setShowSearch(true)}>
-                <BsSearch className={`duration-300 ${showSearch ? 'text-muted' : 'text-[#474747]'}`} size={18} />
+                className="h-12 w-12 shrink-0 rounded-none bg-white"
+                onClick={() => {
+                    onSearchOpenChange(true);
+                    searchInputRef.current?.focus();
+                }}>
+                <BsSearch className={`duration-300 ${isSearchOpen ? 'text-neutral-400' : 'text-[#474747]'}`} size={20} />
             </Button>
 
             <div className="border-r border-[#e5e5e5] h-7" />
 
-            {showSearch &&  // Barra de pesquisa
+            {isSearchOpen &&  // Barra de pesquisa
                 <AnimatePresence>
                     <motion.div
-                        className="relative w-full "
+                        className="flex h-12 min-w-0 flex-1 items-center"
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3 }}>
-                        <Input
-                            placeholder="Buscar.."
-                            className="bg-white placeholder:text-muted rounded-none border-0 w-full h-11 px-4 text-sm"
-                        />
+                        <div className="min-w-0 flex-1">
+                            <Input
+                                ref={searchInputRef}
+                                value={searchTerm}
+                                onChange={(event) => onSearchTermChange(event.target.value)}
+                                placeholder="Buscar"
+                                className="h-12 rounded-none border-0 bg-white px-5 text-[16px] font-semibold text-dark-900 shadow-none placeholder:text-neutral-400 focus-visible:ring-0"
+                            />
+                        </div>
 
                         <Button
                             variant={'icon'}
-                            className="absolute right-2 top-1/2 transform translate-y-[-50%] h-8 w-8"
-                            onClick={() => setShowSearch(false)} >
-                            <IoIosCloseCircle className="text-[#474747] " size={22} />
+                            aria-label="Cancelar busca"
+                            className="h-12 w-12 shrink-0 rounded-none bg-white"
+                            onClick={handleCancelSearch} >
+                            <IoIosCloseCircle className="text-[#474747]" size={30} />
                         </Button>
                     </motion.div>
                 </AnimatePresence>
             }
 
-            {!showSearch && // Navegação do cardápio
+            {!isSearchOpen && // Navegação do cardápio
                 <AnimatePresence>
                     <ScrollArea scrollY={false} className="whitespace-nowrap rounded-none bg-white h-11">
                         <motion.div

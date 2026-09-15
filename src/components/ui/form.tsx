@@ -14,6 +14,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+import { typographyVariants } from "@/components/ui/typography"
 
 const Form = FormProvider
 
@@ -131,15 +132,15 @@ const FormDescription = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const { formDescriptionId } = useFormField()
 
-  return (
-    <p
-      ref={ref}
-      id={formDescriptionId}
-      className={cn("text-[0.8rem] text-muted-foreground", className)}
-      {...props}
-    />
-  )
-})
+	  return (
+	    <p
+	      ref={ref}
+	      id={formDescriptionId}
+	      className={cn(typographyVariants({ variant: "caption" }), className)}
+	      {...props}
+	    />
+	  )
+	})
 FormDescription.displayName = "FormDescription"
 
 const FormMessage = React.forwardRef<
@@ -153,16 +154,16 @@ const FormMessage = React.forwardRef<
     return null
   }
 
-  return (
-    <p
-      ref={ref}
-      id={formMessageId}
-      className={cn("text-[0.8rem] font-medium text-destructive", className)}
-      {...props}
-    >
-      {body}
-    </p>
-  )
+	  return (
+	    <p
+	      ref={ref}
+	      id={formMessageId}
+	      className={cn(typographyVariants({ variant: "caption", tone: "danger" }), className)}
+	      {...props}
+	    >
+	      {body}
+	    </p>
+	  )
 })
 FormMessage.displayName = "FormMessage"
 

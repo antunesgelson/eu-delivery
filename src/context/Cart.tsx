@@ -2,10 +2,22 @@
 
 import { CartDTO } from "@/dto/cartDTO";
 import { CupomDTO } from "@/dto/cupomDTO";
+import { localCoupons } from "@/data/coupons";
 import { localConfigData } from "@/data/menu";
 import React, { createContext } from "react";
 import { ProdutosDTO } from "@/dto/productDTO";
 import { STORE_PICKUP_ADDRESS } from "@/data/store";
+import {
+    ADMIN_CATEGORIES_STORAGE_KEY,
+    buildInitialAdminCategories,
+    consumeCartStock,
+    hydrateAdminCategories,
+} from "@/lib/menu-stock";
+
+type SendLocalOrderResult = {
+    ok: boolean;
+    errors: string[];
+}
 
 type CartContextData = {
     selectedItemId: null | string;
@@ -19,11 +31,14 @@ type CartContextData = {
     choosePickupLocation: () => void;
     setCartSchedule: (dataEntrega: string) => void;
     setPaymentMethod: (formaPagamento: string) => void;
-    sendLocalOrder: () => void;
+    setCashbackUsage: (cashBack: number) => void;
+    sendLocalOrder: () => SendLocalOrderResult;
     cuponsFree: CupomDTO[] | undefined;
     handleUpdateCuponsFree: () => void;
     cupom?: CupomDTO | undefined;
     handleUpdateCupom: () => void;
+    applyCoupon: (cupom: CupomDTO) => void;
+    removeCoupon: () => void;
     configData: any;
 }
 
@@ -37,8 +52,8 @@ type CartProviderProps = {
 export function CartProvider({ children }: CartProviderProps) {
     const [selectedItemId, setSelectedItemId] = React.useState<null | string>(null);
     const [cart, setCart] = React.useState<CartDTO | undefined>(undefined);
-    const cuponsFree = [] as CupomDTO[];
-    const cupom = undefined as CupomDTO | undefined;
+    const [cupom, setCupom] = React.useState<CupomDTO | undefined>(undefined);
+    const cuponsFree = localCoupons;
     const configData = localConfigData;
     const handleUpdateCart = () => { };
     const handleUpdateCuponsFree = () => { };
@@ -115,6 +130,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
             return buildCart(currentCart, {
                 itens: nextItems,
+                cashBack: nextItems.length > 0 ? currentCart.cashBack : 0,
                 valorTotalPedido: sumCartValue(nextItems),
             });
         });
@@ -129,11 +145,14 @@ export function CartProvider({ children }: CartProviderProps) {
 
             return buildCart(currentCart, {
                 itens: nextItems,
+                cashBack: nextItems.length > 0 ? currentCart.cashBack : 0,
+                cupomId: nextItems.length > 0 ? currentCart.cupomId : '',
                 valorTotalPedido: sumCartValue(nextItems),
             });
         });
     };
     const clearCart = () => {
+        setCupom(undefined);
         setCart((currentCart) => {
             if (!currentCart) {
                 return currentCart;
@@ -141,6 +160,8 @@ export function CartProvider({ children }: CartProviderProps) {
 
             return buildCart(currentCart, {
                 itens: [],
+                cashBack: 0,
+                cupomId: '',
                 valorTotalPedido: 0,
             });
         });
@@ -161,11 +182,81 @@ export function CartProvider({ children }: CartProviderProps) {
             formaPagamento,
         }));
     };
+    const setCashbackUsage = (cashBack: number) => {
+        setCart((currentCart) => buildCart(currentCart, {
+            cashBack,
+        }));
+    };
+    const applyCoupon = (coupon: CupomDTO) => {
+        setCupom(coupon);
+        setCart((currentCart) => buildCart(currentCart, {
+            cupomId: coupon.id,
+            cashBack: 0,
+        }));
+    };
+    const removeCoupon = () => {
+        setCupom(undefined);
+        setCart((currentCart) => buildCart(currentCart, {
+            cupomId: '',
+        }));
+    };
     const sendLocalOrder = () => {
+        if (!cart || cart.itens.length === 0) {
+            return {
+                ok: false,
+                errors: ['Adicione produtos ao carrinho antes de enviar o pedido.'],
+            };
+        }
+
+        let adminCategories = buildInitialAdminCategories();
+
+        try {
+            const storedCategories = window.localStorage.getItem(ADMIN_CATEGORIES_STORAGE_KEY);
+
+            if (storedCategories) {
+                const parsedCategories = JSON.parse(storedCategories);
+
+                if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
+                    adminCategories = hydrateAdminCategories(parsedCategories);
+                }
+            }
+        } catch {
+            adminCategories = buildInitialAdminCategories();
+        }
+
+        const stockResult = consumeCartStock(adminCategories, cart.itens, cart.dataEntrega);
+
+        if (!stockResult.ok) {
+            return {
+                ok: false,
+                errors: stockResult.errors,
+            };
+        }
+
+        try {
+            window.localStorage.setItem(ADMIN_CATEGORIES_STORAGE_KEY, JSON.stringify(stockResult.nextCategories));
+        } catch {
+            return {
+                ok: false,
+                errors: ['Não foi possível atualizar o estoque neste navegador.'],
+            };
+        }
+
         setCart((currentCart) => buildCart(currentCart, {
             status: 'Pedido recebido',
         }));
+
+        return {
+            ok: true,
+            errors: [],
+        };
     };
+
+    React.useEffect(() => {
+        if (cart && cart.itens.length === 0 && cupom) {
+            setCupom(undefined);
+        }
+    }, [cart, cupom]);
 
     return (
         <CartContext.Provider value={{
@@ -180,11 +271,14 @@ export function CartProvider({ children }: CartProviderProps) {
             choosePickupLocation,
             setCartSchedule,
             setPaymentMethod,
+            setCashbackUsage,
             sendLocalOrder,
             cuponsFree,
             handleUpdateCuponsFree,
             cupom,
             handleUpdateCupom,
+            applyCoupon,
+            removeCoupon,
             configData
         }}>
             {children}

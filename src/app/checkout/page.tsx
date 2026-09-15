@@ -4,20 +4,21 @@ import { ModalAgendarEntrega } from "@/components/Modal/AgendarEntrega";
 import { ModalChooseAdress } from '@/components/Modal/ChooseAddress';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getCouponDiscount } from "@/data/coupons";
+import { cashbackBalance } from "@/data/promos";
 import useCart from "@/hook/useCart";
 import { format, parseISO } from 'date-fns';
-import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { toast } from "sonner";
 
-import { BsBasket2Fill } from "react-icons/bs";
 import { FaMapMarkedAlt } from "react-icons/fa";
 import { FaCoins, FaUserTag } from "react-icons/fa6";
 import { HiTicket } from "react-icons/hi2";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { IoWallet } from "react-icons/io5";
 import { MdAccessTimeFilled } from "react-icons/md";
-import { PiTrash } from "react-icons/pi";
 
 function formatCurrency(value: number) {
     return value.toLocaleString('pt-BR', {
@@ -42,14 +43,41 @@ export default function Checkout() {
     const [openScheduleModal, setOpenScheduleModal] = React.useState(false);
     const [openPickupModal, setOpenPickupModal] = React.useState(false);
     const router = useRouter();
-    const { cart, cupom, removeItemFromCart, sendLocalOrder } = useCart();
+    const { cart, cupom, sendLocalOrder, setCashbackUsage } = useCart();
     const items = React.useMemo(() => cart?.itens ?? [], [cart?.itens]);
     const hasItems = items.length > 0;
     const hasPickup = !!cart?.endereco && Object.keys(cart.endereco).length > 0;
     const hasSchedule = !!cart?.dataEntrega;
     const hasPayment = !!cart?.formaPagamento;
     const total = cart?.valorTotalPedido ?? 0;
-    const cashbackValue = total * 0.03;
+    const couponDiscount = getCouponDiscount(cupom, total);
+    const totalAfterCoupon = Math.max(total - couponDiscount, 0);
+    const maxCashbackForOrder = Math.min(cashbackBalance, totalAfterCoupon);
+    const selectedCashback = Math.min(cart?.cashBack ?? 0, maxCashbackForOrder);
+    const isUsingCashback = selectedCashback > 0;
+    const finalTotal = Math.max(totalAfterCoupon - selectedCashback, 0);
+    const hasCoupon = !!cupom;
+    const cashbackValue = hasCoupon ? 0 : finalTotal * 0.03;
+
+    React.useEffect(() => {
+        if (!cart?.cashBack) {
+            return;
+        }
+
+        if (hasCoupon) {
+            setCashbackUsage(0);
+            return;
+        }
+
+        if (!hasItems) {
+            setCashbackUsage(0);
+            return;
+        }
+
+        if (cart.cashBack > maxCashbackForOrder) {
+            setCashbackUsage(maxCashbackForOrder);
+        }
+    }, [cart?.cashBack, hasCoupon, hasItems, maxCashbackForOrder, setCashbackUsage]);
 
     const nextStep = React.useMemo(() => {
         if (!hasItems) {
@@ -71,7 +99,15 @@ export default function Checkout() {
         return {
             label: 'Enviar pedido',
             action: () => {
-                sendLocalOrder();
+                const orderResult = sendLocalOrder();
+
+                if (!orderResult.ok) {
+                    toast.error('Estoque indisponível para este agendamento.', {
+                        description: orderResult.errors.slice(0, 2).join(' '),
+                    });
+                    return;
+                }
+
                 router.push('/orderstatus');
             },
         };
@@ -82,55 +118,54 @@ export default function Checkout() {
     return (
         <main className="mt-14 min-h-screen bg-[#f7f7f7] pb-28">
             <div className="mx-auto max-w-[430px]">
-                <div className='p-4 leading-3'>
-                    <h2 className="uppercase text-[20px] font-extrabold flex items-center gap-2 text-dark-900">
-                        <BsBasket2Fill /> itens do pedido
-                    </h2>
-                    <span className='text-[12px] text-muted-foreground'>Confira os produtos antes de finalizar.</span>
-                </div>
+                <section className="bg-white px-4 py-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <h2 className="text-[18px] font-extrabold leading-6 text-dark-900">Resumo do pedido</h2>
+                            <p className="mt-0.5 text-[12px] leading-4 text-dark-500">
+                                Confira os itens antes de enviar.
+                            </p>
+                        </div>
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="h-8 shrink-0 px-2.5 text-[12px] font-extrabold"
+                        >
+                            <Link href="/cart">Editar</Link>
+                        </Button>
+                    </div>
 
-                <section className="bg-white p-4 space-y-4">
-                    <AnimatePresence>
-                        {!hasItems &&
-                            <motion.span
-                                className="block text-center text-sm text-muted-foreground"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}>
-                                O carrinho está vazio.
-                            </motion.span>
-                        }
-                    </AnimatePresence>
-                    <AnimatePresence mode="popLayout">
-                        {items.map((item) => (
-                            <motion.div
-                                key={item.id}
-                                className="-mt-2"
-                                layout
-                                transition={{ type: "spring" }}>
-                                <div className="flex justify-between items-center text-sm gap-2">
-                                    <div className="font-extrabold leading-4">
-                                        {item.quantidade}x <span className="uppercase">{item.produto.titulo}</span>
+                    <Separator className="my-4" />
+
+                    {hasItems ? (
+                        <div className="divide-y divide-neutral-100">
+                            {items.map((item) => (
+                                <div key={item.id} className="grid grid-cols-[auto_1fr_auto] gap-3 py-3 first:pt-0 last:pb-0">
+                                    <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[#fff7f1] px-2 text-[12px] font-extrabold text-[#f97316]">
+                                        {item.quantidade}x
+                                    </span>
+                                    <div className="min-w-0">
+                                        <strong className="block line-clamp-2 text-[13px] font-extrabold uppercase leading-4 text-dark-900">
+                                            {item.produto.titulo}
+                                        </strong>
+                                        {item.obs && (
+                                            <span className="mt-1 block line-clamp-2 text-[11px] italic leading-4 text-dark-500">
+                                                Obs: {item.obs}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className="flex items-center justify-center">
-                                        <strong className="whitespace-nowrap text-[#f97316]">{formatCurrency(item.valor)}</strong>
-                                        <Button
-                                            onClick={() => removeItemFromCart(Number(item.id))}
-                                            size="icon"
-                                            variant="icon"
-                                            className="group -mt-1">
-                                            <PiTrash className="h-8 w-8 rounded-full p-1 duration-300 group-hover:bg-black group-hover:p-1.5 group-hover:text-white" size={20} />
-                                        </Button>
-                                    </div>
+                                    <strong className="whitespace-nowrap text-[13px] font-extrabold text-dark-900">
+                                        {formatCurrency(item.valor)}
+                                    </strong>
                                 </div>
-                                {item.obs && (
-                                    <div className="flex flex-col text-muted-foreground text-sm">
-                                        <span className="italic text-xs">{item.obs}</span>
-                                    </div>
-                                )}
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-md bg-[#f7f7f7] p-4 text-center">
+                            <strong className="text-[14px] text-dark-800">Carrinho vazio</strong>
+                            <p className="mt-1 text-[12px] text-dark-500">Adicione produtos para continuar.</p>
+                        </div>
+                    )}
                 </section>
 
                 <div className='p-4 leading-3'>
@@ -139,7 +174,7 @@ export default function Checkout() {
                     </h2>
                 </div>
 
-                <section className="bg-white p-4 space-y-8">
+                <section className="bg-white p-4 space-y-6 shadow-sm">
                     <div className="flex items-center">
                         <FaMapMarkedAlt size={25} className="text-muted-foreground" />
                         <div className="flex w-full items-center justify-between">
@@ -180,28 +215,6 @@ export default function Checkout() {
                     </div>
 
                     <div className="flex items-center">
-                        <HiTicket size={25} className="text-muted-foreground" />
-                        <div className="flex w-full items-center justify-between">
-                            <div className="ml-3 flex flex-col items-start leading-4">
-                                <span className="font-semibold">Cupom aplicado:</span>
-                                {cupom
-                                    ? <div className="text-muted-foreground text-sm tracking-tight">
-                                        <span className="uppercase">#{cupom.nome}</span>
-                                        <span className="text-xs"> desconto de {cupom.valor}%</span>
-                                    </div>
-                                    : <span className="text-muted-foreground text-sm tracking-tight">Nenhum cupom aplicado</span>
-                                }
-                            </div>
-                            <Button
-                                size="sm"
-                                variant="success"
-                                onClick={() => router.push('/cupom')}>
-                                Selecionar
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center">
                         <IoWallet size={25} className="text-muted-foreground" />
                         <div className="flex w-full items-center justify-between">
                             <div className="ml-3 flex flex-col items-start leading-4">
@@ -218,13 +231,44 @@ export default function Checkout() {
                             </Button>
                         </div>
                     </div>
+                </section>
 
-                    <Separator />
+                <section className="mt-3 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-[18px] font-extrabold leading-6 text-dark-900">Resumo financeiro</h2>
+                            <p className="mt-0.5 text-[12px] text-dark-500">Total final antes de enviar o pedido.</p>
+                        </div>
+                    </div>
 
-                    <div className="flex flex-col items-end gap-1 mt-8 text-base">
-                        <span>Subtotal: {formatCurrency(total)}</span>
-                        <span>Taxa de retirada: <strong className="text-emerald-600">Grátis</strong></span>
-                        <span className="font-bold">Total: <strong className="text-xl">{formatCurrency(total)}</strong></span>
+                    <Separator className="my-4" />
+
+                    <div className="space-y-2 text-[14px]">
+                        <div className="flex items-center justify-between">
+                            <span className="text-dark-600">Subtotal</span>
+                            <strong className="text-dark-900">{formatCurrency(total)}</strong>
+                        </div>
+                        {couponDiscount > 0 && (
+                            <div className="flex items-center justify-between text-emerald-600">
+                                <span>Cupom {cupom?.nome}</span>
+                                <strong>- {formatCurrency(couponDiscount)}</strong>
+                            </div>
+                        )}
+                        {isUsingCashback && (
+                            <div className="flex items-center justify-between text-[#f97316]">
+                                <span>Cashback usado</span>
+                                <strong>- {formatCurrency(selectedCashback)}</strong>
+                            </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                            <span className="text-dark-600">Taxa de retirada</span>
+                            <strong className="text-emerald-600">Grátis</strong>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t pt-4">
+                        <strong className="text-[16px] text-dark-900">Total</strong>
+                        <strong className="text-[22px] leading-7 text-dark-900">{formatCurrency(finalTotal)}</strong>
                     </div>
                 </section>
             </div>
@@ -251,13 +295,25 @@ export default function Checkout() {
                             {nextStep.label}
                         </span>
                         <strong className="rounded-lg bg-white p-1 text-base font-bold text-primary">
-                            {formatCurrency(total)}
+                            {formatCurrency(finalTotal)}
                         </strong>
                     </Button>
-                    {hasItems && (
+                    {hasItems && isUsingCashback && (
+                        <div className="mt-1 flex justify-center items-center gap-2 text-[11px] text-muted-foreground">
+                            <FaCoins />
+                            Cashback usado: <strong>{formatCurrency(selectedCashback)}</strong>
+                        </div>
+                    )}
+                    {hasItems && !hasCoupon && !isUsingCashback && (
                         <div className="mt-1 flex justify-center items-center gap-2 text-[11px] text-muted-foreground">
                             <FaCoins />
                             Você ganhará <strong>{formatCurrency(cashbackValue)}</strong> de cashback.
+                        </div>
+                    )}
+                    {hasItems && hasCoupon && (
+                        <div className="mt-1 flex justify-center items-center gap-2 text-[11px] text-muted-foreground">
+                            <HiTicket />
+                            Cupom ativo: cashback não acumula neste pedido.
                         </div>
                     )}
                 </div>

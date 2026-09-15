@@ -3,9 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { memo } from "react";
 
-import { HiShoppingCart } from "react-icons/hi";
 import { IoIosArrowRoundBack } from "react-icons/io";
-import { MdMenu } from "react-icons/md";
 
 import { Button } from "@/components/ui/button";
 import { Menu } from "./Menu";
@@ -13,7 +11,6 @@ import { Menu } from "./Menu";
 import { AnimatePresence, motion } from "framer-motion";
 
 import useAuth from "@/hook/useAuth";
-import useCart from "@/hook/useCart";
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from "next/navigation";
 import AssadosZaniniSymbol from "@/assets/logo/assados-zanini-symbol.jpg";
@@ -26,8 +23,6 @@ type Props = {
 const DefaultHeader = memo(({ open, setOpen }: Props) => {
     const { data: session } = useSession()
     const { isAuthenticated } = useAuth();
-    const { cart } = useCart();
-    const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
 
     return (
         <div className="flex h-14 items-center justify-between gap-3">
@@ -51,24 +46,17 @@ const DefaultHeader = memo(({ open, setOpen }: Props) => {
             </div>
 
             <div className="flex shrink-0 items-center gap-3">
-                {cartItemCount > 0 && (
-                    <Link href={'/cart'}>
-                        <div className="relative cursor-pointer">
-                            <HiShoppingCart size={25} />
-                            <div className="text-[9px] bg-[#f97316] flex justify-center items-center rounded-full min-w-4 h-4 px-1 absolute -top-2 left-5">
-                                {cartItemCount}
-                            </div>
-                        </div>
-                    </Link>
-                )}
-
                 <Button
                     variant={'icon'}
                     onClick={() => setOpen(!open)}
                     aria-label="Abrir menu"
-                    className="-mr-2 h-12 w-12 text-white"
+                    className="-mr-2 h-12 w-12 p-0 text-white hover:bg-white/10"
                 >
-                    <MdMenu size={40} />
+                    <span className="flex h-7 w-7 flex-col items-center justify-center gap-1.5" aria-hidden="true">
+                        <span className="h-[2.5px] w-7 rounded-full bg-white" />
+                        <span className="h-[2.5px] w-7 rounded-full bg-white" />
+                        <span className="h-[2.5px] w-7 rounded-full bg-white" />
+                    </span>
                 </Button>
             </div>
 
@@ -85,10 +73,8 @@ DefaultHeader.displayName = 'DefaultHeader';
 
 const SpecialHeader = memo(() => {
     const router = useRouter();
-    const { cart } = useCart();
-    const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
     return (
-        <div className="flex justify-between items-center h-14">
+        <div className="flex h-14 items-center">
             <AnimatePresence>
                 <motion.div
                     // initial={{ opacity: 0, x: -50 }}
@@ -104,17 +90,6 @@ const SpecialHeader = memo(() => {
                     </motion.span>
                 </motion.div>
             </AnimatePresence>
-
-            {cartItemCount > 0 && (
-                <Link href={'/cart'}>
-                    <div className="relative cursor-pointer">
-                        <HiShoppingCart size={25} />
-                        <div className="text-[9px] bg-[#f97316] flex justify-center items-center rounded-full min-w-4 h-4 px-1 absolute -top-2 left-5">
-                            {cartItemCount}
-                        </div>
-                    </div>
-                </Link>
-            )}
         </div>
     );
 });
@@ -125,7 +100,6 @@ SpecialHeader.displayName = 'SpecialHeader';
 const specialPaths = [
     '/productdetails',
     '/deliveryaddress/',
-    '/cashback',
     '/checkout',
     '/orderstatus',
     '/signin',

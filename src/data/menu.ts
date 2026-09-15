@@ -213,7 +213,7 @@ export function getLocalProduct(productID: string): ProdutosDTO | undefined {
 }
 
 export const localConfigData = [
-    { chave: 'CASHBACK', valor: '0' },
+    { chave: 'CASHBACK', valor: '3' },
     { chave: 'TELEFONE', valor: '(48) 99175-8185' },
     { chave: 'REDESSOCIAIS', valor: JSON.stringify({ facebook: '', instagram: '' }) },
 ];

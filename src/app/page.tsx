@@ -4,8 +4,8 @@ import React from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-import Banner from "@/components/Banner";
 import Navegation from "@/components/Navegation";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import OrderSummaryBar from "@/components/OrderSummaryBar";
 import ProductCard from "@/components/ProductCard";
 import {
@@ -20,25 +20,61 @@ import { toast } from "sonner";
 
 import { CardapioDTO } from "@/dto/cardapioDTO";
 import { localCardapio } from "@/data/menu";
+import { promoNotificationCount } from "@/data/promos";
 
 import useCart from "@/hook/useCart";
-import { FaGift, FaHome, FaRegClock } from "react-icons/fa";
-import { FaStore } from "react-icons/fa6";
-import { HiShoppingCart } from "react-icons/hi";
+import { FaRegClock } from "react-icons/fa";
+import { FaCircleQuestion, FaPiggyBank, FaStore } from "react-icons/fa6";
 import Link from "next/link";
 
 type Props = {
   searchParams?: { firstLogin?: string }
 }
 
+function normalizeSearchValue(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase('pt-BR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 export default function Home({ searchParams }: Props) {
   const router = useRouter();
   const { data: session } = useSession()
-  const { cart } = useCart();
+  const { cart, configData } = useCart();
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
   const userName = session?.user?.name ? session?.user?.name : 'Visitante'
   const cardapio = localCardapio;
   const featuredProducts = cardapio.flatMap((categoria) => categoria.produtos).slice(0, 4);
   const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
+  const cashbackPercent = configData?.find((item: any) => item.chave.toUpperCase() === 'CASHBACK')?.valor ?? '3';
+  const normalizedSearchTerm = React.useMemo(() => normalizeSearchValue(searchTerm), [searchTerm]);
+  const isSearching = isSearchOpen;
+  const filteredCardapio = React.useMemo(() => {
+    if (!normalizedSearchTerm) {
+      return cardapio;
+    }
+
+    return cardapio
+      .map((categoria) => {
+        const categoryMatches = normalizeSearchValue(categoria.titulo).includes(normalizedSearchTerm);
+        const produtos = categoryMatches
+          ? categoria.produtos
+          : categoria.produtos.filter((produto) => {
+            const searchableText = normalizeSearchValue(`${produto.titulo} ${produto.descricao}`);
+            return searchableText.includes(normalizedSearchTerm);
+          });
+
+        return {
+          ...categoria,
+          produtos,
+        };
+      })
+      .filter((categoria) => categoria.produtos.length > 0);
+  }, [cardapio, normalizedSearchTerm]);
+  const visibleCardapio = normalizedSearchTerm ? filteredCardapio : cardapio;
 
 
   React.useEffect(() => {
@@ -80,42 +116,65 @@ export default function Home({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-3 lg:mx-auto lg:w-6/12">
-        <div className="rounded-md bg-gradient-to-r from-[#7315f5] to-[#5900d9] px-4 py-3 text-white">
-          <div className="text-center">
-            <strong className="block text-[18px] leading-5">3% cashback</strong>
-            <span className="block text-[12px] leading-4">compre e ganhe na hora</span>
-            <span className="mt-1 block text-[12px] font-extrabold">Aproveite já!</span>
-          </div>
-        </div>
-      </section>
-
-      <Navegation />
-      <Banner />
-
-      <section className="bg-white px-4 pb-4 lg:mx-auto lg:w-6/12">
-        <h2 className="mb-2 text-[17px] font-extrabold text-dark-800">Os mais pedidos</h2>
-        <Carousel
-          opts={{
-            align: "start",
-            dragFree: true,
-          }}
-          className="w-full"
+      <section className="bg-white px-3 py-3 lg:mx-auto lg:w-6/12">
+        <Link
+          href="/cashback"
+          className="flex items-center justify-between gap-3 rounded-md border-2 border-dashed border-neutral-300 bg-white px-3 py-3"
         >
-          <CarouselContent>
-            {featuredProducts.map((item) => (
-              <CarouselItem key={item.id} className="basis-[39%] sm:basis-1/4">
-                <ProductCard {...item} variant="compact" />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="left-auto right-10 -top-9 hidden border-dark-200 text-dark-700 shadow-sm disabled:opacity-30 sm:inline-flex" />
-          <CarouselNext className="right-0 -top-9 hidden border-dark-200 text-dark-700 shadow-sm disabled:opacity-30 sm:inline-flex" />
-        </Carousel>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center text-dark-800">
+            <FaPiggyBank size={27} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[13px] font-extrabold leading-4 text-dark-900">Programa de Cashback:</h2>
+            <p className="mt-0.5 text-[12px] leading-4 text-dark-500">
+              Receba <strong>{cashbackPercent}%</strong> de volta em suas compras!
+            </p>
+          </div>
+          <FaCircleQuestion className="shrink-0 text-red-600" size={16} />
+        </Link>
       </section>
+
+      <Navegation
+        isSearchOpen={isSearchOpen}
+        searchTerm={searchTerm}
+        onSearchOpenChange={setIsSearchOpen}
+        onSearchTermChange={setSearchTerm}
+      />
+
+      {!isSearching && (
+        <section className="bg-white px-4 pb-4 lg:mx-auto lg:w-6/12">
+          <h2 className="mb-2 text-[17px] font-extrabold text-dark-800">Os mais pedidos</h2>
+          <Carousel
+            opts={{
+              align: "start",
+              dragFree: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent>
+              {featuredProducts.map((item) => (
+                <CarouselItem key={item.id} className="basis-[39%] sm:basis-1/4">
+                  <ProductCard {...item} variant="compact" />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-auto right-10 -top-9 hidden border-dark-200 text-dark-700 shadow-sm disabled:opacity-30 sm:inline-flex" />
+            <CarouselNext className="right-0 -top-9 hidden border-dark-200 text-dark-700 shadow-sm disabled:opacity-30 sm:inline-flex" />
+          </Carousel>
+        </section>
+      )}
 
       <section className="px-4 lg:mx-auto lg:w-6/12">
-        {cardapio?.map((produto: CardapioDTO) => (
+        {normalizedSearchTerm && visibleCardapio.length === 0 && (
+          <div className="mt-4 rounded-md bg-white p-5 text-center shadow-sm">
+            <strong className="text-[15px] text-dark-900">Nenhum item encontrado</strong>
+            <p className="mt-1 text-[12px] leading-5 text-dark-500">
+              Tente buscar por frango, costelinha, maionese, arroz ou bebida.
+            </p>
+          </div>
+        )}
+
+        {visibleCardapio?.map((produto: CardapioDTO) => (
           <div id={`section-${produto.id}`} key={produto.titulo} className="pt-5">
             <h2 className="mb-2 text-[20px] font-extrabold text-dark-800">
               {produto.titulo}
@@ -129,35 +188,11 @@ export default function Home({ searchParams }: Props) {
         ))}
       </section>
       {cartItemCount > 0 && <OrderSummaryBar />}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white lg:hidden">
-        <ul className="grid h-14 grid-cols-4 text-[10px] text-dark-500">
-          <li className="flex flex-col items-center justify-center gap-1 border-t-2 border-[#f97316] text-[#f97316]">
-            <FaHome size={18} />
-            Início
-          </li>
-          <li className="flex flex-col items-center justify-center gap-1">
-            <FaStore size={17} />
-            Pedidos
-          </li>
-          <li className="flex flex-col items-center justify-center gap-1">
-            <FaGift size={17} />
-            Promos
-          </li>
-          <li>
-            <Link href="/cart" className="flex h-full flex-col items-center justify-center gap-1">
-              <span className="relative">
-                <HiShoppingCart size={18} />
-                {cartItemCount > 0 && (
-                  <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f97316] px-1 text-[9px] font-extrabold leading-none text-white">
-                    {cartItemCount}
-                  </span>
-                )}
-              </span>
-              Carrinho
-            </Link>
-          </li>
-        </ul>
-      </nav>
+      <MobileBottomNav
+        activeItem="home"
+        cartItemCount={cartItemCount}
+        promoNotificationCount={promoNotificationCount}
+      />
     </main>
   );
 }

@@ -7,18 +7,23 @@ import React from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
     Carousel,
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
+import { getCouponDiscount } from "@/data/coupons";
 import { localCardapio } from "@/data/menu";
+import { cashbackBalance } from "@/data/promos";
 import { ProdutosDTO } from "@/dto/productDTO";
 import useCart from "@/hook/useCart";
 
 import Thumb from "@/assets/products/box.png";
+import { FaPiggyBank } from "react-icons/fa";
+import { HiTicket } from "react-icons/hi2";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
-import { IoAdd, IoChevronBack } from "react-icons/io5";
+import { IoAdd, IoChevronBack, IoClose } from "react-icons/io5";
 import { PiTrash } from "react-icons/pi";
 
 function formatCurrency(value: number) {
@@ -40,6 +45,9 @@ export default function CartPage() {
         increaseItemQuantity,
         removeItemFromCart,
         clearCart,
+        cupom,
+        removeCoupon,
+        setCashbackUsage,
     } = useCart();
     const itens = React.useMemo(() => cart?.itens ?? [], [cart?.itens]);
     const hasItems = itens.length > 0;
@@ -50,91 +58,280 @@ export default function CartPage() {
         return (productsOutsideCart.length > 0 ? productsOutsideCart : allProducts).slice(0, 6);
     }, [allProducts, productsInCart]);
     const total = cart?.valorTotalPedido ?? 0;
+    const couponDiscount = getCouponDiscount(cupom, total);
+    const totalAfterCoupon = Math.max(total - couponDiscount, 0);
+    const maxCashbackForOrder = Math.min(cashbackBalance, totalAfterCoupon);
+    const selectedCashback = Math.min(cart?.cashBack ?? 0, maxCashbackForOrder);
+    const isUsingCashback = selectedCashback > 0;
+    const hasCoupon = !!cupom;
+    const finalTotal = Math.max(totalAfterCoupon - selectedCashback, 0);
+    const itemCount = itens.reduce((sum, item) => sum + item.quantidade, 0);
+
+    React.useEffect(() => {
+        if (!cart?.cashBack) {
+            return;
+        }
+
+        if (!hasItems || hasCoupon) {
+            setCashbackUsage(0);
+            return;
+        }
+
+        if (cart.cashBack > maxCashbackForOrder) {
+            setCashbackUsage(maxCashbackForOrder);
+        }
+    }, [cart?.cashBack, hasCoupon, hasItems, maxCashbackForOrder, setCashbackUsage]);
 
     const handleAddSuggestedProduct = (produto: ProdutosDTO) => {
         addItemToCart(produto, 1);
         toast.success('Produto adicionado ao carrinho.');
     };
 
+    const handleCashbackToggle = (checked: boolean) => {
+        setCashbackUsage(checked ? maxCashbackForOrder : 0);
+    };
+
+    const handleChooseCoupon = () => {
+        if (isUsingCashback) {
+            setCashbackUsage(0);
+        }
+
+        router.push('/cupom');
+    };
+
     return (
         <main className="mt-14 min-h-screen bg-[#f7f7f7] pb-24">
-            <div className="mx-auto min-h-[calc(100vh-3.5rem)] max-w-[430px] bg-white">
-                <header className="sticky top-14 z-20 flex h-12 items-center justify-between border-b bg-white px-4">
-                    <button
-                        type="button"
-                        onClick={() => router.back()}
-                        aria-label="Voltar"
-                        className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full text-dark-800"
-                    >
-                        <IoChevronBack size={22} />
-                    </button>
-                    <h1 className="text-[15px] font-extrabold text-dark-800">Carrinho</h1>
-                    <button
-                        type="button"
-                        onClick={clearCart}
-                        disabled={!hasItems}
-                        className="flex h-10 items-center gap-1 rounded-md px-1 text-[12px] font-extrabold text-red-600 disabled:opacity-35"
-                    >
-                        <PiTrash size={17} />
-                        Limpar
-                    </button>
-                </header>
+            <div className="mx-auto max-w-[430px]">
+                <section className="bg-white px-4 py-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                        <button
+                            type="button"
+                            onClick={() => router.back()}
+                            aria-label="Voltar"
+                            className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-dark-800"
+                        >
+                            <IoChevronBack size={22} />
+                        </button>
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-[20px] font-extrabold leading-6 text-dark-900">Carrinho</h1>
+                            <p className="mt-0.5 text-[12px] leading-4 text-dark-500">Revise seu pedido antes de continuar.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={clearCart}
+                            disabled={!hasItems}
+                            className="flex h-9 shrink-0 items-center gap-1 rounded-md px-2 text-[12px] font-extrabold text-red-600 disabled:opacity-35"
+                        >
+                            <PiTrash size={16} />
+                            Limpar
+                        </button>
+                    </div>
 
-                <section className="bg-white px-4 py-3">
+                    {hasItems && (
+                        <div className="mt-4 rounded-md bg-[#111111] px-3 py-3 text-white">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <span className="block text-[11px] font-extrabold uppercase text-white/60">Total do carrinho</span>
+                                    <strong className="mt-0.5 block text-[20px] leading-6">{formatCurrency(finalTotal)}</strong>
+                                    {couponDiscount > 0 && (
+                                        <span className="mt-0.5 block text-[11px] font-semibold text-white/55">
+                                            Subtotal {formatCurrency(total)}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="rounded-full bg-[#f97316] px-3 py-1 text-[11px] font-extrabold">
+                                    {itemCount} {itemCount === 1 ? 'item' : 'itens'}
+                                </span>
+                            </div>
+
+                            <div className="mt-3 border-t border-white/10 pt-3">
+                                {couponDiscount > 0 && (
+                                    <div className="flex items-center justify-between gap-2 text-[12px]">
+                                        <span className="text-white/65">Cupom {cupom?.nome}</span>
+                                        <strong className="text-emerald-300">- {formatCurrency(couponDiscount)}</strong>
+                                    </div>
+                                )}
+                                {hasCoupon && couponDiscount === 0 && (
+                                    <div className="flex items-center justify-between gap-2 text-[12px]">
+                                        <span className="text-white/65">Cupom {cupom?.nome}</span>
+                                        <strong className="text-white/80">Abaixo do mínimo</strong>
+                                    </div>
+                                )}
+                                {isUsingCashback && (
+                                    <div className="mt-1 flex items-center justify-between gap-2 text-[12px]">
+                                        <span className="text-white/65">Cashback usado</span>
+                                        <strong className="text-[#f97316]">- {formatCurrency(selectedCashback)}</strong>
+                                    </div>
+                                )}
+                                {!hasCoupon && !isUsingCashback && (
+                                    <div className="flex items-center justify-between gap-2 text-[12px]">
+                                        <span className="text-white/65">Benefícios</span>
+                                        <strong className="text-white/80">Disponíveis abaixo</strong>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                <section className="px-4 py-4">
+                    <h2 className="mb-3 text-[17px] font-extrabold text-dark-800">Itens do pedido</h2>
+
                     {!hasItems && (
-                        <div className="flex min-h-[92px] flex-col items-center justify-center text-center">
+                        <div className="flex min-h-[120px] flex-col items-center justify-center rounded-md bg-white p-5 text-center shadow-sm">
                             <strong className="text-[15px] text-dark-800">Seu carrinho está vazio</strong>
                             <span className="mt-1 text-[12px] text-dark-500">Adicione um assado para continuar seu pedido.</span>
                         </div>
                     )}
 
-                    {itens.map((item) => (
-                        <article key={item.id} className="flex items-start gap-3 py-2">
-                            <Image
-                                src={Thumb}
-                                alt={item.produto.titulo}
-                                width={64}
-                                height={64}
-                                className="h-14 w-14 shrink-0 rounded-md object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                                <h2 className="line-clamp-2 text-[13px] font-extrabold leading-4 text-dark-900">
-                                    {item.quantidade}x {item.produto.titulo}
-                                </h2>
-                                <strong className="mt-1 block text-[13px] font-extrabold text-[#f97316]">
-                                    {formatCurrency(item.valor)}
-                                </strong>
-                                {item.obs && (
-                                    <p className="mt-1 line-clamp-2 text-[11px] italic leading-4 text-dark-500">
-                                        Obs: {item.obs}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="flex h-9 shrink-0 items-center rounded-md border border-neutral-200 bg-white text-dark-800">
-                                <button
-                                    type="button"
-                                    onClick={() => removeItemFromCart(item.id)}
-                                    aria-label={`Remover ${item.produto.titulo}`}
-                                    className="flex h-9 w-9 items-center justify-center text-dark-500"
-                                >
-                                    <PiTrash size={18} />
-                                </button>
-                                <span className="w-6 text-center text-[13px] font-bold">{item.quantidade}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => increaseItemQuantity(item.id)}
-                                    aria-label={`Adicionar mais ${item.produto.titulo}`}
-                                    className="flex h-9 w-9 items-center justify-center text-[#f97316]"
-                                >
-                                    <IoAdd size={23} />
-                                </button>
-                            </div>
-                        </article>
-                    ))}
+                    <div className="space-y-3">
+                        {itens.map((item) => (
+                            <article key={item.id} className="rounded-md bg-white p-3 shadow-sm">
+                                <div className="grid grid-cols-[64px_1fr] gap-3">
+                                    <Image
+                                        src={Thumb}
+                                        alt={item.produto.titulo}
+                                        width={64}
+                                        height={64}
+                                        className="h-16 w-16 shrink-0 rounded-md object-cover"
+                                    />
+                                    <div className="min-w-0">
+                                        <h3 className="line-clamp-2 text-[13px] font-extrabold uppercase leading-4 text-dark-900">
+                                            {item.produto.titulo}
+                                        </h3>
+                                        <p className="mt-1 text-[12px] font-semibold leading-4 text-dark-500">
+                                            Quantidade: {item.quantidade}
+                                        </p>
+                                        {item.obs && (
+                                            <p className="mt-1 line-clamp-2 text-[11px] italic leading-4 text-dark-500">
+                                                Obs: {item.obs}
+                                            </p>
+                                        )}
+                                        <strong className="mt-2 block text-[14px] font-extrabold text-[#f97316]">
+                                            {formatCurrency(item.valor)}
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between border-t pt-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => removeItemFromCart(item.id)}
+                                        className="flex h-9 items-center gap-1 rounded-md px-1 text-[12px] font-extrabold text-red-600"
+                                    >
+                                        <PiTrash size={16} />
+                                        Remover
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => increaseItemQuantity(item.id)}
+                                        className="flex h-9 items-center gap-1 rounded-md bg-[#fff7f1] px-3 text-[12px] font-extrabold text-[#f97316]"
+                                    >
+                                        <IoAdd size={19} />
+                                        Adicionar +1
+                                    </button>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
                 </section>
 
-                <section className="bg-[#eeeeee] px-4 py-4">
-                    <h2 className="mb-3 text-[17px] font-extrabold text-dark-800">Peça também</h2>
+                {hasItems && (
+                    <section className="px-4 pb-4">
+                        <div className="mb-3">
+                            <h2 className="text-[17px] font-extrabold text-dark-800">Benefícios</h2>
+                            <p className="mt-0.5 text-[12px] leading-4 text-dark-500">
+                                Escolha entre cupom ou cashback. Eles não acumulam neste pedido.
+                            </p>
+                        </div>
+
+                        <div className="overflow-hidden rounded-md bg-white shadow-sm">
+                            <div className="flex items-center justify-between gap-3 p-3">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff7f1] text-[#f97316]">
+                                        <HiTicket size={20} />
+                                    </div>
+                                    <div className="min-w-0 leading-4">
+                                        <span className="block text-[13px] font-extrabold text-dark-900">Cupom de desconto</span>
+                                        <p className="mt-0.5 text-[12px] leading-4 text-dark-500">
+                                            {hasCoupon
+                                                ? couponDiscount > 0
+                                                    ? `${cupom.nome} aplicado: - ${formatCurrency(couponDiscount)}`
+                                                    : `${cupom.nome}: pedido abaixo do valor mínimo`
+                                                : isUsingCashback
+                                                    ? 'Troque o cashback por um cupom, se preferir.'
+                                                    : 'Escolha um cupom disponível para este pedido.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {hasCoupon ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            removeCoupon();
+                                            toast.success('Cupom removido.');
+                                        }}
+                                        aria-label="Remover cupom"
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7f7f7] text-dark-700"
+                                    >
+                                        <IoClose size={21} />
+                                    </button>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleChooseCoupon}
+                                        className="h-9 shrink-0 px-3 text-[12px] font-extrabold"
+                                    >
+                                        {isUsingCashback ? 'Trocar' : 'Escolher'}
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="border-t p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff7f1] text-[#f97316]">
+                                            <FaPiggyBank size={21} />
+                                        </div>
+                                        <div className="min-w-0 leading-4">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="text-[13px] font-extrabold text-dark-900">Cashback disponível</span>
+                                                <span className="rounded-full bg-[#fff7f1] px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#f97316]">
+                                                    {formatCurrency(cashbackBalance)}
+                                                </span>
+                                            </div>
+                                            <p className="mt-0.5 text-[12px] leading-4 text-dark-500">
+                                                {isUsingCashback
+                                                    ? `Você está usando ${formatCurrency(selectedCashback)} neste pedido.`
+                                                    : hasCoupon
+                                                        ? 'Remova o cupom para usar cashback.'
+                                                        : 'Ative para abater seu saldo neste pedido.'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex shrink-0 flex-col items-end gap-1">
+                                        <Switch
+                                            aria-label="Utilizar cashback"
+                                            checked={isUsingCashback}
+                                            disabled={hasCoupon || maxCashbackForOrder <= 0}
+                                            onCheckedChange={handleCashbackToggle}
+                                        />
+                                        <span className="text-[10px] font-bold uppercase text-dark-500">Usar</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                <section className="bg-white px-4 py-4 shadow-sm">
+                    <div className="mb-3">
+                        <h2 className="text-[17px] font-extrabold text-dark-800">Peça também</h2>
+                        <p className="mt-0.5 text-[12px] leading-4 text-dark-500">Itens que combinam com seu pedido.</p>
+                    </div>
                     <Carousel
                         opts={{
                             align: "start",
@@ -144,9 +341,9 @@ export default function CartPage() {
                     >
                         <CarouselContent>
                             {recommendedProducts.map((produto) => (
-                                <CarouselItem key={produto.id} className="basis-[31%]">
+                                <CarouselItem key={produto.id} className="basis-[32%]">
                                     <article className="min-w-0">
-                                        <div className="relative h-[88px] overflow-hidden rounded-md bg-white">
+                                        <div className="relative h-[88px] overflow-hidden rounded-md bg-[#f7f7f7]">
                                             <Image
                                                 src={Thumb}
                                                 alt={produto.titulo}
@@ -190,15 +387,15 @@ export default function CartPage() {
                     <Button
                         asChild
                         variant="success"
-                        className="flex h-12 w-full justify-between p-2 text-lg"
+                        className="flex h-12 w-full justify-between p-2 text-[15px]"
                     >
                         <Link href={hasItems ? "/checkout" : "/"}>
                             <span className="ml-3 flex items-center gap-2">
-                                <IoMdCheckmarkCircleOutline size={25} />
-                                {hasItems ? 'Avançar' : 'Adicionar produtos'}
+                                <IoMdCheckmarkCircleOutline size={23} />
+                                {hasItems ? 'Continuar para checkout' : 'Adicionar produtos'}
                             </span>
                             <strong className="rounded-lg bg-white p-1 text-base font-bold text-primary">
-                                {formatCurrency(total)}
+                                {formatCurrency(finalTotal)}
                             </strong>
                         </Link>
                     </Button>

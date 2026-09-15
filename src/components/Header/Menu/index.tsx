@@ -64,7 +64,10 @@ export function Menu({ onClose, open }: Props) {
             <SheetContent side={'right'} className="bg-primary border-0 p-4">
                 <SheetHeader>
                     {!isAuthenticated &&
-                        <Button asChild className="uppercase bg-white text-primary rounded-full my-6 font-bold text-md -mt-4">
+                        <Button
+                            asChild
+                            className="my-6 -mt-4 rounded-full bg-white text-sm font-extrabold uppercase text-primary shadow-sm ring-1 ring-white/20 transition-colors hover:bg-[#f97316] hover:text-white focus-visible:bg-[#f97316] focus-visible:text-white"
+                        >
                             <Link href={'/signin'}>
                                 entre ou cadastre-se!
                             </Link>

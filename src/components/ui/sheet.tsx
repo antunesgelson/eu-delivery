@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { typographyVariants } from "@/components/ui/typography"
 
 const Sheet = SheetPrimitive.Root
 
@@ -72,7 +73,6 @@ const SheetContent = React.forwardRef<
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       }
--
 
       {children}
     </SheetPrimitive.Content>
@@ -114,7 +114,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold text-foreground", className)}
+    className={cn(typographyVariants({ variant: "h3" }), className)}
     {...props}
   />
 ))
@@ -126,7 +126,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn(typographyVariants({ variant: "muted" }), className)}
     {...props}
   />
 ))
@@ -136,4 +136,3 @@ export {
   Sheet, SheetClose,
   SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetOverlay, SheetPortal, SheetTitle, SheetTrigger
 }
-

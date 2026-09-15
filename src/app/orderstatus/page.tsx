@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from "@/components/ui/button";
+import { getCouponDiscount } from "@/data/coupons";
 import useCart from "@/hook/useCart";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
@@ -57,11 +58,14 @@ function getConfigValue(configData: any, key: string) {
 }
 
 export default function OrderStatusPage() {
-    const { cart, configData } = useCart();
+    const { cart, configData, cupom } = useCart();
     const currentStatus = cart?.status && cart.status !== 'local' ? cart.status : 'Pedido recebido';
     const currentStepIndex = Math.max(orderSteps.findIndex((step) => step.title === currentStatus), 0);
     const currentStep = orderSteps[currentStepIndex];
     const items = cart?.itens ?? [];
+    const couponDiscount = getCouponDiscount(cupom, cart?.valorTotalPedido ?? 0);
+    const selectedCashback = Math.min(cart?.cashBack ?? 0, Math.max((cart?.valorTotalPedido ?? 0) - couponDiscount, 0));
+    const finalTotal = Math.max((cart?.valorTotalPedido ?? 0) - couponDiscount - selectedCashback, 0);
     const schedule = formatSchedule(cart?.dataEntrega);
     const phone = getConfigValue(configData, 'TELEFONE').replace(/\D/g, '');
     const addressLine = `${cart?.endereco?.rua ?? ''}, ${cart?.endereco?.numero ?? ''}`.trim();
@@ -73,8 +77,10 @@ export default function OrderStatusPage() {
         `Status atual: ${currentStep.title}.`,
         `Retirada: ${schedule}.`,
         `Itens: ${itemsText || 'não informado'}.`,
-        `Total: ${formatCurrency(cart?.valorTotalPedido ?? 0)}.`,
-    ].join('\n');
+        couponDiscount > 0 ? `Cupom usado: ${cupom?.nome} (-${formatCurrency(couponDiscount)}).` : '',
+        selectedCashback > 0 ? `Cashback usado: ${formatCurrency(selectedCashback)}.` : '',
+        `Total: ${formatCurrency(finalTotal)}.`,
+    ].filter(Boolean).join('\n');
     const whatsappLink = `https://wa.me/55${phone}?text=${encodeURIComponent(whatsappMessage)}`;
 
     if (!cart || items.length === 0) {
@@ -160,7 +166,7 @@ export default function OrderStatusPage() {
                                         <span
                                             className={cn(
                                                 "relative mt-1 flex h-4 w-4 items-center justify-center rounded-full border-2 bg-white",
-                                                isDone && "border-emerald-500 bg-emerald-500",
+                                                isDone && "border-[#f97316] bg-[#f97316]",
                                                 isCurrent && "border-[#f97316] bg-[#f97316]",
                                                 !isDone && !isCurrent && "border-neutral-300"
                                             )}
@@ -173,17 +179,26 @@ export default function OrderStatusPage() {
                                         {index < orderSteps.length - 1 && (
                                             <span
                                                 className={cn(
-                                                    "h-[58px] w-0.5",
-                                                    index < currentStepIndex ? "bg-emerald-500" : "bg-neutral-200"
+                                                    "relative h-[58px] w-0.5 overflow-hidden rounded-full bg-neutral-200"
                                                 )}
-                                            />
+                                            >
+                                                {(isDone || isCurrent) && (
+                                                    <span
+                                                        className={cn(
+                                                            "absolute left-0 top-0 h-full w-full rounded-full bg-gradient-to-b from-[#f97316] via-[#fb923c] to-[#f97316]",
+                                                            isDone && "opacity-100",
+                                                            isCurrent && "order-status-flow shadow-[0_0_10px_rgba(249,115,22,0.55)]"
+                                                        )}
+                                                    />
+                                                )}
+                                            </span>
                                         )}
                                     </div>
                                     <div className={cn("pb-5", index === orderSteps.length - 1 && "pb-0")}>
                                         <div className={cn(
                                             "rounded-md border p-3 transition-colors",
                                             isCurrent ? "border-[#f97316] bg-[#fff7f1]" : "border-transparent bg-transparent",
-                                            isDone && "bg-emerald-50/70"
+                                            isDone && "bg-[#fff7f1]/70"
                                         )}>
                                             <strong className={cn(
                                                 "block text-[14px] leading-5",
@@ -237,8 +252,24 @@ export default function OrderStatusPage() {
                                 </div>
                             ))}
                             <div className="mt-2 flex justify-between border-t py-3 text-[15px]">
-                                <strong>Total</strong>
+                                <span>Subtotal</span>
                                 <strong>{formatCurrency(cart.valorTotalPedido)}</strong>
+                            </div>
+                            {couponDiscount > 0 && (
+                                <div className="flex justify-between pb-3 text-[13px] text-emerald-600">
+                                    <span>Cupom {cupom?.nome}</span>
+                                    <strong>- {formatCurrency(couponDiscount)}</strong>
+                                </div>
+                            )}
+                            {selectedCashback > 0 && (
+                                <div className="flex justify-between pb-3 text-[13px] text-[#f97316]">
+                                    <span>Cashback usado</span>
+                                    <strong>- {formatCurrency(selectedCashback)}</strong>
+                                </div>
+                            )}
+                            <div className="flex justify-between border-t py-3 text-[15px]">
+                                <strong>Total</strong>
+                                <strong>{formatCurrency(finalTotal)}</strong>
                             </div>
                         </div>
                     </div>
