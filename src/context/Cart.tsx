@@ -1,287 +1,202 @@
-'use client'
-
+"use client";
+import React, { createContext, useCallback, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CartDTO } from "@/dto/cartDTO";
 import { CupomDTO } from "@/dto/cupomDTO";
-import { localCoupons } from "@/data/coupons";
-import { localConfigData } from "@/data/menu";
-import React, { createContext } from "react";
 import { ProdutosDTO } from "@/dto/productDTO";
-import { STORE_PICKUP_ADDRESS } from "@/data/store";
-import {
-    ADMIN_CATEGORIES_STORAGE_KEY,
-    buildInitialAdminCategories,
-    consumeCartStock,
-    hydrateAdminCategories,
-} from "@/lib/menu-stock";
-
-type SendLocalOrderResult = {
-    ok: boolean;
-    errors: string[];
-}
-
-type CartContextData = {
-    selectedItemId: null | string;
-    setSelectedItemId: (id: string) => void;
-    cart: CartDTO | undefined;
-    handleUpdateCart: () => void;
-    addItemToCart: (produto: ProdutosDTO, quantidade: number, obs?: string) => void;
-    increaseItemQuantity: (itemID: number) => void;
-    removeItemFromCart: (itemID: number) => void;
-    clearCart: () => void;
-    choosePickupLocation: () => void;
-    setCartSchedule: (dataEntrega: string) => void;
-    setPaymentMethod: (formaPagamento: string) => void;
-    setCashbackUsage: (cashBack: number) => void;
-    sendLocalOrder: () => SendLocalOrderResult;
-    cuponsFree: CupomDTO[] | undefined;
-    handleUpdateCuponsFree: () => void;
-    cupom?: CupomDTO | undefined;
-    handleUpdateCupom: () => void;
-    applyCoupon: (cupom: CupomDTO) => void;
-    removeCoupon: () => void;
-    configData: any;
-}
-
-export const CartContext = createContext<CartContextData>({} as CartContextData);
-
-type CartProviderProps = {
-    children: React.ReactNode
-
-}
-
-export function CartProvider({ children }: CartProviderProps) {
-    const [selectedItemId, setSelectedItemId] = React.useState<null | string>(null);
-    const [cart, setCart] = React.useState<CartDTO | undefined>(undefined);
-    const [cupom, setCupom] = React.useState<CupomDTO | undefined>(undefined);
-    const cuponsFree = localCoupons;
-    const configData = localConfigData;
-    const handleUpdateCart = () => { };
-    const handleUpdateCuponsFree = () => { };
-    const handleUpdateCupom = () => { };
-    const getProductValue = (produto: ProdutosDTO) => Number(produto.valorPromocional > 0 ? produto.valorPromocional : produto.valor);
-    const sumCartValue = (itens: CartDTO['itens']) => itens.reduce((total, item) => total + item.valor, 0);
-    const buildCart = (currentCart: CartDTO | undefined, updates: Partial<CartDTO> = {}) => {
-        const itens = updates.itens ?? currentCart?.itens ?? [];
-
-        return {
-            id: currentCart?.id ?? 1,
-            status: currentCart?.status ?? 'local',
-            itens,
-            cupomId: currentCart?.cupomId ?? '',
-            cashBack: currentCart?.cashBack ?? 0,
-            dataEntrega: currentCart?.dataEntrega ?? null,
-            endereco: currentCart?.endereco ?? {},
-            obs: currentCart?.obs ?? '',
-            valorTotalPedido: sumCartValue(itens),
-            tipoRecebimento: currentCart?.tipoRecebimento,
-            formaPagamento: currentCart?.formaPagamento,
-            ...updates,
-        } as CartDTO;
-    };
-
-    const addItemToCart = (produto: ProdutosDTO, quantidade: number, obs = '') => {
-        const productValue = getProductValue(produto);
-        const itemValue = productValue * quantidade;
-
-        setCart((currentCart) => {
-            const currentItems = currentCart?.itens ?? [];
-            const nextItemId = currentItems.length > 0
-                ? Math.max(...currentItems.map((item) => item.id)) + 1
-                : 1;
-            const nextItems = [
-                ...currentItems,
-                {
-                    id: nextItemId,
-                    adicionais: [],
-                    ingredientes: produto.ingredientes,
-                    obs,
-                    quantidade,
-                    valor: itemValue,
-                    valorAdicionais: 0,
-                    produto,
-                },
-            ];
-            const valorTotalPedido = sumCartValue(nextItems);
-
-            return buildCart(currentCart, {
-                itens: nextItems,
-                valorTotalPedido,
-            });
+import { api, mostrarErro } from "@/service/api";
+import useAuth from "@/hook/useAuth";
+import { useCuponsPublicos } from "@/hook/useLoja";
+type Carrinho = CartDTO & {
+  cupom?: CupomDTO;
+  valorFinal: number;
+  descontoCupom: number;
+  taxaEntrega: number;
+};
+type Contexto = {
+  selectedItemId: string | null;
+  setSelectedItemId: (id: string) => void;
+  cart?: Carrinho;
+  cupom?: CupomDTO;
+  cuponsFree?: CupomDTO[];
+  configData: any[];
+  isPending: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  handleUpdateCart: () => void;
+  handleUpdateCuponsFree: () => void;
+  handleUpdateCupom: () => void;
+  addItemToCart: (
+    p: ProdutosDTO,
+    q: number,
+    obs?: string,
+    opcoes?: {
+      adicionais?: string[];
+      ingredientes?: string[];
+      substituicoes?: Array<{ removerId: string; adicionarId: string }>;
+    },
+  ) => Promise<void>;
+  increaseItemQuantity: (id: number) => Promise<void>;
+  removeItemFromCart: (id: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+  choosePickupLocation: () => Promise<void>;
+  chooseDeliveryAddress: (id: number) => Promise<void>;
+  setCartSchedule: (date: string) => Promise<void>;
+  setPaymentMethod: (method: string) => Promise<void>;
+  setCashbackUsage: (value: number) => Promise<void>;
+  applyCoupon: (c: Pick<CupomDTO, "nome">) => Promise<void>;
+  removeCoupon: () => Promise<void>;
+  sendLocalOrder: () => Promise<{ ok: boolean; errors: string[]; id?: number }>;
+};
+export const CartContext = createContext<Contexto>({} as Contexto);
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth(),
+    client = useQueryClient();
+  const [selectedItemId, setSelectedItemId] = React.useState<string | null>(
+    null,
+  );
+  const cartQuery = useQuery<Carrinho>({
+    queryKey: ["carrinho"],
+    queryFn: async ({ signal }) => (await api.get("/pedido/carrinho", { signal })).data,
+    enabled: isAuthenticated,
+    retry: false,
+  });
+  const config = useQuery({
+    queryKey: ["configuracao"],
+    queryFn: async () => (await api.get("/configuracao")).data,
+  });
+  const coupons = useCuponsPublicos();
+  const [queuedWrites, setQueuedWrites] = React.useState(0);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const mutation = useMutation({
+    mutationFn: async ({
+      method,
+      path,
+      data,
+    }: {
+      method: "post" | "put" | "patch" | "delete";
+      path: string;
+      data?: unknown;
+    }) => (await api.request({ method, url: path, data })).data,
+    onSuccess: (cart) => client.setQueryData(["carrinho"], cart),
+  });
+  const executar = useCallback(
+    async (
+      method: "post" | "put" | "patch" | "delete",
+      path: string,
+      data?: unknown,
+    ) => {
+      if (!isAuthenticated) {
+        window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+        throw new Error("Entre na sua conta para continuar.");
+      }
+      setQueuedWrites(count => count + 1);
+      const result = queue.current
+        .catch(() => {})
+        .then(async () => {
+          await client.cancelQueries({ queryKey: ['carrinho'] });
+          return mutation.mutateAsync({ method, path, data: typeof data === 'function' ? data() : data });
         });
-    };
-    const increaseItemQuantity = (itemID: number) => {
-        setCart((currentCart) => {
-            if (!currentCart) {
-                return currentCart;
-            }
-
-            const nextItems = currentCart.itens.map((item) => {
-                if (item.id !== itemID) {
-                    return item;
-                }
-
-                const quantidade = item.quantidade + 1;
-                return {
-                    ...item,
-                    quantidade,
-                    valor: getProductValue(item.produto) * quantidade + item.valorAdicionais,
-                };
-            });
-
-            return buildCart(currentCart, {
-                itens: nextItems,
-                cashBack: nextItems.length > 0 ? currentCart.cashBack : 0,
-                valorTotalPedido: sumCartValue(nextItems),
-            });
-        });
-    };
-    const removeItemFromCart = (itemID: number) => {
-        setCart((currentCart) => {
-            if (!currentCart) {
-                return currentCart;
-            }
-
-            const nextItems = currentCart.itens.filter((item) => item.id !== itemID);
-
-            return buildCart(currentCart, {
-                itens: nextItems,
-                cashBack: nextItems.length > 0 ? currentCart.cashBack : 0,
-                cupomId: nextItems.length > 0 ? currentCart.cupomId : '',
-                valorTotalPedido: sumCartValue(nextItems),
-            });
-        });
-    };
-    const clearCart = () => {
-        setCupom(undefined);
-        setCart((currentCart) => {
-            if (!currentCart) {
-                return currentCart;
-            }
-
-            return buildCart(currentCart, {
-                itens: [],
-                cashBack: 0,
-                cupomId: '',
-                valorTotalPedido: 0,
-            });
-        });
-    };
-    const choosePickupLocation = () => {
-        setCart((currentCart) => buildCart(currentCart, {
-            endereco: STORE_PICKUP_ADDRESS,
-            tipoRecebimento: 'pickup',
-        }));
-    };
-    const setCartSchedule = (dataEntrega: string) => {
-        setCart((currentCart) => buildCart(currentCart, {
-            dataEntrega,
-        }));
-    };
-    const setPaymentMethod = (formaPagamento: string) => {
-        setCart((currentCart) => buildCart(currentCart, {
-            formaPagamento,
-        }));
-    };
-    const setCashbackUsage = (cashBack: number) => {
-        setCart((currentCart) => buildCart(currentCart, {
-            cashBack,
-        }));
-    };
-    const applyCoupon = (coupon: CupomDTO) => {
-        setCupom(coupon);
-        setCart((currentCart) => buildCart(currentCart, {
-            cupomId: coupon.id,
-            cashBack: 0,
-        }));
-    };
-    const removeCoupon = () => {
-        setCupom(undefined);
-        setCart((currentCart) => buildCart(currentCart, {
-            cupomId: '',
-        }));
-    };
-    const sendLocalOrder = () => {
-        if (!cart || cart.itens.length === 0) {
-            return {
-                ok: false,
-                errors: ['Adicione produtos ao carrinho antes de enviar o pedido.'],
-            };
-        }
-
-        let adminCategories = buildInitialAdminCategories();
-
-        try {
-            const storedCategories = window.localStorage.getItem(ADMIN_CATEGORIES_STORAGE_KEY);
-
-            if (storedCategories) {
-                const parsedCategories = JSON.parse(storedCategories);
-
-                if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
-                    adminCategories = hydrateAdminCategories(parsedCategories);
-                }
-            }
-        } catch {
-            adminCategories = buildInitialAdminCategories();
-        }
-
-        const stockResult = consumeCartStock(adminCategories, cart.itens, cart.dataEntrega);
-
-        if (!stockResult.ok) {
-            return {
-                ok: false,
-                errors: stockResult.errors,
-            };
-        }
-
-        try {
-            window.localStorage.setItem(ADMIN_CATEGORIES_STORAGE_KEY, JSON.stringify(stockResult.nextCategories));
-        } catch {
-            return {
-                ok: false,
-                errors: ['Não foi possível atualizar o estoque neste navegador.'],
-            };
-        }
-
-        setCart((currentCart) => buildCart(currentCart, {
-            status: 'Pedido recebido',
-        }));
-
-        return {
-            ok: true,
-            errors: [],
-        };
-    };
-
-    React.useEffect(() => {
-        if (cart && cart.itens.length === 0 && cupom) {
-            setCupom(undefined);
-        }
-    }, [cart, cupom]);
-
-    return (
-        <CartContext.Provider value={{
-            selectedItemId,
-            setSelectedItemId,
-            cart,
-            handleUpdateCart,
-            addItemToCart,
-            increaseItemQuantity,
-            removeItemFromCart,
-            clearCart,
-            choosePickupLocation,
-            setCartSchedule,
-            setPaymentMethod,
-            setCashbackUsage,
-            sendLocalOrder,
-            cuponsFree,
-            handleUpdateCuponsFree,
-            cupom,
-            handleUpdateCupom,
-            applyCoupon,
-            removeCoupon,
-            configData
-        }}>
-            {children}
-        </CartContext.Provider>
-    )
+      // A falha é exibida ao chamador sem bloquear operações futuras ou o checkout.
+      queue.current = result.catch(() => {});
+      try {
+        await result;
+      } catch (e) {
+        mostrarErro(e);
+        throw e;
+      } finally {
+        setQueuedWrites(count => count - 1);
+      }
+    },
+    [isAuthenticated, mutation, client],
+  );
+  const editar = useCallback(
+    (data: unknown) => executar("put", "/pedido/carrinho", data),
+    [executar],
+  );
+  const setCashbackUsage = useCallback(
+    (cashBack: number) => editar({ cashBack }),
+    [editar],
+  );
+  const finalizeMutation = useMutation({
+    mutationFn: async (id: number) =>
+      (
+        await api.post(
+          "/pedido/finalizar",
+          {},
+          { headers: { "Idempotency-Key": `checkout-${id}` } },
+        )
+      ).data,
+  });
+  const sendLocalOrder = async () => {
+    try {
+      await queue.current;
+      const cart = client.getQueryData<Carrinho>(["carrinho"]);
+      if (!cart) throw new Error("Carrinho não carregado.");
+      const result = await finalizeMutation.mutateAsync(cart.id);
+      await client.invalidateQueries({ queryKey: ["carrinho"] });
+      await client.invalidateQueries({ queryKey: ["beneficios"] });
+      await client.invalidateQueries({ queryKey: ["pedido-ativo"] });
+      await client.invalidateQueries({ queryKey: ["pedidos"] });
+      return { ok: true, errors: [], id: result.id };
+    } catch (e: any) {
+      return {
+        ok: false,
+        errors: [
+          e.response?.data?.message ?? "Não foi possível enviar o pedido.",
+        ],
+      };
+    }
+  };
+  return (
+    <CartContext.Provider
+      value={{
+        selectedItemId,
+        setSelectedItemId,
+        cart: cartQuery.data,
+        cupom: cartQuery.data?.cupom,
+        cuponsFree: coupons.data,
+        configData: config.data ?? [],
+        isPending: queuedWrites > 0 || finalizeMutation.isPending,
+        isLoading: isAuthenticated && cartQuery.isPending,
+        isError: cartQuery.isError,
+        handleUpdateCart: () => {
+          void cartQuery.refetch();
+        },
+        handleUpdateCuponsFree: () => {
+          void coupons.refetch();
+        },
+        handleUpdateCupom: () => {
+          void cartQuery.refetch();
+        },
+        addItemToCart: (p, q, obs = "", opcoes = {}) =>
+          executar("post", "/pedido/carrinho", {
+            produtoId: p.id,
+            quantidade: q,
+            obs,
+            ...opcoes,
+          }),
+        increaseItemQuantity: (id) =>
+          executar("patch", `/pedido/carrinho/item/${id}`, () => ({
+            quantidade:
+              (client.getQueryData<Carrinho>(["carrinho"])?.itens.find((i) => i.id === id)?.quantidade ??
+                0) + 1,
+          })),
+        removeItemFromCart: (id) =>
+          executar("delete", `/pedido/carrinho/item/${id}`),
+        clearCart: () => executar("delete", "/pedido/carrinho"),
+        choosePickupLocation: () => editar({ tipoRecebimento: "pickup" }),
+        chooseDeliveryAddress: (enderecoId) =>
+          editar({ tipoRecebimento: "delivery", enderecoId }),
+        setCartSchedule: (dataEntrega) => editar({ dataEntrega }),
+        setPaymentMethod: (formaPagamento) => editar({ formaPagamento }),
+        setCashbackUsage,
+        applyCoupon: (c) => editar({ cupom: c.nome }),
+        removeCoupon: () => editar({ cupom: "" }),
+        sendLocalOrder,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
 }

@@ -1,85 +1,59 @@
-import { getToken } from 'next-auth/jwt';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
-import { decodeJwtPayload } from './utils/jwt';
-
-function getSafeCallbackUrl(request: NextRequest) {
-    const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
-
-    if (!callbackUrl || !callbackUrl.startsWith('/') || callbackUrl.startsWith('//')) {
-        return null;
+import { NextRequest, NextResponse } from "next/server";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  BACKEND_URL,
+  cookiesSessao,
+} from "@/lib/backend";
+export async function middleware(req: NextRequest) {
+  const signin = new URL("/signin", req.url);
+  signin.searchParams.set(
+    "callbackUrl",
+    req.nextUrl.pathname + req.nextUrl.search,
+  );
+  const headers = new Headers(req.headers);
+  let session: any;
+  try {
+    const token = req.cookies.get(ACCESS_COOKIE)?.value;
+    let user: any;
+    if (token) {
+      const response = await fetch(`${BACKEND_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (response.ok) user = await response.json();
+      else if (response.status !== 401)
+        return new NextResponse("Não foi possível validar a sessão.", {
+          status: 503,
+        });
     }
-
-    return callbackUrl;
+    if (!user) {
+      const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
+      if (!refresh) return NextResponse.redirect(signin);
+      const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refresh }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) return NextResponse.redirect(signin);
+      session = await response.json();
+      user = session.user;
+      req.cookies.set(ACCESS_COOKIE, session.token);
+      req.cookies.set(REFRESH_COOKIE, session.refreshToken);
+      headers.set("cookie", req.cookies.toString());
+    }
+    const response = user.isAdmin
+      ? NextResponse.next({ request: { headers } })
+      : NextResponse.redirect(new URL("/", req.url));
+    return session ? cookiesSessao(response, session) : response;
+  } catch {
+    return new NextResponse(
+      "A API está temporariamente indisponível. Tente novamente.",
+      { status: 503 },
+    );
+  }
 }
-
-export async function middleware(request: NextRequest) {
-    const tokenGoogle = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    const isAuthenticate = tokenGoogle ? true : false;
-
-    const url = request.url;
-    const nextUrl = request.nextUrl;
-    const cookies = request.cookies;
-    const token = cookies.get("@eu:token");
-    const ToHomeFirst = new URL('/?firstLogin=true', url);
-    const ToHome = new URL('/', url);
-    const ToSignin = new URL('/signin', url);
-    const callbackPath = nextUrl.pathname === '/admin' ? '/admin/dashboard' : `${nextUrl.pathname}${nextUrl.search}`;
-    ToSignin.searchParams.set('callbackUrl', callbackPath);
-
-
-    if (nextUrl.pathname.startsWith('/signin') && isAuthenticate) {
-        try {
-            const authResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/entraroucadastrar`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    nome: tokenGoogle?.name,
-                    email: tokenGoogle?.email,
-                    token: process.env.TOKEN_SECRET,
-                }),
-            });
-
-            if (authResponse.status !== 201) return NextResponse.redirect(ToHomeFirst);
-
-            const data = await authResponse.json();
-            const callbackUrl = getSafeCallbackUrl(request);
-            const destinationUrl = callbackUrl ? new URL(callbackUrl, url) : ToHomeFirst;
-
-            const expires = new Date();
-            expires.setDate(expires.getDate() + 30);   // Definir a data de expiração do cookie (por exemplo, 30 dias a partir de agora)
-            const response = NextResponse.redirect(destinationUrl);    // Definir o token no cookie
-            response.cookies.set('@eu:token', data.token, { httpOnly: false, expires });
-
-            return response;    // Redirecionar para a home com cookies definido.
-        } catch {
-            return NextResponse.next();
-        }
-    }
-
-    if (nextUrl.pathname.startsWith('/admin')) { // Verifica se o usuário está tentando acessar a rota de admin
-        if (nextUrl.pathname === '/admin') return NextResponse.redirect(ToSignin);
-
-        if (!token) return NextResponse.redirect(ToSignin);
-
-        const token_decoded = decodeJwtPayload(token.value);
-        const isExpired = token_decoded?.exp ? token_decoded.exp * 1000 <= Date.now() : true;
-
-        if (isExpired) return NextResponse.redirect(ToSignin);
-
-        const isPermit = token_decoded?.isAdmin;
-        if (!isPermit) return NextResponse.redirect(ToHome);// Verifica se o usuário tem permissão admin
-    }
-
-
-    return NextResponse.next();
-}
-
-export const config = {
-    matcher: [
-        '/signin',
-        '/admin/:path*',
-    ],
-};
+export const config = { matcher: ["/admin/:path*"] };

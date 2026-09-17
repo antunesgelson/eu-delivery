@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog"
 
 import { AddressDTO } from "@/dto/addressDTO"
-import { api } from "@/service/api"
+import { api, mostrarErro } from "@/service/api"
 import { useMutation } from "@tanstack/react-query"
 import React from "react"
 import { MdOutlineLocationOff } from "react-icons/md"
@@ -24,7 +24,7 @@ type Props = {
 }
 export function ModalRemove({ open, onClose, refetch, address }: Props) {
     const [openModal, setOpenModal] = React.useState(false)
-    const { mutateAsync: handleRemoveAddress, isPending } = useMutation({
+    const { mutate: handleRemoveAddress, isPending } = useMutation({
         mutationKey: ['remove-address'],
         mutationFn: async () => {
             const { data } = await api.delete(`/endereco/${address.id}`)
@@ -33,12 +33,8 @@ export function ModalRemove({ open, onClose, refetch, address }: Props) {
             toast.success('Endereço excluído com sucesso')
             refetch()
             onClose()
-        }, onError(error) {
-            onClose()
-            console.log(error)
-            toast.error('Erro ao excluir endereço')
-            throw new Error('Erro ao excluir endereço')
-        },
+        }, onError: mostrarErro,
+
     })
     return (
         <Dialog open={open} onOpenChange={onClose}>

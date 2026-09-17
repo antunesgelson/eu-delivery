@@ -72,9 +72,9 @@ const Config = () => {
 
 
     return (
-        <div className="p-6  mx-auto  -mt-16 min-h-screen h-fit ">
+        <div className="p-6 mx-auto min-h-screen h-fit ">
             <div className="flex justify-between items-center border-white-off/20 border-b pb-4 mb-6 relative z-50 ">
-                <h1 className="text-3xl flex items-center gap-2 font-sans tracking-widest text-white-off  ">
+                <h1 className="text-3xl flex items-center gap-2 font-sans tracking-widest text-dark-900 ">
                     <IoMdSettings />
                     Configurações do Estabelecimento
                 </h1>
@@ -106,7 +106,7 @@ const Config = () => {
                 </div>
             </div>
 
-            {menu === 'editar' && <ViewConfig />}
+            <ViewConfig />
         </div>
     );
 };

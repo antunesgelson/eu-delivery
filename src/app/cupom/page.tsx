@@ -3,7 +3,7 @@ import React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { findCouponByCode, getCouponDiscount } from "@/data/coupons";
+import { getCouponDiscount } from "@/data/coupons";
 import useCart from "@/hook/useCart";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ export default function Cupom() {
     }
 
     function isExpired(validity: string) {
-        return new Date(validity).getTime() < Date.now();
+        return validity.slice(0,10)<new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
     }
 
     function getCouponAvailability(couponName: string, minimumValue: number, validity: string, status: boolean) {
@@ -72,25 +72,7 @@ export default function Cupom() {
         };
     }
 
-    function handleApplyCoupon(couponName: string) {
-        const coupon = findCouponByCode(couponName);
-
-        if (!coupon) {
-            toast.error('Cupom não encontrado.');
-            return;
-        }
-
-        const availability = getCouponAvailability(coupon.nome, coupon.valorMinimoGasto, coupon.validade, coupon.status);
-
-        if (!availability.available) {
-            toast.error(availability.message);
-            return;
-        }
-
-        applyCoupon(coupon);
-        toast.success(`Cupom ${coupon.nome} aplicado.`);
-        router.replace('/cart');
-    }
+    async function handleApplyCoupon(couponName:string){try{await applyCoupon({nome:couponName.trim().toUpperCase()});toast.success('Cupom aplicado.');router.replace('/cart');}catch{}}
 
     function handleManualApply() {
         if (!couponCode.trim()) {
@@ -150,8 +132,8 @@ export default function Cupom() {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    removeCoupon();
+                                onClick={async() => {
+                                    try{await removeCoupon();}catch{return;}
                                     toast.success('Cupom removido.');
                                 }}
                                 aria-label="Remover cupom"

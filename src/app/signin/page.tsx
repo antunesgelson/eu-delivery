@@ -1,7 +1,10 @@
 'use client'
+import {useSearchParams} from 'next/navigation';
+import {Suspense} from 'react';
 import Image from "next/image";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import useAuth from "@/hook/useAuth";
+import { mostrarErro } from "@/service/api";
 import React, { useEffect } from "react";
 
 import AssadosZaniniLogo from "@/assets/logo/assados-zanini-logo.jpg";
@@ -47,39 +50,6 @@ type SignInForm = z.infer<typeof schemaSignIn>
 
 type AdminLoginProps = {
     onAdminSignIn: (event: React.FormEvent<HTMLFormElement>) => void;
-}
-
-function encodeBase64Url(value: unknown) {
-    const json = JSON.stringify(value);
-    const bytes = new TextEncoder().encode(json);
-    let binary = '';
-
-    bytes.forEach((byte) => {
-        binary += String.fromCharCode(byte);
-    });
-
-    return btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/g, '');
-}
-
-function createLocalAdminToken(email: string) {
-    const issuedAt = Math.floor(Date.now() / 1000);
-    const expiresAt = issuedAt + 60 * 60 * 24 * 30;
-
-    const header = encodeBase64Url({ alg: 'none', typ: 'JWT' });
-    const payload = encodeBase64Url({
-        sub: 1,
-        email,
-        nome: 'Administrador',
-        tel: '',
-        isAdmin: true,
-        iat: issuedAt,
-        exp: expiresAt,
-    });
-
-    return `${header}.${payload}.local`;
 }
 
 const adminSummaryCards = [
@@ -252,7 +222,7 @@ function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
                             <FaLock size={14} />
                             Entrar
                         </Button>
-                    </form>
+                    </form><Link href="/signin/redefinir" className="mt-3 block text-center text-sm text-orange-600">Esqueci minha senha</Link>
 
                     <div className="mt-5 border-l-2 border-[#f97316] pl-3">
                         <div className="flex items-center gap-2 text-[12px] font-extrabold text-dark-800">
@@ -260,7 +230,7 @@ function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
                             Acesso administrativo
                         </div>
                         <p className="mt-1 text-[11px] leading-5 text-dark-500">
-                            A sessão local libera o painel enquanto a API de autenticação não estiver conectada.
+                            O acesso ao painel exige uma conta com permissão administrativa.
                         </p>
                     </div>
 
@@ -281,7 +251,8 @@ function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
 type Props = {
     searchParams?: { error?: string; callbackUrl?: string }
 }
-export default function Signin({ searchParams }: Props) {
+function SigninContent() {
+ const search=useSearchParams();const searchParams=React.useMemo(()=>Object.fromEntries(search.entries()),[search]);
     const { watch, setValue, register, formState: { errors } } = useForm<SignInForm>({
         resolver: zodResolver(schemaSignIn)
     })
@@ -293,25 +264,25 @@ export default function Signin({ searchParams }: Props) {
     const adminDestination = callbackUrl === '/admin' ? '/admin/dashboard' : callbackUrl ?? '/admin/dashboard';
     const handleGoogleSignIn = React.useCallback(() => {
         if (!callbackUrl) {
-            signIn('google');
+            window.location.href='/api/auth/google';
             return;
         }
 
-        signIn('google', {
-            callbackUrl: `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
-        });
+        window.location.href=`/api/auth/google?callbackUrl=${encodeURIComponent(callbackUrl)}`;
     }, [callbackUrl]);
-    const handleAdminSignIn = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    const { atualizar } = useAuth();
+    const adminLogin = useMutation({mutationFn: async (data: {email:string;senha:string}) => (await api.post('/auth/login',data)).data});
+    const handleAdminSignIn = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
         const formData = new FormData(event.currentTarget);
-        const email = String(formData.get('email') ?? '').trim() || 'admin@assadoszanini.local';
-        const token = createLocalAdminToken(email);
-        const maxAge = 60 * 60 * 24 * 30;
+        try {
+            const data = await adminLogin.mutateAsync({email:String(formData.get('email')??'').trim(),senha:String(formData.get('password')??formData.get('senha')??'')});
+            await atualizar();
+            if(!data.user.isAdmin){toast.error('Sua conta não tem acesso administrativo.');return;}
+            router.replace(adminDestination);
+        } catch(error) { mostrarErro(error); }
+    }, [adminDestination, router, atualizar, adminLogin]);
 
-        document.cookie = `@eu:token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
-        router.replace(adminDestination);
-    }, [adminDestination, router]);
 
 
     const { mutateAsync: handleGetCodeWP, isPending } = useMutation({
@@ -324,9 +295,9 @@ export default function Signin({ searchParams }: Props) {
             return data
         },
         onSuccess: (data) => {
-            toast.success(data.message)
+            toast.success(data.message); if(data.developmentCode) toast.info(`Código de desenvolvimento: ${data.developmentCode}`,{duration:20000})
             const getCodeParams = new URLSearchParams({
-                tel: cellPhone.replace(/\D/g, '')
+                tel: cellPhone.replace(/\D/g, ''), desafioId: data.desafioId
             });
 
             if (callbackUrl) getCodeParams.set('callbackUrl', callbackUrl);
@@ -382,7 +353,7 @@ export default function Signin({ searchParams }: Props) {
             <div className='p-4 leading-3 text-center '>
                 <h1 className="uppercase text-2xl font-bold ">faça login </h1>
                 <span className='text-[12px]'>Cadastre-se e aproveite a melhor experiência.</span> <br />
-                <span className='text-[10px] text-muted-foreground '>Ao fazer login com o <strong>Google</strong> e realizar um pedido, <strong>agendaremos automaticamente</strong> no seu <strong>calendario</strong> a entrega para o dia escolhido.</span>
+                <span className='text-[10px] text-muted-foreground '>Entre para salvar seu carrinho e acompanhar seus pedidos.</span>
                 <Button
                     className="font-semibold text-lg w-full mt-4 mb-1 flex items-center gap-2 bg-white"
                     variant={'outline'}
@@ -438,3 +409,5 @@ export default function Signin({ searchParams }: Props) {
         </motion.div>
     )
 }
+
+export default function Signin(){return <Suspense fallback={<p>Carregando…</p>}><SigninContent/></Suspense>;}

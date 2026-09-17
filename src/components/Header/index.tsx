@@ -11,7 +11,7 @@ import { Menu } from "./Menu";
 import { AnimatePresence, motion } from "framer-motion";
 
 import useAuth from "@/hook/useAuth";
-import { useSession } from 'next-auth/react';
+
 import { usePathname, useRouter } from "next/navigation";
 import AssadosZaniniSymbol from "@/assets/logo/assados-zanini-symbol.jpg";
 
@@ -21,7 +21,7 @@ type Props = {
     setOpen: (open: boolean) => void;
 }
 const DefaultHeader = memo(({ open, setOpen }: Props) => {
-    const { data: session } = useSession()
+    const { user } = useAuth(); const session = user ? { user: { name: user.nome } } : null;
     const { isAuthenticated } = useAuth();
 
     return (

@@ -13,30 +13,22 @@ import { MdAddLocation } from "react-icons/md";
 import { TiEdit } from "react-icons/ti";
 
 import { AddressDTO } from "@/dto/addressDTO";
-import { api } from "@/service/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { api, mostrarErro } from "@/service/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import React from "react";
 
 export default function DeliveryAddress() {
+    const client = useQueryClient();
     const [openModal, setOpenModal] = useState(false);
     const [address, setAddress] = React.useState<AddressDTO>({} as AddressDTO);
 
 
 
-    const { data: addressList, refetch } = useQuery({
+    const { data: addressList, refetch, isPending: isLoading, isError } = useQuery<AddressDTO[]>({
         queryKey: ['deliveryaddress-list'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get('/endereco/todos')
-                return data
-            } catch (error) {
-                console.log(error)
-                toast.error('Erro ao buscar endereços')
-                throw new Error('Erro ao buscar endereços')
-            }
-        }
-    })
+        queryFn: async () => (await api.get('/endereco/todos')).data,
+    });
 
 
     function handleRemoveAddress(address: AddressDTO) {
@@ -46,7 +38,7 @@ export default function DeliveryAddress() {
 
 
 
-    const { mutateAsync: handleEditAddress } = useMutation({
+    const { mutate: handleEditAddress, isPending: isSaving } = useMutation({
         mutationKey: ['editAddress-favorite'],
         mutationFn: async (address: AddressDTO) => {
             const { data } = await api.put('/endereco', {
@@ -54,18 +46,10 @@ export default function DeliveryAddress() {
                 favorite: !address.favorite,
             })
             return data
-        }, onSuccess(data) {
-            refetch()
-            console.log(data)
-            // toast.success('Endereço editado com sucesso!')
-        }, onError(error: unknown) {
-            if (error instanceof AxiosError && error.response) {
-                toast.error(error.response.data.message)
-            } else {
-                toast.error('Erro inesperado, tente novamente mais tarde.')
-            }
-            throw error;
-        },
+        }, onSuccess() {
+            void client.invalidateQueries({ queryKey: ['deliveryaddress-list'] });
+        }, onError: mostrarErro,
+
     })
 
 
@@ -82,6 +66,8 @@ export default function DeliveryAddress() {
             </div>
 
             <section className="bg-white p-4 h-full flex flex-col justify-between">
+                {isLoading && <p role="status">Carregando endereços…</p>}
+                {isError && <div role="alert">Não foi possível carregar os endereços. <Button onClick={() => refetch()}>Tentar novamente</Button></div>}
                 {addressList?.length == 0 && <span className="text-center my-auto text-sm text-muted-foreground">Nenhum endereço cadastrado.</span>}
                 {addressList && addressList?.length > 0 && addressList.map((address: AddressDTO) => (
                     <div key={address.id} >
@@ -89,25 +75,24 @@ export default function DeliveryAddress() {
                             <h2 className="uppercase font-bold">{address.apelido}</h2>
                             <div className="flex items-center ">
                                 {/* Editar */}
-                                <Link href={`/deliveryaddress/edit/${address.id}`}>
+                                <Link aria-label={`Editar ${address.apelido}`} href={`/deliveryaddress/edit/${address.id}`}>
                                     <TiEdit size={20} />
                                 </Link>
                                 {/* Remover */}
                                 <Button
-                                    variant={'icon'}
+                                    aria-label={`Excluir ${address.apelido}`} variant={'icon'}
                                     onClick={() => handleRemoveAddress(address)}>
                                     <FaRegTrashCan />
                                 </Button>
                                 {/* Favoritar */}
-                                {address.favorite
-                                    ? <FaStar onClick={() => handleEditAddress(address)} className="text-amber-500" />
-                                    : <FaRegStar onClick={() => handleEditAddress(address)} />
-                                }
+                                <Button variant="icon" disabled={isSaving} aria-label={`${address.favorite ? 'Desfavoritar' : 'Favoritar'} ${address.apelido}`} onClick={() => handleEditAddress(address)}>
+                                    {address.favorite ? <FaStar className="text-amber-500" /> : <FaRegStar />}
+                                </Button>
                             </div>
                         </div>
 
                         <span className="text-muted-foreground">{address.rua}, {address.numero}</span> <br />
-                        <span className="text-muted-foreground">{address.bairro} - SUA-CIDADE, SEU-ESTADO</span>
+                        <span className="text-muted-foreground">{address.bairro}</span>
                         <p className="italic text-muted-foreground">{address.complemento}</p>
                         <p className="italic text-muted-foreground">{address.referencia}</p>
 

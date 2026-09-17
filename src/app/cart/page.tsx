@@ -14,8 +14,8 @@ import {
     CarouselItem,
 } from "@/components/ui/carousel";
 import { getCouponDiscount } from "@/data/coupons";
-import { localCardapio } from "@/data/menu";
-import { cashbackBalance } from "@/data/promos";
+import { useCardapio } from "@/hook/useLoja";
+import {useBeneficios} from "@/hook/useLoja";
 import { ProdutosDTO } from "@/dto/productDTO";
 import useCart from "@/hook/useCart";
 
@@ -39,8 +39,9 @@ function getProductValue(produto: ProdutosDTO) {
 
 export default function CartPage() {
     const router = useRouter();
+    const {cashbackBalance}=useBeneficios();
     const {
-        cart,
+        cart, isLoading, isError, handleUpdateCart, isPending,
         addItemToCart,
         increaseItemQuantity,
         removeItemFromCart,
@@ -51,53 +52,43 @@ export default function CartPage() {
     } = useCart();
     const itens = React.useMemo(() => cart?.itens ?? [], [cart?.itens]);
     const hasItems = itens.length > 0;
-    const allProducts = React.useMemo(() => localCardapio.flatMap((categoria) => categoria.produtos), []);
+    const allProducts = (useCardapio().data??[]).flatMap((categoria)=>categoria.produtos);
     const productsInCart = React.useMemo(() => new Set(itens.map((item) => item.produto.id)), [itens]);
     const recommendedProducts = React.useMemo(() => {
         const productsOutsideCart = allProducts.filter((produto) => !productsInCart.has(produto.id));
         return (productsOutsideCart.length > 0 ? productsOutsideCart : allProducts).slice(0, 6);
     }, [allProducts, productsInCart]);
     const total = cart?.valorTotalPedido ?? 0;
-    const couponDiscount = getCouponDiscount(cupom, total);
+    const couponDiscount = cart?.descontoCupom ?? 0;
     const totalAfterCoupon = Math.max(total - couponDiscount, 0);
     const maxCashbackForOrder = Math.min(cashbackBalance, totalAfterCoupon);
     const selectedCashback = Math.min(cart?.cashBack ?? 0, maxCashbackForOrder);
     const isUsingCashback = selectedCashback > 0;
     const hasCoupon = !!cupom;
-    const finalTotal = Math.max(totalAfterCoupon - selectedCashback, 0);
+    const finalTotal=cart?.valorFinal??0;
     const itemCount = itens.reduce((sum, item) => sum + item.quantidade, 0);
 
-    React.useEffect(() => {
-        if (!cart?.cashBack) {
-            return;
-        }
 
-        if (!hasItems || hasCoupon) {
-            setCashbackUsage(0);
-            return;
-        }
 
-        if (cart.cashBack > maxCashbackForOrder) {
-            setCashbackUsage(maxCashbackForOrder);
-        }
-    }, [cart?.cashBack, hasCoupon, hasItems, maxCashbackForOrder, setCashbackUsage]);
-
-    const handleAddSuggestedProduct = (produto: ProdutosDTO) => {
-        addItemToCart(produto, 1);
+    const handleAddSuggestedProduct = async(produto: ProdutosDTO) => {
+        try{await addItemToCart(produto, 1);}catch{return;}
         toast.success('Produto adicionado ao carrinho.');
     };
 
     const handleCashbackToggle = (checked: boolean) => {
-        setCashbackUsage(checked ? maxCashbackForOrder : 0);
+        void setCashbackUsage(checked ? maxCashbackForOrder : 0).catch(()=>{});
     };
 
-    const handleChooseCoupon = () => {
+    const handleChooseCoupon = async () => {
         if (isUsingCashback) {
-            setCashbackUsage(0);
+            try { await setCashbackUsage(0); } catch { return; }
         }
 
         router.push('/cupom');
     };
+
+    if (isLoading) return <main className="mt-16 p-4" role="status">Carregando carrinho…</main>;
+    if (isError) return <main className="mt-16 p-4" role="alert">Não foi possível carregar o carrinho. <Button onClick={handleUpdateCart}>Tentar novamente</Button></main>;
 
     return (
         <main className="mt-14 min-h-screen bg-[#f7f7f7] pb-24">
@@ -118,8 +109,8 @@ export default function CartPage() {
                         </div>
                         <button
                             type="button"
-                            onClick={clearCart}
-                            disabled={!hasItems}
+                            onClick={() => { void clearCart().catch(() => {}); }}
+                            disabled={!hasItems || isPending}
                             className="flex h-9 shrink-0 items-center gap-1 rounded-md px-2 text-[12px] font-extrabold text-red-600 disabled:opacity-35"
                         >
                             <PiTrash size={16} />
@@ -216,7 +207,7 @@ export default function CartPage() {
                                 <div className="mt-3 flex items-center justify-between border-t pt-3">
                                     <button
                                         type="button"
-                                        onClick={() => removeItemFromCart(item.id)}
+                                        onClick={() => { void removeItemFromCart(item.id).catch(() => {}); }}
                                         className="flex h-9 items-center gap-1 rounded-md px-1 text-[12px] font-extrabold text-red-600"
                                     >
                                         <PiTrash size={16} />
@@ -224,7 +215,7 @@ export default function CartPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => increaseItemQuantity(item.id)}
+                                        onClick={() => { void increaseItemQuantity(item.id).catch(() => {}); }}
                                         className="flex h-9 items-center gap-1 rounded-md bg-[#fff7f1] px-3 text-[12px] font-extrabold text-[#f97316]"
                                     >
                                         <IoAdd size={19} />
@@ -268,9 +259,8 @@ export default function CartPage() {
                                 {hasCoupon ? (
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            removeCoupon();
-                                            toast.success('Cupom removido.');
+                                        onClick={async () => {
+                                            try { await removeCoupon(); toast.success('Cupom removido.'); } catch {}
                                         }}
                                         aria-label="Remover cupom"
                                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7f7f7] text-dark-700"

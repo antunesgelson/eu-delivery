@@ -1,4 +1,5 @@
 'use client'
+import {useCuponsAdmin} from '@/hook/useAdminData';
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -189,42 +190,13 @@ function getDaysToExpire(coupon: CupomDTO) {
 }
 
 export default function AdminCupomPage() {
-    const [coupons, setCoupons] = useState<CupomDTO[]>(localCoupons);
+    const {coupons,setCoupons,isLoading:loadingCatalog,error:catalogError,refetch}=useCuponsAdmin();
     const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<CouponFilter>("todos");
     const [couponModalOpen, setCouponModalOpen] = useState(false);
     const [editingCouponId, setEditingCouponId] = useState<string | null>(null);
     const [form, setForm] = useState<CouponFormState>(() => getInitialCouponForm());
-
-    useEffect(() => {
-        try {
-            const savedCoupons = window.localStorage.getItem(ADMIN_COUPONS_STORAGE_KEY);
-
-            if (savedCoupons) {
-                const parsedCoupons = JSON.parse(savedCoupons) as CupomDTO[];
-                if (Array.isArray(parsedCoupons)) {
-                    setCoupons(parsedCoupons);
-                }
-            }
-        } catch {
-            toast.error("Não foi possível carregar os cupons salvos neste navegador.");
-        } finally {
-            setHasLoadedStorage(true);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!hasLoadedStorage) {
-            return;
-        }
-
-        try {
-            window.localStorage.setItem(ADMIN_COUPONS_STORAGE_KEY, JSON.stringify(coupons));
-        } catch {
-            toast.error("Não foi possível salvar os cupons neste navegador.");
-        }
-    }, [coupons, hasLoadedStorage]);
 
     const metrics = useMemo(() => {
         const activeCoupons = coupons.filter((coupon) => getCouponStatus(coupon) === "ativo");
@@ -407,7 +379,6 @@ export default function AdminCupomPage() {
         });
 
         setCouponModalOpen(false);
-        toast.success(editingCouponId ? "Cupom atualizado." : "Cupom criado.");
     }
 
     function toggleCouponStatus(coupon: CupomDTO) {
@@ -415,7 +386,6 @@ export default function AdminCupomPage() {
             item.id === coupon.id ? { ...item, status: !item.status } : item
         )));
 
-        toast.success(coupon.status ? "Cupom pausado." : "Cupom ativado.");
     }
 
     function duplicateCoupon(coupon: CupomDTO) {
@@ -436,12 +406,10 @@ export default function AdminCupomPage() {
         };
 
         setCoupons((current) => [duplicatedCoupon, ...current]);
-        toast.success("Cupom duplicado como rascunho pausado.");
     }
 
     function deleteCoupon(coupon: CupomDTO) {
         setCoupons((current) => current.filter((item) => item.id !== coupon.id));
-        toast.success("Cupom removido.");
     }
 
     async function copyCouponCode(coupon: CupomDTO) {
@@ -452,6 +420,9 @@ export default function AdminCupomPage() {
             toast.error("Não foi possível copiar o código.");
         }
     }
+
+    if (loadingCatalog) return <main className="p-6" role="status">Carregando dados…</main>;
+    if (catalogError) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
 
     return (
         <main className="min-h-[calc(100vh-61px)] bg-[#f3f5f8] p-2.5 text-neutral-950">

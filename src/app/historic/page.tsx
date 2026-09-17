@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import { getLocalProduct } from "@/data/menu";
-import { promoNotificationCount } from "@/data/promos";
+import { usePedidos,statusPedido } from "@/hook/usePedidos";
+import { ProdutosDTO } from "@/dto/productDTO";
+import {useBeneficios} from "@/hook/useLoja";
 import useCart from "@/hook/useCart";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
@@ -14,76 +15,8 @@ import { FaCalendarCheck, FaClock, FaReceipt, FaStore } from "react-icons/fa6";
 import { IoChevronDown, IoRepeat } from "react-icons/io5";
 import { MdOutlinePayments } from "react-icons/md";
 
-type HistoricOrderItem = {
-    productId: string;
-    quantity: number;
-    note?: string;
-}
-
-type HistoricOrder = {
-    id: string;
-    date: string;
-    time: string;
-    status: string;
-    pickupWindow: string;
-    paymentMethod: string;
-    items: HistoricOrderItem[];
-}
-
-const historicOrders: HistoricOrder[] = [
-    {
-        id: '1042',
-        date: 'Domingo, 16/06',
-        time: '11:30',
-        status: 'Finalizado',
-        pickupWindow: 'Retirada entre 11:30 e 12:00',
-        paymentMethod: 'Pix online',
-        items: [
-            { productId: '101', quantity: 1, note: 'com recheio especial' },
-            { productId: '301', quantity: 1 },
-            { productId: '401', quantity: 1 },
-        ],
-    },
-    {
-        id: '1038',
-        date: 'Sábado, 15/06',
-        time: '12:30',
-        status: 'Finalizado',
-        pickupWindow: 'Retirada entre 12:30 e 13:00',
-        paymentMethod: 'Cartão na retirada',
-        items: [
-            { productId: '201', quantity: 1 },
-            { productId: '302', quantity: 1 },
-            { productId: '402', quantity: 1 },
-        ],
-    },
-    {
-        id: '1027',
-        date: 'Domingo, 09/06',
-        time: '13:00',
-        status: 'Finalizado',
-        pickupWindow: 'Retirada entre 13:00 e 13:30',
-        paymentMethod: 'Dinheiro na retirada',
-        items: [
-            { productId: '102', quantity: 1 },
-            { productId: '301', quantity: 1 },
-            { productId: '302', quantity: 1 },
-        ],
-    },
-    {
-        id: '1018',
-        date: 'Sábado, 08/06',
-        time: '11:30',
-        status: 'Finalizado',
-        pickupWindow: 'Retirada entre 11:30 e 12:00',
-        paymentMethod: 'Pix online',
-        items: [
-            { productId: '103', quantity: 1 },
-            { productId: '401', quantity: 1 },
-        ],
-    },
-];
-
+type HistoricOrderItem={productId:string;quantity:number;note?:string;product:ProdutosDTO;total:number};
+type HistoricOrder={id:string;date:string;time:string;status:string;pickupWindow:string;paymentMethod:string;items:HistoricOrderItem[];total:number};
 function formatCurrency(value: number) {
     return value.toLocaleString('pt-BR', {
         style: 'currency',
@@ -91,63 +24,20 @@ function formatCurrency(value: number) {
     });
 }
 
-function getProductPrice(productId: string) {
-    const product = getLocalProduct(productId);
-    if (!product) {
-        return 0;
-    }
-
-    return Number(product.valorPromocional > 0 ? product.valorPromocional : product.valor);
-}
-
-function getOrderTotal(order: HistoricOrder) {
-    return order.items.reduce((total, item) => total + getProductPrice(item.productId) * item.quantity, 0);
-}
-
-function getOrderProducts(order: HistoricOrder) {
-    return order.items
-        .map((item) => {
-            const product = getLocalProduct(item.productId);
-
-            if (!product) {
-                return null;
-            }
-
-            return {
-                ...item,
-                product,
-                total: getProductPrice(item.productId) * item.quantity,
-            };
-        })
-        .filter(Boolean);
-}
-
-function getOrderItemCount(order: HistoricOrder) {
-    return order.items.reduce((total, item) => total + item.quantity, 0);
-}
-
+function getOrderTotal(order?:HistoricOrder){return order?.total??0;}
+function getOrderProducts(order:HistoricOrder){return order.items;}
+function getOrderItemCount(order?:HistoricOrder){return order?.items.reduce((sum,i)=>sum+i.quantity,0)??0;}
 export default function Historic() {
     const router = useRouter();
+    const {promoNotificationCount}=useBeneficios();
+    const [page,setPage]=React.useState(1);
+    const query=usePedidos(false,page);
+    const historicOrders:HistoricOrder[]=(query.data?.items??[]).map(p=>({id:String(p.id),date:new Date(p.created_at).toLocaleDateString('pt-BR'),time:new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),status:p.cancelamentoMotivo==='pagamento_expirado'?'Prazo de pagamento encerrado':statusPedido[p.status]??p.status,pickupWindow:p.dataEntrega?new Date(p.dataEntrega).toLocaleString('pt-BR'):'Não agendado',paymentMethod:p.formaPagamento??'',total:p.valorFinal,items:p.itens.map(i=>({productId:String(i.produto.id),quantity:i.quantidade,note:i.obs,product:i.produto,total:i.valor}))}));
     const { addItemToCart, cart } = useCart();
     const [expandedOrderId, setExpandedOrderId] = React.useState(historicOrders[0]?.id ?? '');
     const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
 
-    const repeatOrder = (order: HistoricOrder) => {
-        const products = getOrderProducts(order);
-
-        products.forEach((item) => {
-            if (!item) {
-                return;
-            }
-
-            addItemToCart(item.product, item.quantity, item.note ?? '');
-        });
-
-        toast.success('Pedido adicionado ao carrinho.', {
-            description: 'Confira quantidades, observação e horário antes de avançar.',
-        });
-        router.push('/cart');
-    };
+    const repeatOrder=async(order:HistoricOrder)=>{try{for(const item of order.items)await addItemToCart(item.product,item.quantity,item.note??'');toast.success('Produtos adicionados com os preços atuais. Confira o carrinho.');router.push('/cart');}catch{}};
 
     return (
         <main className="mt-14 min-h-screen bg-[#f7f7f7] pb-20">
@@ -196,6 +86,9 @@ export default function Historic() {
             </section>
 
             <section className="mx-auto mt-4 max-w-[430px] space-y-3 px-4">
+                {query.isLoading && <p role="status">Carregando pedidos…</p>}
+                {query.isError && <button onClick={()=>query.refetch()}>Não foi possível carregar. Tentar novamente</button>}
+                {query.isSuccess&&!historicOrders.length&&<p>Você ainda não tem pedidos.</p>}
                 {historicOrders.map((order, index) => {
                     const products = getOrderProducts(order);
                     const isExpanded = expandedOrderId === order.id;
@@ -308,7 +201,7 @@ export default function Historic() {
                                                     variant="outline"
                                                     className="h-11 px-4 text-[13px] font-extrabold"
                                                 >
-                                                    <Link href="/">Cardápio</Link>
+                                                    <Link href={`/orderstatus?id=${order.id}`}>Acompanhar</Link>
                                                 </Button>
                                             </div>
                                         </div>
@@ -320,6 +213,7 @@ export default function Historic() {
                 })}
             </section>
 
+            <div className="mx-auto flex max-w-[430px] justify-between p-4"><Button disabled={page===1} onClick={()=>setPage(p=>p-1)}>Anterior</Button><span>Página {page}</span><Button disabled={page*50>=(query.data?.total??0)} onClick={()=>setPage(p=>p+1)}>Próxima</Button></div>
             <MobileBottomNav
                 activeItem="orders"
                 cartItemCount={cartItemCount}

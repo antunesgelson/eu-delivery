@@ -1,4 +1,6 @@
 'use client'
+import {useSearchParams} from 'next/navigation';
+import React,{Suspense} from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -108,7 +110,7 @@ function AdminGetCode({ code, isPending, onCodeChange, onResendCode, time }: Adm
                         Permissão de administrador
                     </div>
                     <p className="mt-1 text-[11px] leading-5 text-dark-500">
-                        Após a validação, o acesso ao painel depende da permissão admin no token.
+                        Após a validação, o acesso ao painel depende da permissão administrativa da sua conta.
                     </p>
                 </div>
 
@@ -125,10 +127,12 @@ function AdminGetCode({ code, isPending, onCodeChange, onResendCode, time }: Adm
 }
 
 type Props = {
-    searchParams?: { tel?: string; callbackUrl?: string }
+    searchParams?: { tel?: string; callbackUrl?: string; desafioId?:string }
 }
-export default function GetCode({ searchParams }: Props) {
+function GetCodeContent() {
+ const search=useSearchParams();const searchParams=React.useMemo(()=>Object.fromEntries(search.entries()),[search]);
     const [code, setCode] = useState('');
+    const [desafioId,setDesafioId]=useState(searchParams?.desafioId??'');
     const [time, setTime] = useState(60);  // Começa com 60 segundos
     const callbackUrl = getSafeCallbackUrl(searchParams?.callbackUrl);
     const isAdminAccess = isAdminCallback(callbackUrl);
@@ -137,27 +141,13 @@ export default function GetCode({ searchParams }: Props) {
         mutationKey: ['auth-verifyCode'],
         mutationFn: async () => {
             const { data } = await api.post('/auth/verify', {
-                code: parseInt(code),
+                code, desafioId, tel: `55${searchParams?.tel}`,
             });
             setTime(60)  // Reinicia o cronômetro
             return data;
         },
         onSuccess(data, variables, context) {
-            const userToken = decodeJwtPayload<DecodedToken>(data.token);
-            if (!userToken) {
-                toast.error('Não foi possível validar o token de acesso.');
-                return;
-            }
-            const maxAgeToken = userToken?.exp - userToken?.iat
-
-            const cookiesToPersist = [{ name: '@eu:token', maxAge: maxAgeToken, token: data.token }]
-            cookiesToPersist.forEach(({ name, maxAge, token }) => {
-                setClientCookie(name, token, {
-                    maxAge: maxAge,
-                    path: "/",
-
-                })
-            })
+            const userToken = data.user;
             toast.success('Código verificado com sucesso!');
             if (isAdminCallback(callbackUrl) && !userToken.isAdmin) {
                 toast.error('Este usuário não tem permissão para acessar o painel.');
@@ -184,7 +174,7 @@ export default function GetCode({ searchParams }: Props) {
             return data
         },
         onSuccess: (data) => {
-            toast.success(data.message)
+            toast.success(data.message); setDesafioId(data.desafioId); if(data.developmentCode) toast.info(`Código de desenvolvimento: ${data.developmentCode}`,{duration:20000})
             setCode('')
         },
         onError(error: any) {
@@ -260,3 +250,5 @@ export default function GetCode({ searchParams }: Props) {
         </motion.div>
     )
 }
+
+export default function GetCode(){return <Suspense fallback={<p>Carregando…</p>}><GetCodeContent/></Suspense>;}

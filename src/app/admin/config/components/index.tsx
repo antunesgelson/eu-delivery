@@ -1,404 +1,181 @@
-'use client'
-import useFormatters from "@/hook/useFormatters";
+"use client";
 import React from "react";
-import { toast } from "sonner";
-
-import SliderDefault from "@/components/SliderDefault";
-import { Button } from "@/components/ui/button";
-import CurrencyField from "@/components/ui/current";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-
-import { BiSolidPhoneCall } from "react-icons/bi";
-import { FaMapLocationDot, FaPiggyBank } from "react-icons/fa6";
-import { HiSave } from "react-icons/hi";
-import { MdUpdate } from "react-icons/md";
-
-import { ConfiguracaoDTO } from "@/dto/configuracaoDTO";
-import { api } from "@/service/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { FormProvider, useForm } from "react-hook-form";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-
-const schemaEditConfig = z.object({
-    tel: z.string().optional().refine((value) => !value || (value.length >= 8 && value.length <= 15), { message: "Telefone inválido", }),
-    facebook: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), { message: "Facebook inválido", }),
-    instagram: z.string().optional().refine((value) => !value || (value.length >= 3 && value.length <= 150), { message: "Instagram inválido", }),
-    cashback: z.number().optional().refine((value) => !value || (value >= 0 && value <= 100), { message: "Cashback inválido", }),
-    endereco: z.string().optional().refine((value) => !value || (value.length <= 254), { message: "Endereço deve ser mais curto.", }),
-    taxaDeEntrega: z.string().optional(),
-    intervaloEntrega: z.string().optional(),
-    // Validação dos horários de atendimento
-    horarioAtendimento: z.record(
-        z.object({
-            abertura: z.string(),
-            fechamento: z.string(),
-            inicio_intervalo: z.string(),
-            fim_intervalo: z.string(),
-        })).optional(),
+import { zodResolver } from "@hookform/resolvers/zod";
+import { api, mostrarErro } from "@/service/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+const schema = z.object({
+  cashback: z.coerce.number().min(0).max(100),
+  minimo: z.coerce.number().min(0),
+  intervalo: z.coerce.number().int().min(10).max(120),
+  telefone: z.string().max(30),
+  taxa: z.coerce.number().min(0).max(100000),
+  cep: z.string().regex(/^\d{8}$/, "Informe um CEP com 8 dígitos."),
+  entrega: z.boolean(),
+  endereco: z.string().min(2),
+  horarios: z.string().min(2),
 });
-type EditConfigForm = z.infer<typeof schemaEditConfig>
-type Props = {}
-export default function ViewConfig({ }: Props) {
-    const methods = useForm<EditConfigForm>({
-        resolver: zodResolver(schemaEditConfig),
-        defaultValues: {
-            cashback: 10,
-            taxaDeEntrega: '5,00',
-            intervaloEntrega: '00:30',
-            horarioAtendimento: {
-                seg: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-                ter: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-                qua: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-                qui: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-                sex: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-                sab: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-                dom: { abertura: '', fechamento: '', inicio_intervalo: '', fim_intervalo: '' },
-            }
-        }
-    })
-    const { register, watch, handleSubmit, setValue, formState: { errors } } = methods;
-    const { cellPhoneFormat } = useFormatters()
-    const tel = watch('tel');
-
-    const { isPending, ...mutation } = useMutation({
-        mutationFn: async ({ cashback, endereco, facebook, instagram, intervaloEntrega, taxaDeEntrega, tel, horarioAtendimento }: EditConfigForm) => {
-            const redesSociais = { facebook, instagram };
-            const editCashback = { chave: "cashback", valor: (cashback ?? 0).toString(), privado: false };
-            const editTelefone = { chave: "telefone", valor: tel, privado: false };
-            const editRedesSociais = { chave: "redesSociais", valor: JSON.stringify(redesSociais), privado: false };
-            const editEndereco = { chave: "endereco", valor: endereco, privado: false };
-            const intervaloEmMinutos = intervaloEntrega ? parseInt(intervaloEntrega.split(':')[0]) * 60 + parseInt(intervaloEntrega.split(':')[1]) : '';
-            const editIntervaloEntrega = { chave: "intervaloDeEntrega", valor: intervaloEmMinutos.toString(), privado: false };
-            const editTaxaDeEntrega = { chave: "taxaFrete", valor: taxaDeEntrega, privado: false };
-
-            // Cria o objeto para salvar os horários de atendimento
-            const editHorarioAtendimento = {
-                chave: "horarioAtendimento",
-                valor: JSON.stringify(horarioAtendimento), // Converte o objeto para JSON
-                privado: false,
-            };
-            console.log('intervaloEmMinutos', intervaloEmMinutos);
-
-            const requests = [
-                api.put<ConfiguracaoDTO>('/configuracao', editCashback)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editCashback); }),
-                api.put<ConfiguracaoDTO>('/configuracao', editTelefone)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editTelefone); }),
-                api.put<ConfiguracaoDTO>('/configuracao', editRedesSociais)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editRedesSociais); }),
-                api.put<ConfiguracaoDTO>('/configuracao', editEndereco)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editEndereco); }),
-                api.put<ConfiguracaoDTO>('/configuracao', editIntervaloEntrega)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editIntervaloEntrega); }),
-                api.put<ConfiguracaoDTO>('/configuracao', editTaxaDeEntrega)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editTaxaDeEntrega); }),
-                api.put<ConfiguracaoDTO>('/configuracao', editHorarioAtendimento)
-                    .catch(async (e) => { if (e.response?.status === 404) await api.post<ConfiguracaoDTO>('/configuracao', editHorarioAtendimento); }),
-            ];
-            await Promise.all(requests);
-        },
-        onSuccess: () => {
-            toast.success("Configurações salvas com sucesso");
-        },
-        onError: () => {
-            toast.error("Erro ao salvar configurações");
-        },
+type FormData = z.infer<typeof schema>;
+export default function ViewConfig() {
+  const client = useQueryClient();
+  const q = useQuery<any[]>({
+    queryKey: ["configuracao"],
+    queryFn: async () => (await api.get("/configuracao")).data,
+  });
+  const form = useForm<FormData>({ resolver: zodResolver(schema) });
+  React.useEffect(() => {
+    if (!q.data) return;
+    const get = (k: string, f = "") =>
+      q.data!.find((c) => c.chave === k)?.valor ?? f;
+    const delivery = JSON.parse(get("ENTREGA", "{}"));
+    form.reset({
+      cashback: Number(get("CASHBACK", "3")),
+      minimo: Number(get("PEDIDOMINIMO", "35")),
+      intervalo: Number(get("INTERVALODEENTREGA", "30")),
+      telefone: get("TELEFONE"),
+      taxa: delivery.taxa ?? 10,
+      cep: delivery.faixasCep?.[0]?.inicio ?? "88650000",
+      entrega: delivery.habilitada ?? false,
+      endereco: get(
+        "ENDERECO",
+        JSON.stringify({
+          apelido: "Retirada na loja",
+          rua: "Rua Hélio Laudelino da Silva",
+          numero: "41",
+          bairro: "Bom Viver - Biguaçu",
+        }),
+      ),
+      horarios: get("HORARIOATENDIMENTO", "{}"),
     });
-
-    const onSubmit = (data: EditConfigForm) => {
-        mutation.mutate(data);
-    };
-    const { data: configData } = useQuery({
-        queryKey: ['configAdmin'],
-        queryFn: async () => {
-            const res = await api.get('/configuracao');
-            return res.data;
-        },
-    });
-
-    React.useEffect(() => {
-        if (configData) {
-            const telField = configData.find((item: any) => item.chave.toUpperCase() === 'TELEFONE')?.valor ?? '';
-            const redesSociaisData = configData.find((item: any) => item.chave.toUpperCase() === 'REDESSOCIAIS')?.valor;
-            const cashbackField = configData.find((item: any) => item.chave.toUpperCase() === 'CASHBACK')?.valor ?? '0';
-            const enderecoField = configData.find((item: any) => item.chave.toUpperCase() === 'ENDERECO')?.valor ?? '';
-            const intervaloEntregaField = configData.find((item: any) => item.chave.toUpperCase() === 'INTERVALODEENTREGA')?.valor ?? '0';
-            const taxaFreteField = configData.find((item: any) => item.chave.toUpperCase() === 'TAXAFRETE')?.valor ?? '0';
-            const horarioAtendimentoField = configData.find((item: any) => item.chave.toUpperCase() === 'HORARIOATENDIMENTO')?.valor ?? '';
-
-            setValue('tel', telField);
-
-            if (redesSociaisData) {
-                const { facebook, instagram } = JSON.parse(redesSociaisData);
-                setValue('facebook', facebook ?? '');
-                setValue('instagram', instagram ?? '');
-            }
-
-            setValue('cashback', parseFloat(cashbackField));
-            setValue('endereco', enderecoField);
-            // Converte o valor numérico para o formato HH:MM
-            const intervaloEmMinutos = parseFloat(intervaloEntregaField.replace(',', '.'));
-            const horas = Math.floor(intervaloEmMinutos / 60);
-            const minutos = intervaloEmMinutos % 60;
-            const intervaloFormatado = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
-            setValue('intervaloEntrega', intervaloFormatado); // Define o valor no formato HH:MM
-            setValue('taxaDeEntrega', taxaFreteField);
-
-            // Atualiza os horários de atendimento
-            if (horarioAtendimentoField) {
-                const horarioAtendimento = JSON.parse(horarioAtendimentoField);
-                DIAS.forEach((dia) => {
-                    if (horarioAtendimento[dia]) {
-                        setValue(`horarioAtendimento.${dia}.abertura`, horarioAtendimento[dia].abertura);
-                        setValue(`horarioAtendimento.${dia}.fechamento`, horarioAtendimento[dia].fechamento);
-                        setValue(`horarioAtendimento.${dia}.inicio_intervalo`, horarioAtendimento[dia].inicio_intervalo);
-                        setValue(`horarioAtendimento.${dia}.fim_intervalo`, horarioAtendimento[dia].fim_intervalo);
-                    }
-                });
-            }
-        }
-    }, [configData, setValue]);
-
-    React.useEffect(() => {
-        setValue('tel', cellPhoneFormat(tel || ''));
-    }, [tel, setValue, cellPhoneFormat]);
-
-    return (
-        <section className="space-y-2">
-            <FormProvider {...methods}>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <div className="grid grid-cols-2 gap-2">
-                        {/* Horário de Atendimento Section */}
-                        <div className="bg-dark-300 p-4  rounded-md">
-                            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                                <MdUpdate />
-                                Horário de Atendimento
-                            </h2>
-                            <p className="text-xs text-muted">
-                                Configure os horários de abertura e
-                                fechamento do estabelecimento, bem como os
-                                intervalos de atendimento para cada dia
-                                da semana. Esta seção permite ajustar os
-                                horários de funcionamento de forma detalhada.
-                            </p>
-
-                            {DIAS.map((dia) => (
-                                <div key={dia} className="flex items-center justify-between border-b py-2  border-muted/20 ">
-                                    <h2 className="uppercase mt-6  text-base text-muted tracking-wider">{dia}:</h2>
-                                    <div className="grid grid-cols-4 gap-6">
-                                        <Input
-                                            type="time"
-                                            placeholder="00:00"
-                                            className="w-fit"
-                                            label="Abertura" {...register(`horarioAtendimento.${dia}.abertura`)}
-                                        />
-                                        <Input
-                                            type="time"
-                                            placeholder="00:00"
-                                            className="w-fit"
-                                            label="Fechamento" {...register(`horarioAtendimento.${dia}.fechamento`)}
-                                        />
-                                        <Input
-                                            type="time"
-                                            placeholder="00:00"
-                                            className="w-fit"
-                                            label="Início Intervalo" {...register(`horarioAtendimento.${dia}.inicio_intervalo`)}
-                                        />
-                                        <Input
-                                            type="time"
-                                            placeholder="00:00"
-                                            className="w-fit"
-                                            label="Final Intervalo" {...register(`horarioAtendimento.${dia}.fim_intervalo`)}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-
-                        </div>
-
-                        {/* Informações de Contato Section */}
-                        <div className="bg-dark-300 p-4 rounded-md flex flex-col">
-                            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                                <BiSolidPhoneCall />
-                                Informações de Contato
-                            </h2>
-                            <p className="text-xs text-muted pb-3">
-                                Forneça os detalhes de contato do estabelecimento,
-                                incluindo telefone, Facebook e Instagram. Esta
-                                seção permite que os clientes encontrem facilmente
-                                as informações necessárias para entrar em contato.
-                            </p>
-
-                            <div className="flex flex-col justify-center">
-                                <Input
-                                    type="tel"
-                                    label="Telefone:"
-                                    placeholder="(00) 00000-0000"
-                                    {...register('tel')}
-                                    error={errors.tel?.message}
-                                />
-                                <Input
-                                    type="text"
-                                    label="Facebook:"
-                                    placeholder="@seu-usuario"
-                                    {...register('facebook')}
-                                    error={errors.facebook?.message}
-                                />
-                                <Input
-                                    type="text"
-                                    label="Instagram:"
-                                    placeholder="@seu-usuario"
-                                    {...register('instagram')}
-                                    error={errors.instagram?.message}
-                                />
-                            </div>
-                            <Separator className="bg-muted/20 mt-4" />
-                            {/* Cashback Section */}
-                            <div className="my-4">
-                                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                                    <FaPiggyBank />
-                                    Cashback
-                                </h2>
-                                <p className="text-xs text-muted pb-3">
-                                    Configure a porcentagem de cashback que o usuário
-                                    receberá em cada compra. Esta seção permite
-                                    ajustar a taxa de retorno para incentivar as
-                                    compras e fidelizar os clientes.
-                                </p>
-
-                                <div className="">
-                                    <SliderDefault
-                                        name="cashback"
-                                        label="Defina a porcentagem de Cashback"
-                                        questionContent="Indica a porcentagem de cashback que o usuário receberá em cada compra."
-                                        error={errors.cashback?.message}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Informações de Entrega Section */}
-                        <div className="bg-dark-300 p-4 rounded-md flex flex-col">
-                            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                                <FaMapLocationDot />
-                                Informações de Entrega
-                            </h2>
-                            <p className="text-xs text-muted pb-3">
-                                Forneça os detalhes de contato do estabelecimento,
-                                incluindo telefone, Facebook e Instagram. Esta
-                                seção permite que os clientes encontrem facilmente
-                                as informações necessárias para entrar em contato.
-                            </p>
-
-                            <div className="flex flex-col justify-center">
-                                <Input
-                                    type="text"
-                                    placeholder="Avenida Brasil, 123"
-                                    label="Endereço do Estabelecimento:"
-                                    questionContent="Este campo será utilizado para calcular o frete e exibir o endereço do estabelecimento."
-                                    {...register('endereco')}
-                                    error={errors.endereco?.message}
-                                />
-
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <Input
-                                        type="time"
-                                        placeholder="00"
-                                        label="Intervalo entre entregas:"
-                                        questionContent="Defina o intervalo de tempo entre as entregas realizadas pelo estabelecimento. Ex: 30 minutos."
-                                        {...register('intervaloEntrega')}
-                                        error={errors.intervaloEntrega?.message}
-
-                                    />
-                                    <CurrencyField
-                                        name="taxaDeEntrega"
-                                        label="Taxa de Frete:"
-                                        questionContent="Esse campo indica o valor da taxa de entrega cobrada pelo estabelecimento. EX: R$ 5,00 por km."
-                                        error={errors.taxaDeEntrega?.message}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex justify-end items-center">
-                        <div className="my-4 w-3/12">
-                            <Button
-                                className="flex items-center gap-1 w-full"
-                                variant={'outline'}
-                                loading={isPending}
-                                type="submit">
-                                <HiSave size={20} />
-                                Salvar Configurações
-                            </Button>
-                        </div>
-                    </div>
-                </form>
-            </FormProvider>
-        </section>
-    )
+  }, [q.data, form]);
+  const save = useMutation({
+    mutationFn: async (d: FormData) => {
+      JSON.parse(d.endereco);
+      JSON.parse(d.horarios);
+      const changes = {
+        CASHBACK: String(d.cashback),
+        PEDIDOMINIMO: String(d.minimo),
+        INTERVALODEENTREGA: String(d.intervalo),
+        TELEFONE: d.telefone,
+        ENDERECO: d.endereco,
+        HORARIOATENDIMENTO: d.horarios,
+        ENTREGA: JSON.stringify({
+          habilitada: d.entrega,
+          taxa: d.taxa,
+          bairros: [],
+          faixasCep: [{ inicio: d.cep, fim: d.cep }],
+        }),
+      };
+      for (const [chave, valor] of Object.entries(changes))
+        await api.put("/configuracao", { chave, valor });
+    },
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["configuracao"] });
+      toast.success("Configurações salvas.");
+    },
+    onError: mostrarErro,
+  });
+  if (q.isPending) return <p>Carregando configurações…</p>;
+  if (q.isError)
+    return <Button onClick={() => q.refetch()}>Tentar novamente</Button>;
+  return (
+    <form
+      className="mx-auto max-w-3xl space-y-4 rounded-md bg-white p-5 text-neutral-900"
+      onSubmit={form.handleSubmit((d) => save.mutate(d))}
+    >
+      {(
+        [
+          ["cashback", "Cashback (%)"],
+          ["minimo", "Pedido mínimo (R$)"],
+          ["intervalo", "Intervalo dos horários (minutos)"],
+          ["telefone", "Telefone da loja"],
+          ["taxa", "Taxa fixa de entrega (R$)"],
+          ["cep", "CEP atendido"],
+        ] as const
+      ).map(([key, label]) => (
+        <label key={key} className="block text-sm font-semibold">
+          {label}
+          <Input
+            className="mt-1"
+            type={["telefone", "cep"].includes(key) ? "text" : "number"}
+            step="any"
+            {...form.register(key)}
+            error={form.formState.errors[key]?.message}
+          />
+        </label>
+      ))}
+      <label className="flex gap-2">
+        <input type="checkbox" {...form.register("entrega")} />
+        Habilitar entrega no CEP informado
+      </label>
+      <fieldset className="space-y-2 rounded border p-3">
+        <legend className="font-semibold">Endereço de retirada</legend>
+        {(["rua", "numero", "bairro"] as const).map((key) => {
+          let value: any = {};
+          try {
+            value = JSON.parse(form.watch("endereco") || "{}");
+          } catch {}
+          return (
+            <label key={key} className="block text-sm capitalize">
+              {key}
+              <Input
+                value={value[key] ?? ""}
+                onChange={(e) =>
+                  form.setValue(
+                    "endereco",
+                    JSON.stringify({ ...value, [key]: e.target.value }),
+                  )
+                }
+              />
+            </label>
+          );
+        })}
+      </fieldset>
+      <fieldset className="space-y-3 rounded border p-3">
+        <legend className="font-semibold">Horários de atendimento</legend>
+        {[
+          ["sab", "Sábado"],
+          ["dom", "Domingo"],
+        ].map(([day, label]) => {
+          let schedule: any = {};
+          try {
+            schedule = JSON.parse(form.watch("horarios") || "{}");
+          } catch {}
+          return (
+            <div key={day}>
+              <strong className="text-sm">{label}</strong>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["abertura", "Abertura"],
+                  ["fechamento", "Fechamento"],
+                ].map(([key, title]) => (
+                  <label key={key} className="text-xs">
+                    {title}
+                    <Input
+                      type="time"
+                      value={schedule[day]?.[key] ?? ""}
+                      onChange={(e) =>
+                        form.setValue(
+                          "horarios",
+                          JSON.stringify({
+                            ...schedule,
+                            [day]: { ...schedule[day], [key]: e.target.value },
+                          }),
+                        )
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </fieldset>
+      <Button disabled={save.isPending}>Salvar configurações</Button>
+    </form>
+  );
 }
-
-{/* Horário de Atendimento Section */ }
-// <div className="grid grid-cols-2 ">
-// <div className="bg-dark-300 p-4  rounded-md ">
-//     <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-//         <MdUpdate />
-//         Horário de Atendimento
-//     </h2>
-//     <div className="grid grid-cols-2 gap-2 items-center">
-//         <Input label="Abertura" type="time" />
-//         <Input label="Fechamento" type="time" />
-//     </div>
-//     <h3 className="font-semibold my-2">Dias de Funcionamento</h3>
-//     <div className="grid grid-cols-3  gap-2 ">
-//         {Object.keys(dias).map((dia) => (
-//             <div key={dia} className="flex items-center gap-2">
-//                 <Checkbox
-//                     id={dia}
-//                     className="w-5 h-5"
-//                     checked={dias[dia]}
-//                     onCheckedChange={() => handleCheckboxChange(dia)}
-//                 />
-//                 <label className="cursor-pointer" htmlFor={dia}>{dia}</label>
-//             </div>
-//         ))}
-//     </div>
-//     <div className=" flex flex-col my-3 gap-1 ">
-//         <label className="cursor-pointer" htmlFor="temIntervalo">Possui intervalo?</label>
-//         <div className="flex items-center gap-2">
-//             <Button
-//                 size={'sm'}
-//                 variant={hasInterval ? 'outline' : 'default'}
-//                 className={`${hasInterval ? ' ' : 'text-white-off'}`}
-//                 onClick={() => setHasInterval(true)}>
-//                 NÃO
-//             </Button>
-//             <Button
-//                 size={'sm'}
-//                 variant={hasInterval ? 'default' : 'outline'}
-//                 className={`${hasInterval ? ' text-white-off' : ''}`}
-//                 onClick={() => setHasInterval(false)} >
-//                 SIM
-//             </Button>
-//         </div>
-//     </div>
-//     <div className="grid grid-cols-2 gap-2 items-center">
-//         <Input
-//             type="time"
-//             disabled={hasInterval}
-//             label="Início do Intervalo:"
-//         />
-//         <Input
-//             type="time"
-//             disabled={hasInterval}
-//             label="Fim do Intervalo:"
-//         />
-//     </div>
-//     <Button className="w-full mt-4" variant={'outline'}>Salvar Horário</Button>
-// </div>
-// </div>

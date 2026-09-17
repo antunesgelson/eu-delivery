@@ -3,6 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { getCouponDiscount } from "@/data/coupons";
 import useCart from "@/hook/useCart";
+import useAuth from '@/hook/useAuth';
+import {useQuery} from '@tanstack/react-query';
+import {api} from '@/service/api';
+import {PedidoAPI,statusPedido} from '@/hook/usePedidos';
 
 import { format, parseISO } from "date-fns";
 import { motion } from "framer-motion";
@@ -30,14 +34,16 @@ function formatSchedule(value?: string | null) {
 }
 
 export default function OrderSummaryBar() {
-    const { cart, cupom } = useCart()
+    const {cart:draft,cupom}=useCart();const {isAuthenticated}=useAuth();
+    const active=useQuery<PedidoAPI|undefined>({queryKey:['pedido-ativo'],queryFn:async()=>(await api.get('/pedido',{params:{status:'active',limit:1}})).data.items[0],enabled:isAuthenticated,refetchInterval:15000});
+    const cart=draft?.itens.length?draft:active.data;
     const items = cart?.itens ?? [];
     const itemCount = items.reduce((total, item) => total + item.quantidade, 0);
-    const hasActiveOrder = !!cart?.status && cart.status !== 'local';
+    const hasActiveOrder = !!cart?.status && cart.status !== 'carrinho';
     const subtotal = cart?.valorTotalPedido ?? 0;
     const couponDiscount = getCouponDiscount(cupom, subtotal);
     const selectedCashback = Math.min(cart?.cashBack ?? 0, Math.max(subtotal - couponDiscount, 0));
-    const finalTotal = Math.max(subtotal - couponDiscount - selectedCashback, 0);
+    const finalTotal=cart?.valorFinal??0;
 
     if (hasActiveOrder) {
         return (
@@ -80,10 +86,10 @@ export default function OrderSummaryBar() {
                         asChild
                         className="mt-3 h-11 w-full justify-between bg-[#f97316] px-3 text-[14px] font-extrabold text-white hover:bg-[#ea6409]"
                     >
-                        <Link href="/orderstatus">
+                        <Link href={`/orderstatus?id=${cart?.id}`}>
                             <span>Acompanhar pedido</span>
                             <span className="rounded-md bg-white px-2 py-1 text-[12px] text-[#f97316]">
-                                {cart?.status}
+                                {statusPedido[cart?.status??'']}
                             </span>
                         </Link>
                     </Button>
@@ -92,6 +98,7 @@ export default function OrderSummaryBar() {
         );
     }
 
+    if(!cart?.itens.length)return null;
     return (
         <motion.div
             className='fixed bottom-14 left-0 right-0 z-40 flex items-center justify-between border bg-white p-2 lg:bottom-0'

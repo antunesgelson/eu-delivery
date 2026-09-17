@@ -3,15 +3,7 @@
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { Progress } from "@/components/ui/progress";
-import {
-    cashbackBalance,
-    cashbackExpiration,
-    loyaltyCurrentOrders,
-    loyaltyGoalOrders,
-    loyaltyProgress,
-    loyaltyRemainingOrders,
-    promoNotificationCount,
-} from "@/data/promos";
+import { useBeneficios } from "@/hook/useLoja";
 import useCart from "@/hook/useCart";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
@@ -35,10 +27,14 @@ function getConfigValue(configData: any, key: string) {
 }
 
 export default function CashbackPage() {
+    const {cashbackBalance,cashbackExpiration,loyaltyCurrentOrders,loyaltyGoalOrders,loyaltyProgress,loyaltyRemainingOrders,promoNotificationCount,isLoading,isError,refetch}=useBeneficios();
     const [activeTab, setActiveTab] = React.useState<PromoTab>('cashback');
     const { cart, configData } = useCart();
     const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
     const cashbackPercent = getConfigValue(configData, 'CASHBACK') || '3';
+
+    if (isLoading) return <main className="mt-16 p-4" role="status">Carregando benefícios…</main>;
+    if (isError) return <main className="mt-16 p-4" role="alert">Não foi possível carregar seus benefícios. <Button onClick={() => refetch()}>Tentar novamente</Button></main>;
 
     return (
         <main className="mt-14 min-h-screen bg-[#f7f7f7] pb-20">
@@ -113,15 +109,15 @@ export default function CashbackPage() {
                                         <FaPiggyBank className="shrink-0 text-[#f97316]" size={20} />
                                         <div>
                                             <strong className="block text-[13px] text-dark-900">Você recebe {cashbackPercent}% de volta</strong>
-                                            <span className="text-[12px] leading-4 text-dark-500">O valor entra após a confirmação do pedido.</span>
+                                            <span className="text-[12px] leading-4 text-dark-500">O valor entra após o pagamento e a conclusão do pedido.</span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-3 rounded-md bg-[#f7f7f7] p-3">
                                         <FaCalendarCheck className="shrink-0 text-[#f97316]" size={18} />
                                         <div>
-                                            <strong className="block text-[13px] text-dark-900">Expira em {cashbackExpiration}</strong>
-                                            <span className="text-[12px] leading-4 text-dark-500">Use antes do vencimento para não perder o benefício.</span>
+                                            <strong className="block text-[13px] text-dark-900">{cashbackExpiration === 'Sem expiração' ? cashbackExpiration : `Expira em ${cashbackExpiration}`}</strong>
+                                            <span className="text-[12px] leading-4 text-dark-500">{cashbackExpiration === 'Sem expiração' ? 'Seu saldo não tem prazo de vencimento.' : 'Use antes do vencimento para não perder o benefício.'}</span>
                                         </div>
                                     </div>
                                 </div>

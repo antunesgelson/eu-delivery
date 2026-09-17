@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { api } from "@/service/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { api, mostrarErro } from "@/service/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { motion } from "framer-motion";
 import { useEffect } from "react";
@@ -19,79 +19,59 @@ import { UserDTO } from "@/dto/userDTO";
 import useFormatters from "@/hook/useFormatters";
 
 const ProfileSchema = z.object({
-    nome: z.string().min(1, 'Informe seu nome.'),
-    telefone: z.string().min(15, 'Informe seu telefone.'),
-    email: z.string().email('Informe um email válido.'),
+    nome: z.string().trim().min(1, 'Informe seu nome.').max(150),
+    telefone: z.string(),
+    email: z.string().trim().email('Informe um email válido.').or(z.literal('')),
     aniversario: z.string().optional(),
-    cpf: z.string().optional(),
+    cpf: z.string().refine(v => !v || v.replace(/\D/g, '').length === 11, 'Informe os 11 dígitos do CPF.').optional(),
 })
 
 export type ProfileForm = z.infer<typeof ProfileSchema>
 
 export default function Profile() {
-    const { cpfFormat, cellPhoneFormat } = useFormatters()
+    const { cpfFormat, cellPhoneFormat, homePhoneFormat } = useFormatters();
+    const client = useQueryClient();
     const { handleSubmit, reset, register, setValue, watch, formState: { errors } } = useForm<ProfileForm>({
-        resolver: zodResolver(ProfileSchema)
-    })
+        resolver: zodResolver(ProfileSchema),
+        defaultValues: { nome: '', telefone: '', email: '', aniversario: '', cpf: '' },
+    });
     const cpf = watch('cpf');
-    const tel = watch('telefone');
-
-    const { mutateAsync: handleEditUser, isPending } = useMutation({
-        mutationKey: ['editProfile'],
-        mutationFn: async ({ email, nome, telefone, aniversario, cpf }: ProfileForm) => {
-            const { data } = await api.put('/usuario', {
-                nome: nome,
-                cpf: cpf,
-                // tel: telefone,
-                dataDeNascimento: aniversario
-            })
-            return data
-        }, onSuccess(data) {
-            console.log("sucesso", data)
-            toast.success('Perfil atualizado com sucesso.')
-        }, onError(error) {
-            console.log(error)
-            toast.error('Não foi possível atualizar suas informações.')
-        },
-    })
-
-    const { data } = useQuery({
+    const profile = useQuery<UserDTO>({
         queryKey: ['profile'],
-        queryFn: async () => {
-            try {
-                const { data } = await api.get('/usuario')
-                return data
-            } catch (error: any) {
-                console.error(error)
-                toast.error('Não foi possível carregar suas informações.')
-                throw new Error('Não foi possível carregar suas informações.')
-            }
-        }
-    })
-
+        queryFn: async () => (await api.get('/usuario')).data,
+    });
+    const { mutate: handleEditUser, isPending } = useMutation({
+        mutationFn: async ({ email, nome, aniversario, cpf }: ProfileForm) =>
+            (await api.put<UserDTO>('/usuario', {
+                nome: nome.trim(),
+                cpf: cpf?.replace(/\D/g, '') ?? '',
+                email: email.trim() || null,
+                dataDeNascimento: aniversario || null,
+            })).data,
+        onSuccess: async (data) => {
+            client.setQueryData(['profile'], data);
+            await client.invalidateQueries({ queryKey: ['sessao'] });
+            toast.success('Perfil atualizado com sucesso.');
+        },
+        onError: mostrarErro,
+    });
     useEffect(() => {
-        if (!data) return
-        data.map((item: UserDTO) => {
-            reset({
-                nome: item.nome,
-                telefone: item.tel,
-                email: item.email,
-                aniversario: item.dataDeNascimento,
-                cpf: item.cpf,
-            })
-        })
-    }, [data, reset]);
-
+        if (!profile.data) return;
+        const user = profile.data;
+        const phone = (user.tel ?? '').replace(/^55(?=\d{10,11}$)/, '');
+        reset({
+            nome: user.nome ?? '',
+            telefone: phone.length === 10 ? homePhoneFormat(phone) : cellPhoneFormat(phone),
+            email: user.email ?? '',
+            aniversario: user.dataDeNascimento?.slice(0, 10) ?? '',
+            cpf: cpfFormat(user.cpf ?? ''),
+        });
+    }, [profile.data, reset, cellPhoneFormat, homePhoneFormat, cpfFormat]);
     useEffect(() => {
-        if (!cpf) return;
-        setValue('cpf', cpfFormat(cpf));
+        if (cpf) setValue('cpf', cpfFormat(cpf));
     }, [cpf, setValue, cpfFormat]);
-
-    useEffect(() => {
-        if (!tel) return;
-        setValue('telefone', cellPhoneFormat(tel));
-        console.log(tel?.length)
-    }, [tel, setValue, cellPhoneFormat]);
+    if (profile.isPending) return <main className="mt-16 p-4" role="status">Carregando perfil…</main>;
+    if (profile.isError) return <main className="mt-16 p-4" role="alert">Não foi possível carregar seu perfil. <Button onClick={() => profile.refetch()}>Tentar novamente</Button></main>;
 
     return (
         <motion.main className="mt-12"
@@ -105,49 +85,49 @@ export default function Profile() {
             <section className="bg-white p-4">
                 <form onSubmit={handleSubmit((data) => handleEditUser(data))} className="space-y-3">
                     <div>
-                        <Label className="uppercase">nome</Label>
+                        <Label htmlFor="nome" className="uppercase">nome</Label>
                         <Input
-                            {...register('nome')}
+                            id="nome" {...register('nome')}
                             error={errors.nome?.message}
                         />
                     </div>
                     <div>
-                        <Label className="uppercase">telefone</Label>
+                        <Label htmlFor="telefone" className="uppercase">telefone</Label>
                         <Input
-                            type="tel"
+                            type="tel" readOnly
                             placeholder="(00) 00000-0000"
-                            {...register('telefone')}
+                            id="telefone" {...register('telefone')}
                             error={errors.telefone?.message}
                         />
-                        <p className="text-[11px] leading-3 text-muted-foreground my-1">Seu número de telefone será usado apenas para contato relacionado ao serviço.</p>
+                        <p className="text-[11px] leading-3 text-muted-foreground my-1">Este é o número verificado no login.</p>
                     </div>
                     <div>
-                        <Label className="uppercase">email</Label>
+                        <Label htmlFor="email" className="uppercase">email</Label>
                         <Input
                             type="email"
-                            {...register('email')}
+                            id="email" {...register('email')}
                             error={errors.email?.message}
                         />
                         <p className="text-[11px] leading-3 text-muted-foreground my-1">Fique tranquilo. Não enviamos spam e nunca compartilharemos seu email com ninguém.</p>
                     </div>
                     <div>
-                        <Label className="uppercase" >aniversário <span className="text-muted">(opicional)</span></Label>
+                        <Label htmlFor="aniversario" className="uppercase" >aniversário <span className="text-muted">(opcional)</span></Label>
                         <Input
                             type="date"
                             placeholder="DD/MM/AAAA"
-                            {...register('aniversario')}
+                            id="aniversario" {...register('aniversario')}
                             error={errors.aniversario?.message}
                         />
                         <p className="text-[11px] leading-3 text-muted-foreground my-1">Quem sabe você recebe um presentinho da gente! =]</p>
                     </div>
                     <div>
-                        <Label className="uppercase" >cpf/cnpj <span className="text-muted">(opicional)</span></Label>
+                        <Label htmlFor="cpf" className="uppercase" >cpf <span className="text-muted">(opcional)</span></Label>
                         <Input
                             placeholder="000.000.000-00"
-                            {...register('cpf')}
+                            id="cpf" {...register('cpf')}
                             error={errors.cpf?.message}
                         />
-                        <p className="text-[11px] leading-3 text-muted-foreground my-1">Utilizamos para emitir cupom fiscal.</p>
+                        <p className="text-[11px] leading-3 text-muted-foreground my-1">Informe apenas se desejar associar o CPF ao cadastro.</p>
                     </div>
                     <Button
                         type="submit"

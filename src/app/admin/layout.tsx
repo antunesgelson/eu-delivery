@@ -1,5 +1,6 @@
 'use client'
 
+import useAuth from '@/hook/useAuth';
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -48,9 +49,9 @@ const reportMenuItems: MenuItem[] = [
 ];
 
 const menuItems: MenuItem[] = [
-    { title: 'Meus pedidos', href: '/admin/dashboard', Icon: FaClipboardList, badge: '4' },
+    { title: 'Meus pedidos', href: '/admin/dashboard', Icon: FaClipboardList },
     { title: 'Pedidos PDV', href: '/admin/pedidos-pdv', Icon: FaCashRegister },
-    { title: 'Pedidos agendados', href: '/admin/dashboard?view=scheduled', Icon: FaRegCalendarCheck, badge: '16' },
+    { title: 'Pedidos agendados', href: '/admin/dashboard?view=scheduled', Icon: FaRegCalendarCheck },
     { title: 'Gestor de cardápio', href: '/admin/cardapio', Icon: BiSolidFoodMenu },
     { title: 'Cupons', href: '/admin/cupom', Icon: HiTicket },
     { title: 'Relatórios', href: '/admin/dashboard?view=reports&report=general', Icon: FaChartLine, children: reportMenuItems },
@@ -257,6 +258,7 @@ function AdminNavigation() {
 }
 
 export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
+    const {user}=useAuth();
     return (
         <div className="min-h-screen bg-[#f3f5f8] text-dark-900">
             <React.Suspense fallback={null}>
@@ -348,7 +350,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
                                 className="h-8 w-8 rounded-full bg-[#f4d7a8] object-contain"
                             />
                             <div className="min-w-0 flex-1">
-                                <strong className="block truncate text-[11px]">Gelson Antunes</strong>
+                                <strong className="block truncate text-[11px]">{user?.nome||'Administrador'}</strong>
                                 <span className="text-[10px] text-white/55">Loja principal</span>
                             </div>
                             <FaChevronRight size={11} className="text-white/45" />

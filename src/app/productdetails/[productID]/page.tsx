@@ -1,4 +1,5 @@
 'use client'
+import {useParams} from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from "next/navigation";
@@ -14,7 +15,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { FaMinusCircle } from 'react-icons/fa';
 import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
 
-import { getLocalProduct } from '@/data/menu';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/service/api';
 import { AdicionaisDTO, IngredientesDTO, ProdutosDTO } from '@/dto/productDTO';
 import useCart from '@/hook/useCart';
 
@@ -24,9 +26,10 @@ type Props = {
 
 const showCustomizationSections = false;
 
-export default function ProductorDetails({ params }: Props) {
+export default function ProductorDetails() {
+ const params=useParams<{productID:string}>();
     const [removeSelectedItems, setRemoveSelectedItems] = React.useState<Record<number, boolean>>({});
-    const [addSelectedItems, setAddSelectedItems] = useState<Record<number, boolean>>({});
+    const [addSelectedItems, setAddSelectedItems] = useState<Record<string, boolean>>({});
 
     const [removeItem, setRemoveItem] = useState<IngredientesDTO>({} as IngredientesDTO);
     const [openModal, setOpenModal] = useState(false);
@@ -42,7 +45,8 @@ export default function ProductorDetails({ params }: Props) {
     const [obs, setObs] = useState<string>('');
     const router = useRouter();
     const { addItemToCart } = useCart();
-    const baseProductDetails = getLocalProduct(params.productID);
+    const productQuery=useQuery<ProdutosDTO>({queryKey:['produto',params.productID],queryFn:async()=>(await api.get(`/produto/${params.productID}`)).data});
+    const baseProductDetails=productQuery.data;
     const productDetails = useMemo(() => {
         if (!baseProductDetails) return undefined;
 
@@ -68,7 +72,7 @@ export default function ProductorDetails({ params }: Props) {
             }),
         };
     }, [baseProductDetails, ingredientReplacements]);
-    const isPending = false;
+    const isPending = productQuery.isPending;
 
 
     function handleRemove(index: number) {
@@ -83,7 +87,7 @@ export default function ProductorDetails({ params }: Props) {
     };
 
     function handleAdicional(item: AdicionaisDTO) {
-        const adicionalID = parseInt(item.id)
+        const adicionalID = item.id
         const checked = !!addSelectedItems[adicionalID];
         const selectedAdditionalCount = Object.values(addSelectedItems).filter(Boolean).length;
 
@@ -114,14 +118,14 @@ export default function ProductorDetails({ params }: Props) {
     }
 
 
-    function handleAddItem() {
+    async function handleAddItem() {
         if (!productDetails) {
             toast.error('Produto não encontrado.');
             return;
         }
 
-        addItemToCart(productDetails, countProduct, obs);
-        toast.success('Item selecionado para o novo cardápio.');
+        try{await addItemToCart(productDetails,countProduct,obs,{adicionais:productDetails.adicionais.filter(a=>addSelectedItems[a.id]).map(a=>a.id),ingredientes:productDetails.ingredientes.filter((_,index)=>!removeSelectedItems[index]).map(i=>i.id),substituicoes:productDetails.ingredientes.filter((i,index)=>removeSelectedItems[index]&&i.replace).map(i=>({removerId:i.id,adicionarId:i.replace!.id}))});}catch{return;}
+        toast.success('Item adicionado ao carrinho.');
         router.push('/');
     }
 
@@ -261,7 +265,7 @@ export default function ProductorDetails({ params }: Props) {
                         </div>
                         <div className='bg-white p-4 flex flex-col gap-5'>
                             {productDetails?.adicionais?.map((item) => {
-                                const adicionalID = parseInt(item.id)
+                                const adicionalID = item.id
                                 return (
                                     <div key={adicionalID} className={`flex items-center gap-2 text-sm ${addSelectedItems[adicionalID] && 'text-emerald-600'}`} onClick={() => handleAdicional(item)}>
                                         <Checkbox variant='add' checked={!!addSelectedItems[adicionalID]} />

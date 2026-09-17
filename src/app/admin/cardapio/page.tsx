@@ -1,4 +1,5 @@
 'use client'
+import {useCatalogoAdmin} from '@/hook/useAdminData';
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -901,7 +902,7 @@ function MenuCategoryCard({
 
 export default function MenuManagerPage() {
     const router = useRouter();
-    const [categories, setCategories] = React.useState(initialCategories);
+    const {categories,setCategories,isLoading:loadingCatalog,error:catalogError,refetch}=useCatalogoAdmin();
     const [categoriesHydrated, setCategoriesHydrated] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [expandedCategoryIds, setExpandedCategoryIds] = React.useState<string[]>(['promo']);
@@ -931,36 +932,6 @@ export default function MenuManagerPage() {
         () => categories.find((category) => category.id === newProductCategoryId) ?? null,
         [categories, newProductCategoryId]
     );
-
-    React.useEffect(() => {
-        try {
-            const storedCategories = window.localStorage.getItem(ADMIN_CATEGORIES_STORAGE_KEY);
-
-            if (storedCategories) {
-                const parsedCategories = JSON.parse(storedCategories) as AdminMenuCategory[];
-
-                if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
-                    setCategories(hydrateProductClassifications(parsedCategories));
-                }
-            }
-        } catch {
-            toast.error('Não foi possível carregar o cardápio salvo neste navegador.');
-        } finally {
-            setCategoriesHydrated(true);
-        }
-    }, []);
-
-    React.useEffect(() => {
-        if (!categoriesHydrated) {
-            return;
-        }
-
-        try {
-            window.localStorage.setItem(ADMIN_CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
-        } catch {
-            toast.error('Não foi possível salvar o cardápio neste navegador.');
-        }
-    }, [categories, categoriesHydrated]);
 
     const filteredCategories = React.useMemo(() => {
         if (!normalizedSearch) {
@@ -1449,6 +1420,9 @@ export default function MenuManagerPage() {
             description: title,
         });
     };
+
+    if (loadingCatalog) return <main className="p-6" role="status">Carregando dados…</main>;
+    if (catalogError) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
 
     return (
         <main className="min-h-[calc(100vh-61px)] bg-[#f3f5f8] p-3">

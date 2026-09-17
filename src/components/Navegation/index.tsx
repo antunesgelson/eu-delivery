@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 import { CategoriaCardapioDTO } from "@/dto/cardapioDTO";
-import { localCategorias } from "@/data/menu";
+import { useCardapio } from "@/hook/useLoja";
 import useCart from "@/hook/useCart";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -47,7 +47,7 @@ export default function Navegation({
         }
     };
 
-    const cardapio = localCategorias;
+    const cardapio=(useCardapio().data??[]).map(c=>({id:String(c.id),titulo:c.titulo}));
     const handleCancelSearch = () => {
         onSearchTermChange('');
         onSearchOpenChange(false);

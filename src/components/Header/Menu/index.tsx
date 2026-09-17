@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 import useAuth from "@/hook/useAuth";
-import { signOut } from "next-auth/react";
+import { useAuth as useSessao } from "@/context/Auth";
 import { deleteClientCookie } from '@/utils/cookies';
 
 import { BiSolidFoodMenu } from "react-icons/bi";
@@ -21,7 +21,7 @@ import { HiHome } from "react-icons/hi";
 import { PiListChecksFill } from "react-icons/pi";
 
 import { CardapioDTO } from "@/dto/cardapioDTO";
-import { localCardapio } from "@/data/menu";
+import { useCardapio } from "@/hook/useLoja";
 
 type Props = {
     open: boolean
@@ -30,6 +30,7 @@ type Props = {
 export function Menu({ onClose, open }: Props) {
     const pathname = usePathname()
     const { isAuthenticated } = useAuth();
+    const { sair } = useSessao();
     const { setSelectedItemId } = useCart();
 
 
@@ -49,10 +50,10 @@ export function Menu({ onClose, open }: Props) {
 
     async function handleSignOut() {
         deleteClientCookie("@eu:token");
-        await signOut();
+        await sair();
     }
 
-    const data = localCardapio;
+    const data = useCardapio().data??[];
 
 
     React.useEffect(() => {

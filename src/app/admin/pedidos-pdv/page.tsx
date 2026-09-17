@@ -1,4 +1,5 @@
 'use client'
+import { dataDaLoja, datasAtendimento, useHorarios } from '@/hook/useAgendamento';
 
 import Image from "next/image";
 import React from "react";
@@ -21,7 +22,9 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { localCardapio } from "@/data/menu";
+import { useCardapio } from '@/hook/useLoja';
+import { api,mostrarErro } from '@/service/api';
+import { useQuery,useMutation,useQueryClient } from '@tanstack/react-query';
 import { cn } from "@/lib/utils";
 import {
     FaArrowTrendUp,
@@ -54,7 +57,7 @@ type PosProduct = {
     id: number;
     title: string;
     description: string;
-    categoryId: number;
+    categoryId: string;
     categoryTitle: string;
     price: number;
     image: string;
@@ -88,36 +91,6 @@ type PdvModal = 'fulfillment' | 'adjustment' | null;
 
 const PROMOTION_SECTION_ID = 'promocao';
 
-const products: PosProduct[] = localCardapio.flatMap((category) => (
-    category.produtos.map((product, productIndex) => ({
-        id: product.id,
-        title: product.titulo,
-        description: product.descricao,
-        categoryId: category.id,
-        categoryTitle: category.titulo,
-        price: Number(product.valor),
-        image: product.imgs?.[0]?.Location ?? '',
-        soldOut: product.titulo.toLowerCase().includes('meio frango') || productIndex === 0 && category.id === 2,
-        promotional: category.id === 1 && productIndex === 0,
-    }))
-));
-
-const menuSections: MenuSection[] = [
-    {
-        id: PROMOTION_SECTION_ID,
-        title: 'Promoção',
-        productIds: products.filter((product) => product.promotional).map((product) => product.id),
-        featured: true,
-    },
-    ...localCardapio.map((category) => ({
-        id: String(category.id),
-        title: category.titulo,
-        productIds: products
-            .filter((product) => product.categoryId === category.id && !product.promotional)
-            .map((product) => product.id),
-    })),
-].filter((section) => section.productIds.length > 0);
-
 const paymentLabels: Record<PaymentMethod, string> = {
     pix: 'Pix',
     cash: 'Dinheiro',
@@ -147,13 +120,6 @@ const adjustmentTypesByDirection: Record<AdjustmentDirection, AdjustmentType[]> 
     discount: ['fixed', 'percent', 'coupon', 'cashback'],
     addition: ['fixed', 'percent'],
 };
-
-const scheduledPickupDayOptions: Array<{ value: ScheduledPickupDay; title: string }> = [
-    { value: 'saturday', title: 'Sábado' },
-    { value: 'sunday', title: 'Domingo' },
-];
-
-const scheduledPickupTimes = ['11:30', '12:00', '12:30'];
 
 function formatPickupDate(date: Date) {
     return new Intl.DateTimeFormat('pt-BR', {
@@ -562,6 +528,19 @@ function AdjustmentRadio({
 }
 
 export default function PedidosPdvPage() {
+    const menu=useCardapio(),queryClient=useQueryClient();
+    const products:PosProduct[]=React.useMemo(()=>(menu.data??[]).flatMap(c=>c.produtos.map(p=>({id:p.id,title:p.titulo,description:p.descricao,categoryId:String(c.id),categoryTitle:c.titulo,price:Number(p.valor),image:p.imgs?.[0]?.Location??'',soldOut:Boolean((p as any).esgotado),promotional:p.valorPromocional>0}))),[menu.data]);
+    const menuSections:MenuSection[]=React.useMemo(()=>(menu.data??[]).map(c=>({id:String(c.id),title:c.titulo,productIds:c.produtos.map(p=>p.id)})),[menu.data]);
+    const draftQuery=useQuery<any[]>({queryKey:['pdv-rascunhos'],queryFn:async()=>(await api.get('/admin/pdv/rascunhos')).data});
+    const [draftOpen,setDraftOpen]=React.useState(false);
+    const [deliveryAddress,setDeliveryAddress]=React.useState({apelido:'Entrega PDV',rua:'',numero:'',bairro:'',cep:'',complemento:'',referencia:''});
+    const configs=useQuery<any[]>({queryKey:['configuracao'],queryFn:async()=>(await api.get('/configuracao')).data});
+    const deliveryConfig=(()=>{try{return JSON.parse(configs.data?.find(c=>c.chave==='ENTREGA')?.valor??'{}');}catch{return {};}})();
+    const [split,setSplit]=React.useState({cash:'',card:'',pix:''});
+    const orderKey=React.useRef(crypto.randomUUID());
+    const createOrder=useMutation({mutationFn:async(payload:any)=>(await api.post('/admin/pdv',payload,{headers:{'Idempotency-Key':orderKey.current}})).data});
+    const saveDraft=useMutation({mutationFn:async(dados:any)=>api.post('/admin/pdv/rascunhos',{dados}),onSuccess:()=>{void draftQuery.refetch();toast.success('Rascunho salvo.');},onError:mostrarErro});
+    const deleteDraft=useMutation({mutationFn:async(id:number)=>api.delete(`/admin/pdv/rascunhos/${id}`),onSuccess:()=>{void draftQuery.refetch();},onError:mostrarErro});
     const [search, setSearch] = React.useState('');
     const [selectedProductId, setSelectedProductId] = React.useState<number | null>(null);
     const [activeSectionId, setActiveSectionId] = React.useState<string | null>(null);
@@ -576,7 +555,7 @@ export default function PedidosPdvPage() {
     const [paymentStatus, setPaymentStatus] = React.useState<PaymentStatus>('pending');
     const [fulfillmentMethod, setFulfillmentMethod] = React.useState<FulfillmentMethod>('retirada');
     const [pickupScheduled, setPickupScheduled] = React.useState(false);
-    const [scheduledDay, setScheduledDay] = React.useState<ScheduledPickupDay | ''>('');
+    const [scheduledDay, setScheduledDay] = React.useState('');
     const [scheduledTime, setScheduledTime] = React.useState('');
     const [priceAdjustment, setPriceAdjustment] = React.useState(0);
     const [adjustmentDirection, setAdjustmentDirection] = React.useState<AdjustmentDirection>('discount');
@@ -584,14 +563,18 @@ export default function PedidosPdvPage() {
     const [adjustmentAmount, setAdjustmentAmount] = React.useState('');
     const [activeModal, setActiveModal] = React.useState<PdvModal>(null);
     const [paymentSheetOpen, setPaymentSheetOpen] = React.useState(false);
-    const [drafts, setDrafts] = React.useState(0);
+    const drafts=draftQuery.data?.length??0;
 
     const selectedProduct = React.useMemo(
         () => products.find((product) => product.id === selectedProductId) ?? null,
-        [selectedProductId]
+        [selectedProductId,products]
     );
 
-    const upcomingWeekendDates = React.useMemo(() => getUpcomingWeekendDates(), []);
+    const scheduledPickupDayOptions = React.useMemo(() => datasAtendimento(configs.data), [configs.data]);
+    const scheduleQuery = useHorarios(scheduledDay, pickupScheduled);
+    const scheduledPickupTimes = (scheduleQuery.data ?? []).filter(s => s.disponivel).map(s => s.horario);
+    const [generating, setGenerating] = React.useState(false);
+    const generatingRef = React.useRef(false);
 
     const filteredProducts = React.useMemo(() => {
         const normalizedSearch = search.trim().toLowerCase();
@@ -602,7 +585,7 @@ export default function PedidosPdvPage() {
                 || product.description.toLowerCase().includes(normalizedSearch)
                 || product.categoryTitle.toLowerCase().includes(normalizedSearch)
         ));
-    }, [search]);
+    }, [search,products]);
 
     const visibleGroups = React.useMemo(() => {
         return menuSections
@@ -611,10 +594,10 @@ export default function PedidosPdvPage() {
                 products: filteredProducts.filter((product) => section.productIds.includes(product.id)),
             }))
             .filter((section) => section.products.length > 0);
-    }, [filteredProducts]);
+    }, [filteredProducts,menuSections]);
 
     const subtotal = orderItems.reduce((totalValue, item) => totalValue + item.price * item.quantity, 0);
-    const deliveryFee = 0;
+    const deliveryFee=fulfillmentMethod==='entrega'?Number(deliveryConfig.taxa??0):0;
     const total = Math.max(0, subtotal + deliveryFee + priceAdjustment);
     const paymentLabel = paymentMethod ? paymentLabels[paymentMethod] : 'Pagamento';
     const paymentButtonLabel = paymentMethod
@@ -624,7 +607,7 @@ export default function PedidosPdvPage() {
     const scheduledDayLabel = scheduledDay
         ? scheduledPickupDayOptions.find((day) => day.value === scheduledDay)?.title
         : null;
-    const scheduledDateLabel = scheduledDay ? upcomingWeekendDates[scheduledDay] : null;
+    const scheduledDateLabel = scheduledDay ? scheduledPickupDayOptions.find(d => d.value === scheduledDay)?.label : null;
 
     function handleNavigateSection(sectionId: string) {
         setActiveSectionId(sectionId);
@@ -687,34 +670,25 @@ export default function PedidosPdvPage() {
         ));
     }
 
-    function handleGenerateOrder() {
-        if (!orderItems.length) {
-            toast.error('Adicione pelo menos um item.');
-            return;
-        }
-
-        toast.success('Pedido PDV gerado.');
-        setOrderItems([]);
-        setClientPhone('');
-        setClientName('');
-        setOrderNote('');
-        setSelectedProductId(null);
-        setPaymentMethod(null);
-        setPaymentStatus('pending');
-        setFulfillmentMethod('retirada');
-        setPickupScheduled(false);
-        setScheduledDay('');
-        setScheduledTime('');
-        setPriceAdjustment(0);
-        setAdjustmentDirection('discount');
-        setAdjustmentType('fixed');
-        setAdjustmentAmount('');
+    function draftData(){return {orderItems,clientPhone,clientName,orderNote,paymentMethod,paymentStatus,fulfillmentMethod,pickupScheduled,scheduledDay,scheduledTime,priceAdjustment,adjustmentDirection,adjustmentType,adjustmentAmount,split,deliveryAddress};}
+    function restoreDraft(d:any){setOrderItems(d.orderItems??[]);setClientPhone(d.clientPhone??'');setClientName(d.clientName??'');setOrderNote(d.orderNote??'');setPaymentMethod(d.paymentMethod??null);setPaymentStatus(d.paymentStatus??'pending');setFulfillmentMethod(d.fulfillmentMethod??'retirada');setPickupScheduled(d.pickupScheduled??false);setScheduledDay(d.scheduledDay??'');setScheduledTime(d.scheduledTime??'');setPriceAdjustment(d.priceAdjustment??0);setAdjustmentDirection(d.adjustmentDirection??'discount');setAdjustmentType(d.adjustmentType??'fixed');setAdjustmentAmount(d.adjustmentAmount??'');setSplit(d.split??{cash:'',card:'',pix:''});orderKey.current=crypto.randomUUID();setDeliveryAddress(d.deliveryAddress??{apelido:'Entrega PDV',rua:'',numero:'',bairro:'',cep:'',complemento:'',referencia:''});setDraftOpen(false);}
+    async function handleGenerateOrder(){
+      if(generatingRef.current)return;
+      if(!orderItems.length||!clientName.trim()||clientPhone.replace(/\D/g,'').length<10||!paymentMethod){toast.error('Preencha cliente, telefone, itens e pagamento.');return;}
+      generatingRef.current=true;setGenerating(true);
+      try{
+       const customer=(await api.post('/admin/clientes',{nome:clientName.trim(),tel:'55'+clientPhone.replace(/\D/g,'')})).data;
+       if(pickupScheduled && (!scheduledDay || !scheduledTime)){toast.error('Escolha dia e horário.');return;}
+       const day=pickupScheduled?scheduledDay:dataDaLoja();
+       const slots=(await api.get(`/pedido/horarios/${day}`)).data;
+       const slot=slots.find((s:any)=>s.disponivel&&(!pickupScheduled||s.horario===scheduledTime));
+       if(!slot){toast.error('Não há horário disponível. Agende a retirada para outro dia.');return;}
+       const payments=paymentMethod==='split'?Object.entries(split).filter(([,v])=>Number(v)>0).map(([method,v])=>({metodo:method,valor:Number(v)})):undefined;
+       const payload={clienteId:customer.id,itens:orderItems.map(i=>({produtoId:i.productId,quantidade:i.quantity,obs:i.note})),dataEntrega:slot.data,canal:fulfillmentMethod,formaPagamento:paymentMethod==='cash'?'Pagamento na Entrega - Dinheiro':paymentMethod==='pix'?'Pagamento na Entrega - Pix':paymentMethod==='split'?'Pagamento na Entrega - Dividido':'Pagamento na Entrega - Cartão',pagamentoStatus:paymentStatus,obs:orderNote,ajuste:['fixed','percent'].includes(adjustmentType)?Math.round(priceAdjustment*100)/100:0,cupom:adjustmentType==='coupon'?adjustmentAmount.trim().toUpperCase():undefined,cashBack:adjustmentType==='cashback'?Number(adjustmentAmount.replace(',','.')):undefined,pagamentos:payments,endereco:fulfillmentMethod==='entrega'?{...deliveryAddress,cep:deliveryAddress.cep.replace(/\D/g,'')}:undefined};
+       const order=await createOrder.mutateAsync(payload);orderKey.current=crypto.randomUUID();toast.success(`Pedido #${order.id} criado — ${formatCurrency(order.valorFinal)}.`);setOrderItems([]);setPriceAdjustment(0);setAdjustmentAmount('');await Promise.all(['operacao','pedidos','cardapio'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
+      }catch(e){mostrarErro(e);}finally{generatingRef.current=false;setGenerating(false);}
     }
-
-    function handleSaveDraft() {
-        setDrafts((currentDrafts) => currentDrafts + 1);
-        toast.success('Rascunho salvo.');
-    }
+    function handleSaveDraft(){if(!orderItems.length){setDraftOpen(true);return;}saveDraft.mutate(draftData());}
 
     const openOrderNoteModal = React.useCallback(() => {
         setOrderNoteDraft(orderNote);
@@ -727,6 +701,7 @@ export default function PedidosPdvPage() {
     }
 
     function handleApplyAdjustment() {
+        if(adjustmentType==='coupon'){setPriceAdjustment(0);setActiveModal(null);toast.info('O cupom será validado e calculado ao gerar o pedido.');return;}
         const parsedAmount = Number(adjustmentAmount.replace(',', '.'));
 
         if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -931,7 +906,7 @@ export default function PedidosPdvPage() {
                         <div className="flex h-[48px] items-center justify-between gap-1.5 px-2">
                             <button
                                 type="button"
-                                onClick={handleSaveDraft}
+                                onClick={()=>setDraftOpen(true)}
                                 className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-[#0b98f6] bg-[#eff8ff] px-2 text-[11px] font-extrabold text-[#0b86df] hover:bg-[#e2f3ff]"
                             >
                                 <FaBookmark size={12} />
@@ -1053,7 +1028,7 @@ export default function PedidosPdvPage() {
                                     <span>Subtotal</span>
                                     <strong>{formatCurrency(subtotal)}</strong>
                                 </div>
-                                {fulfillmentMethod === 'retirada' && pickupScheduled && scheduledDayLabel && scheduledDateLabel && (
+                                {pickupScheduled && scheduledDayLabel && scheduledDateLabel && (
                                     <div className="mt-1 flex items-center justify-between gap-3 text-[10px] font-bold text-[#8a94a2]">
                                         <span>Agendado</span>
                                         <span className="truncate text-right">
@@ -1151,6 +1126,7 @@ export default function PedidosPdvPage() {
                             <div className="grid grid-cols-[1fr_52px] gap-2 pt-0.5">
                                 <button
                                     type="button"
+                                    disabled={generating}
                                     onClick={handleGenerateOrder}
                                     className={cn(
                                         "flex h-11 items-center justify-center gap-1.5 rounded-md text-[14px] font-extrabold text-white shadow-sm transition",
@@ -1240,6 +1216,7 @@ export default function PedidosPdvPage() {
                             />
                         </div>
 
+                        {paymentMethod==='split'&&<div className="mt-3 grid grid-cols-3 gap-2">{(['cash','card','pix'] as const).map(method=><label key={method} className="text-xs">{paymentLabels[method]}<input aria-label={`Valor ${paymentLabels[method]}`} type="number" min="0" step="0.01" className="mt-1 w-full rounded border p-2" value={split[method]} onChange={e=>setSplit({...split,[method]:e.target.value})}/></label>)}</div>}
                         <div className="mt-5 rounded-md border border-[#d8dde3] bg-[#f8fafc] p-3">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
@@ -1523,7 +1500,7 @@ export default function PedidosPdvPage() {
                                         </div>
                                     )}
 
-                                    {fulfillmentMethod === 'retirada' && (
+                                    {(
                                         <div className="rounded-md border border-[#d8dde3] bg-[#f8fafc] p-3">
                                             <div className="flex items-center justify-between gap-3">
                                                 <div>
@@ -1552,10 +1529,10 @@ export default function PedidosPdvPage() {
                                                     <div>
                                                         <div className="mb-2 flex items-center justify-between gap-3">
                                                             <span className="text-[10px] font-extrabold uppercase text-[#667085]">
-                                                                Dia da retirada
+                                                                Data do pedido
                                                             </span>
                                                             <span className="rounded bg-[#e8f6ff] px-2 py-1 text-[10px] font-extrabold text-[#0b86df]">
-                                                                Somente fim de semana
+                                                                Datas de atendimento
                                                             </span>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-2">
@@ -1563,7 +1540,7 @@ export default function PedidosPdvPage() {
                                                                 <button
                                                                     key={day.value}
                                                                     type="button"
-                                                                    onClick={() => setScheduledDay(day.value)}
+                                                                    onClick={() => { setScheduledDay(day.value); setScheduledTime(''); }}
                                                                     aria-pressed={scheduledDay === day.value}
                                                                     className={cn(
                                                                         "rounded-md border bg-white p-3 text-left transition hover:border-[#0b98f6] hover:bg-[#f7fbff]",
@@ -1582,13 +1559,13 @@ export default function PedidosPdvPage() {
                                                                         "mt-1 block text-[16px] font-extrabold leading-5 text-[#0b86df]",
                                                                         scheduledDay === day.value && "text-white"
                                                                     )}>
-                                                                        {upcomingWeekendDates[day.value]}
+                                                                        {day.label}
                                                                     </span>
                                                                     <span className={cn(
                                                                         "mt-0.5 block text-[10px] font-semibold text-[#667085]",
                                                                         scheduledDay === day.value && "text-white/85"
                                                                     )}>
-                                                                        Retirada no fim de semana
+                                                                        Conforme disponibilidade
                                                                     </span>
                                                                 </button>
                                                             ))}
@@ -1601,10 +1578,13 @@ export default function PedidosPdvPage() {
                                                                 Horário
                                                             </span>
                                                             <span className="rounded bg-[#f2f4f7] px-2 py-1 text-[10px] font-extrabold text-[#667085]">
-                                                                Intervalos de 30 min
+                                                                Horários disponíveis
                                                             </span>
                                                         </div>
                                                         <div className="grid grid-cols-3 gap-2">
+                                                            {scheduleQuery.isFetching && <p role="status">Carregando horários…</p>}
+                                                            {scheduleQuery.isError && <button onClick={() => scheduleQuery.refetch()}>Erro ao carregar horários. Tentar novamente</button>}
+                                                            {scheduledDay && scheduleQuery.isSuccess && !scheduledPickupTimes.length && <p>Nenhum horário disponível. Escolha outra data.</p>}
                                                             {scheduledPickupTimes.map((time) => (
                                                                 <button
                                                                     key={time}
@@ -1651,6 +1631,8 @@ export default function PedidosPdvPage() {
             >
                 <span className="-rotate-90 whitespace-nowrap text-[13px] font-extrabold">Enviar sugestão</span>
             </button>
+        {fulfillmentMethod==='entrega'&&<section className="fixed bottom-4 left-4 z-30 w-80 rounded-md border bg-white p-4 shadow-xl"><h2 className="font-bold">Endereço de entrega</h2><p className="text-xs">Taxa: {formatCurrency(deliveryFee)}</p>{(['rua','numero','bairro','cep','complemento','referencia'] as const).map(key=><label key={key} className="mt-1 block text-xs capitalize">{key}<input className="block w-full rounded border p-1" value={deliveryAddress[key]} onChange={e=>setDeliveryAddress({...deliveryAddress,[key]:e.target.value})}/></label>)}</section>}
+        <Dialog open={draftOpen} onOpenChange={setDraftOpen}><DialogContent><DialogHeader><DialogTitle>Rascunhos do PDV</DialogTitle><DialogDescription>Rascunhos não reservam estoque. Preços e disponibilidade serão validados ao gerar o pedido.</DialogDescription></DialogHeader><div className="max-h-80 space-y-2 overflow-y-auto">{!drafts&&<p>Nenhum rascunho salvo.</p>}{draftQuery.data?.map(d=><div key={d.id} className="flex items-center gap-2 rounded border p-2"><span className="flex-1">#{d.id} — {d.dados.clientName||'Sem cliente'}</span><button onClick={()=>restoreDraft(d.dados)}>Abrir</button><button onClick={()=>deleteDraft.mutate(d.id)}>Excluir</button></div>)}</div></DialogContent></Dialog>
         </main>
     );
 }

@@ -1,7 +1,9 @@
 'use client'
+import {useSearchParams} from 'next/navigation';
+import {Suspense} from 'react';
 import React from "react";
 
-import { useSession } from "next-auth/react";
+import useAuth from "@/hook/useAuth";
 import { useRouter } from "next/navigation";
 
 import Navegation from "@/components/Navegation";
@@ -19,8 +21,8 @@ import {
 import { toast } from "sonner";
 
 import { CardapioDTO } from "@/dto/cardapioDTO";
-import { localCardapio } from "@/data/menu";
-import { promoNotificationCount } from "@/data/promos";
+import { useCardapio, useBeneficios } from "@/hook/useLoja";
+
 
 import useCart from "@/hook/useCart";
 import { FaRegClock } from "react-icons/fa";
@@ -39,14 +41,15 @@ function normalizeSearchValue(value: string) {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-export default function Home({ searchParams }: Props) {
+function HomeContent() {
+ const search=useSearchParams();const searchParams=React.useMemo(()=>Object.fromEntries(search.entries()),[search]);
   const router = useRouter();
-  const { data: session } = useSession()
+  const { user } = useAuth(); const session=React.useMemo(()=>user?{user:{name:user.nome}}:null,[user]);
   const { cart, configData } = useCart();
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
   const userName = session?.user?.name ? session?.user?.name : 'Visitante'
-  const cardapio = localCardapio;
+  const menuQuery=useCardapio(); const cardapio=React.useMemo(()=>menuQuery.data??[],[menuQuery.data]); const {promoNotificationCount}=useBeneficios();
   const featuredProducts = cardapio.flatMap((categoria) => categoria.produtos).slice(0, 4);
   const cartItemCount = cart?.itens.reduce((total, item) => total + item.quantidade, 0) ?? 0;
   const cashbackPercent = configData?.find((item: any) => item.chave.toUpperCase() === 'CASHBACK')?.valor ?? '3';
@@ -81,7 +84,7 @@ export default function Home({ searchParams }: Props) {
     if (searchParams?.firstLogin) {
       setTimeout(() => {
         toast.success(`Bem-Vindo(a) ${userName} 🥰`, {
-          description: "Estamos felizes em tê-lo conosco! Para aproveitar ao máximo nossos serviços, conecte-se ao Google Calendário e receba notificações de entrega diretamente em sua agenda.",
+          description: "Acompanhe seus pedidos e benefícios pela sua conta.",
           descriptionClassName: 'text-muted-foreground text-[11px]',
           actionButtonStyle: { backgroundColor: '#141414', color: '#fff' },
           duration: 9000, // Duração da notificação em milissegundos
@@ -108,10 +111,10 @@ export default function Home({ searchParams }: Props) {
       <section className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-b bg-white px-4 py-3 text-[11px] text-dark-500 lg:mx-auto lg:w-6/12">
         <div className="flex min-w-0 items-center gap-2">
           <FaRegClock className="shrink-0 text-[#f97316]" />
-          <span className="truncate">A partir das 11h30</span>
+          <span className="truncate">Consulte os horários no checkout</span>
         </div>
         <div className="flex items-center gap-2 text-right">
-          <span className="whitespace-nowrap">Mín. R$ 35,00</span>
+          <span className="whitespace-nowrap">Mín. {Number(configData.find(c => c.chave === 'PEDIDOMINIMO')?.valor ?? 35).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
           <FaStore className="shrink-0 text-[#f97316]" />
         </div>
       </section>
@@ -134,6 +137,9 @@ export default function Home({ searchParams }: Props) {
         </Link>
       </section>
 
+      {menuQuery.isPending && <p role="status" className="p-4">Carregando cardápio…</p>}
+      {menuQuery.isError && <p role="alert" className="p-4">Não foi possível carregar o cardápio. <button onClick={()=>menuQuery.refetch()}>Tentar novamente</button></p>}
+      {!menuQuery.isPending && !menuQuery.isError && !cardapio.length && <p className="p-4">Cardápio ainda não disponível.</p>}
       <Navegation
         isSearchOpen={isSearchOpen}
         searchTerm={searchTerm}
@@ -196,3 +202,5 @@ export default function Home({ searchParams }: Props) {
     </main>
   );
 }
+
+export default function Home(){return <Suspense fallback={<p>Carregando cardápio…</p>}><HomeContent/></Suspense>;}

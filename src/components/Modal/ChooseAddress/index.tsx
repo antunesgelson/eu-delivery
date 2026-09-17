@@ -9,7 +9,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import Link from "next/link";
+import {useQuery} from "@tanstack/react-query";
+import {api} from "@/service/api";
+import {AddressDTO} from "@/dto/addressDTO";
 import { STORE_PICKUP_ADDRESS } from "@/data/store";
+import { lerConfiguracao } from "@/hook/useAgendamento";
 import useCart from "@/hook/useCart";
 import { toast } from "sonner";
 import { FaCheckCircle } from "react-icons/fa";
@@ -21,10 +26,13 @@ type Props = {
 }
 
 export function ModalChooseAdress({ open, onClose }: Props) {
-    const { choosePickupLocation } = useCart();
+    const { choosePickupLocation,chooseDeliveryAddress,configData,isPending,cart } = useCart();
+    const addresses=useQuery<AddressDTO[]>({queryKey:['deliveryaddress-list'],queryFn:async()=>(await api.get('/endereco/todos')).data,enabled:open});
+    const pickupAddress = lerConfiguracao(configData, 'ENDERECO', STORE_PICKUP_ADDRESS);
+    const delivery=(()=>{try{return JSON.parse(configData.find(c=>c.chave==='ENTREGA')?.valor??'{}');}catch{return {};}})();
 
-    const handleChoosePickup = () => {
-        choosePickupLocation();
+    const handleChoosePickup = async () => {
+        try{await choosePickupLocation();}catch{return;}
         onClose();
         toast.success('Retirada no local selecionada.');
     };
@@ -37,13 +45,13 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                         Como quer receber seu pedido?
                     </DialogTitle>
                     <DialogDescription className="text-[12px] leading-4 text-dark-500">
-                        No momento trabalhamos apenas com retirada no estabelecimento.
+                        Escolha retirada gratuita ou entrega na área atendida.
                     </DialogDescription>
                 </DialogHeader>
 
                 <button
                     type="button"
-                    onClick={handleChoosePickup}
+                    disabled={isPending} onClick={handleChoosePickup}
                     className="mt-2 w-full rounded-md border-2 border-emerald-500 bg-white p-4 text-left"
                 >
                     <div className="grid grid-cols-[32px_1fr_28px] items-center gap-3">
@@ -54,22 +62,23 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                             </strong>
                             <span className="mt-1 flex items-start gap-1 text-[12px] leading-4 text-dark-500">
                                 <FaMapLocationDot className="mt-0.5 shrink-0 text-[#f97316]" />
-                                {STORE_PICKUP_ADDRESS.rua}, {STORE_PICKUP_ADDRESS.numero}
+                                {pickupAddress.rua}, {pickupAddress.numero}
                             </span>
                             <span className="block text-[12px] leading-4 text-dark-500">
-                                {STORE_PICKUP_ADDRESS.bairro}
+                                {pickupAddress.bairro}
                             </span>
                         </div>
-                        <FaCheckCircle className="text-emerald-500" size={24} />
+                        {cart?.tipoRecebimento === 'pickup' && <FaCheckCircle className="text-emerald-500" size={24} />}
                     </div>
                 </button>
 
+                {delivery.habilitada&&<section className="space-y-2"><h3 className="font-bold">Entrega — {Number(delivery.taxa).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</h3><p className="text-xs">CEPs: {delivery.faixasCep?.map((f:any)=>f.inicio===f.fim?f.inicio:`${f.inicio} a ${f.fim}`).join(', ')}{delivery.bairros?.join(', ')}</p>{addresses.isPending&&<p>Carregando endereços…</p>}{addresses.isError&&<button onClick={()=>addresses.refetch()}>Tentar carregar endereços novamente</button>}<div className="max-h-40 space-y-2 overflow-y-auto">{addresses.data?.map(a=><button disabled={isPending} key={a.id} className="w-full rounded border p-3 text-left text-sm" onClick={async()=>{try{await chooseDeliveryAddress(a.id);onClose();toast.success('Endereço de entrega selecionado.');}catch{}}}>{a.apelido}: {a.rua}, {a.numero} — {a.cep}</button>)}</div><Link href="/deliveryaddress/add" className="block text-sm font-bold text-orange-600">Cadastrar endereço</Link></section>}
                 <DialogFooter>
                     <Button
                         type="button"
                         variant="success"
                         className="h-11 w-full text-[14px] font-extrabold"
-                        onClick={handleChoosePickup}
+                        disabled={isPending} onClick={handleChoosePickup}
                     >
                         Confirmar retirada
                     </Button>

@@ -1,4 +1,6 @@
 'use client'
+import {useQuery} from '@tanstack/react-query';
+import {api} from '@/service/api';
 import useCart from "@/hook/useCart";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -12,7 +14,7 @@ type PaymentTab = 'delivery' | 'online';
 const PAYMENT_GROUPS = {
     delivery: {
         label: 'Pagamento na Entrega',
-        description: 'Pague no momento da retirada.',
+        description: 'Pague no recebimento do pedido.',
         options: [
             {
                 title: 'Dinheiro',
@@ -26,7 +28,7 @@ const PAYMENT_GROUPS = {
     },
     online: {
         label: 'Pagamento online',
-        description: 'Pague agora para agilizar a retirada.',
+        description: 'Pague agora para agilizar o recebimento.',
         options: [
             {
                 title: 'Pix',
@@ -48,17 +50,18 @@ const PAYMENT_GROUPS = {
 }>;
 
 export default function FormOfPayment() {
+    const methods=useQuery({queryKey:['pagamento-metodos'],queryFn:async()=>(await api.get('/pagamento/metodos')).data});
     const [activeTab, setActiveTab] = useState<PaymentTab>('delivery');
     const [checked, setChecked] = useState<string | null>(null);
     const router = useRouter();
-    const { setPaymentMethod } = useCart();
+    const { setPaymentMethod, isPending } = useCart();
 
     const currentGroup = PAYMENT_GROUPS[activeTab];
 
-    const handleChoosePayment = (paymentTitle: string) => {
+    const handleChoosePayment = async (paymentTitle: string) => {
         const paymentLabel = `${currentGroup.label} - ${paymentTitle}`;
         setChecked(paymentLabel);
-        setPaymentMethod(paymentLabel);
+        try { await setPaymentMethod(paymentLabel); } catch { setChecked(null); return; }
         toast.success('Forma de pagamento selecionada.');
         router.replace('/checkout');
     };
@@ -75,7 +78,7 @@ export default function FormOfPayment() {
 
             <section className="px-4 pb-4">
                 <div className="grid grid-cols-2 rounded-md border bg-white p-1 text-[12px] font-extrabold">
-                    {(Object.keys(PAYMENT_GROUPS) as PaymentTab[]).map((tab) => (
+                    {(Object.keys(PAYMENT_GROUPS) as PaymentTab[]).filter(tab=>tab==='delivery'||methods.data?.online).map((tab) => (
                         <button
                             type="button"
                             key={tab}
@@ -104,7 +107,7 @@ export default function FormOfPayment() {
                         return (
                             <button
                                 type="button"
-                                key={paymentLabel}
+                                key={paymentLabel} disabled={isPending}
                                 className={`flex h-[64px] w-full items-center justify-between rounded-lg border bg-white p-4 text-left duration-300 ${isSelected ? 'border-2 border-emerald-500' : 'border-neutral-200'}`}
                                 onClick={() => handleChoosePayment(item.title)}>
                                 <div className="flex min-w-0 items-center gap-3">
@@ -112,7 +115,7 @@ export default function FormOfPayment() {
                                     <div className="min-w-0 leading-4">
                                         <span className="font-semibold uppercase">{item.title}</span>
                                         <span className="block text-[11px] normal-case text-muted-foreground">
-                                            {activeTab === 'delivery' ? 'Pague ao retirar seu pedido' : 'Pagamento antecipado'}
+                                            {activeTab === 'delivery' ? 'Pague ao receber seu pedido' : 'Pagamento antecipado'}
                                         </span>
                                     </div>
                                 </div>

@@ -1,4 +1,5 @@
 'use client'
+import {useCatalogoAdmin} from '@/hook/useAdminData';
 
 import Image from "next/image";
 import Link from "next/link";
@@ -323,7 +324,7 @@ function NewProductPageContent() {
         return Number.isFinite(parsedProductId) ? parsedProductId : null;
     }, [productIdParam]);
     const isEditingProduct = editingProductId !== null;
-    const [categories, setCategories] = React.useState<AdminMenuCategory[]>([]);
+    const {categories,saveCategories,isLoading:loadingCatalog,error:catalogError,refetch,isPending:savingCatalog}=useCatalogoAdmin();
     const [title, setTitle] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [price, setPrice] = React.useState(0);
@@ -336,25 +337,6 @@ function NewProductPageContent() {
     const [customClassification, setCustomClassification] = React.useState('');
     const [productKind, setProductKind] = React.useState<ProductKind>('simple');
     const [components, setComponents] = React.useState<ProductComponent[]>([]);
-
-    React.useEffect(() => {
-        try {
-            const storedCategories = window.localStorage.getItem(ADMIN_CATEGORIES_STORAGE_KEY);
-
-            if (storedCategories) {
-                const parsedCategories = JSON.parse(storedCategories) as AdminMenuCategory[];
-                if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
-                    setCategories(hydrateProductClassifications(parsedCategories));
-                    return;
-                }
-            }
-
-            setCategories(buildInitialCategories());
-        } catch {
-            setCategories(buildInitialCategories());
-            toast.error('Não foi possível carregar o cardápio salvo neste navegador.');
-        }
-    }, []);
 
     const selectedCategory = React.useMemo(() => {
         if (!categoryId) return null;
@@ -559,7 +541,7 @@ function NewProductPageContent() {
         }
 
         if (file.size > 2 * 1024 * 1024) {
-            toast.error('A imagem deve ter no máximo 2MB para salvar neste painel local.');
+            toast.error('A imagem deve ter no máximo 2MB para salvar no cardápio.');
             event.target.value = '';
             return;
         }
@@ -583,41 +565,7 @@ function NewProductPageContent() {
         reader.readAsDataURL(file);
     };
 
-    const saveCategories = (nextCategories: AdminMenuCategory[], fallbackProduct?: AdminMenuProduct) => {
-        try {
-            window.localStorage.setItem(ADMIN_CATEGORIES_STORAGE_KEY, JSON.stringify(nextCategories));
-            return true;
-        } catch {
-            if (!fallbackProduct) {
-                toast.error('Não foi possível salvar o item neste navegador.');
-                return false;
-            }
-
-            const fallbackCategories = nextCategories.map((category) => (
-                category.id === categoryId
-                    ? {
-                        ...category,
-                        products: category.products.map((product) => (
-                            product.id === fallbackProduct.id
-                                ? { ...product, image: campaignImage }
-                                : product
-                        )),
-                    }
-                    : category
-            ));
-
-            try {
-                window.localStorage.setItem(ADMIN_CATEGORIES_STORAGE_KEY, JSON.stringify(fallbackCategories));
-                toast.error('A imagem era pesada para o armazenamento local. O item foi salvo com imagem padrão.');
-                return true;
-            } catch {
-                toast.error('Não foi possível salvar o item neste navegador.');
-                return false;
-            }
-        }
-    };
-
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         const safeTitle = title.trim();
@@ -704,7 +652,7 @@ function NewProductPageContent() {
                 : category
         ));
 
-        const saved = saveCategories(nextCategories, image ? nextProduct : undefined);
+        const saved = await saveCategories(nextCategories);
 
         if (!saved) return;
 
@@ -713,6 +661,9 @@ function NewProductPageContent() {
         });
         router.push('/admin/cardapio');
     };
+
+    if (loadingCatalog) return <main className="p-6" role="status">Carregando dados…</main>;
+    if (catalogError) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
 
     return (
         <main className="min-h-[calc(100vh-61px)] bg-[#f3f5f8] p-3">
@@ -746,7 +697,7 @@ function NewProductPageContent() {
                                 Cancelar
                             </Button>
                             <Button
-                                type="submit"
+                                type="submit" disabled={savingCatalog}
                                 className="h-10 gap-2 bg-[#f97316] px-5 text-[13px] font-extrabold text-white shadow-sm hover:bg-[#ea580c]"
                             >
                                 <FaFloppyDisk size={13} />

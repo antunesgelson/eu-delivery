@@ -5,7 +5,7 @@ import { ModalChooseAdress } from '@/components/Modal/ChooseAddress';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getCouponDiscount } from "@/data/coupons";
-import { cashbackBalance } from "@/data/promos";
+import { useBeneficios } from "@/hook/useLoja";
 import useCart from "@/hook/useCart";
 import { format, parseISO } from 'date-fns';
 import Link from "next/link";
@@ -40,44 +40,27 @@ function formatSchedule(value?: string | null) {
 }
 
 export default function Checkout() {
+    const {cashbackBalance}=useBeneficios();
     const [openScheduleModal, setOpenScheduleModal] = React.useState(false);
     const [openPickupModal, setOpenPickupModal] = React.useState(false);
     const router = useRouter();
-    const { cart, cupom, sendLocalOrder, setCashbackUsage } = useCart();
+    const { cart, cupom, sendLocalOrder, setCashbackUsage,configData,isPending,isLoading,isError,handleUpdateCart } = useCart();
     const items = React.useMemo(() => cart?.itens ?? [], [cart?.itens]);
     const hasItems = items.length > 0;
     const hasPickup = !!cart?.endereco && Object.keys(cart.endereco).length > 0;
     const hasSchedule = !!cart?.dataEntrega;
     const hasPayment = !!cart?.formaPagamento;
     const total = cart?.valorTotalPedido ?? 0;
-    const couponDiscount = getCouponDiscount(cupom, total);
+    const couponDiscount = cart?.descontoCupom ?? 0;
     const totalAfterCoupon = Math.max(total - couponDiscount, 0);
     const maxCashbackForOrder = Math.min(cashbackBalance, totalAfterCoupon);
     const selectedCashback = Math.min(cart?.cashBack ?? 0, maxCashbackForOrder);
     const isUsingCashback = selectedCashback > 0;
-    const finalTotal = Math.max(totalAfterCoupon - selectedCashback, 0);
+    const finalTotal=cart?.valorFinal??0;
     const hasCoupon = !!cupom;
-    const cashbackValue = hasCoupon ? 0 : finalTotal * 0.03;
+    const cashbackValue = hasCoupon ? 0 : finalTotal * Number(configData.find(c=>c.chave==='CASHBACK')?.valor??3)/100;
 
-    React.useEffect(() => {
-        if (!cart?.cashBack) {
-            return;
-        }
 
-        if (hasCoupon) {
-            setCashbackUsage(0);
-            return;
-        }
-
-        if (!hasItems) {
-            setCashbackUsage(0);
-            return;
-        }
-
-        if (cart.cashBack > maxCashbackForOrder) {
-            setCashbackUsage(maxCashbackForOrder);
-        }
-    }, [cart?.cashBack, hasCoupon, hasItems, maxCashbackForOrder, setCashbackUsage]);
 
     const nextStep = React.useMemo(() => {
         if (!hasItems) {
@@ -85,11 +68,11 @@ export default function Checkout() {
         }
 
         if (!hasPickup) {
-            return { label: 'Escolher retirada', action: () => setOpenPickupModal(true) };
+            return { label: 'Escolher recebimento', action: () => setOpenPickupModal(true) };
         }
 
         if (!hasSchedule) {
-            return { label: 'Agendar retirada', action: () => setOpenScheduleModal(true) };
+            return { label: 'Escolher horário', action: () => setOpenScheduleModal(true) };
         }
 
         if (!hasPayment) {
@@ -98,26 +81,30 @@ export default function Checkout() {
 
         return {
             label: 'Enviar pedido',
-            action: () => {
-                const orderResult = sendLocalOrder();
+            action: async () => {
+                const orderResult = await sendLocalOrder();
 
                 if (!orderResult.ok) {
-                    toast.error('Estoque indisponível para este agendamento.', {
+                    toast.error('Não foi possível enviar o pedido.', {
                         description: orderResult.errors.slice(0, 2).join(' '),
                     });
                     return;
                 }
 
-                router.push('/orderstatus');
+                router.push(`/orderstatus?id=${orderResult.id}`);
             },
         };
     }, [hasItems, hasPayment, hasPickup, hasSchedule, router, sendLocalOrder]);
 
     const pickupAddress = hasPickup ? cart?.endereco : undefined;
 
+    if (isLoading) return <main className="mt-16 p-4" role="status">Carregando carrinho…</main>;
+    if (isError) return <main className="mt-16 p-4" role="alert">Não foi possível carregar o carrinho. <Button onClick={handleUpdateCart}>Tentar novamente</Button></main>;
+
     return (
         <main className="mt-14 min-h-screen bg-[#f7f7f7] pb-28">
             <div className="mx-auto max-w-[430px]">
+                {cart?.tipoRecebimento==='delivery'&&<div className="bg-orange-50 p-4 text-sm font-semibold">Entrega no endereço selecionado • Taxa: {formatCurrency(cart.taxaEntrega)}</div>}
                 <section className="bg-white px-4 py-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                         <div>
@@ -183,7 +170,7 @@ export default function Checkout() {
                                 {!pickupAddress
                                     ? <span className="text-muted-foreground text-sm">Escolha a retirada no local</span>
                                     : <>
-                                        <span className="text-muted-foreground text-sm font-semibold">Retirada no local</span>
+                                        <span className="text-muted-foreground text-sm font-semibold">{cart?.tipoRecebimento==='delivery'?'Entrega no endereço':'Retirada no local'}</span>
                                         <span className="text-muted-foreground text-sm">{pickupAddress.rua}, {pickupAddress.numero}</span>
                                         <span className="text-xs italic text-muted-foreground">{pickupAddress.bairro}</span>
                                     </>
@@ -202,7 +189,7 @@ export default function Checkout() {
                         <MdAccessTimeFilled size={25} className="text-muted-foreground" />
                         <div className="flex w-full items-center justify-between">
                             <div className="ml-3 flex flex-col items-start leading-4">
-                                <span className="font-semibold">Horário de retirada:</span>
+                                <span className="font-semibold">{cart?.tipoRecebimento === 'delivery' ? 'Horário de entrega:' : 'Horário de retirada:'}</span>
                                 <span className="text-muted-foreground text-sm">{formatSchedule(cart?.dataEntrega)}</span>
                             </div>
                             <Button
@@ -261,8 +248,8 @@ export default function Checkout() {
                             </div>
                         )}
                         <div className="flex items-center justify-between">
-                            <span className="text-dark-600">Taxa de retirada</span>
-                            <strong className="text-emerald-600">Grátis</strong>
+                            <span className="text-dark-600">{cart?.tipoRecebimento==='delivery'?'Taxa de entrega':'Taxa de retirada'}</span>
+                            <strong className="text-emerald-600">{cart?.tipoRecebimento==='delivery'?formatCurrency(cart.taxaEntrega):'Grátis'}</strong>
                         </div>
                     </div>
 
@@ -289,6 +276,7 @@ export default function Checkout() {
                         type="button"
                         variant="success"
                         className="flex h-12 w-full justify-between p-2 text-lg"
+                        disabled={isPending}
                         onClick={nextStep.action}>
                         <span className="ml-3 flex items-center gap-2">
                             <IoMdCheckmarkCircleOutline size={25} />
