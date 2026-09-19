@@ -665,6 +665,7 @@ function OrderDetailsModal({
                         </div>
 
                         <div className="flex shrink-0 items-center gap-2">
+                            <EditarAgendamento id={order.id}/>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1458,9 +1459,9 @@ function AdminOrdersDashboardContent() {
     const reportType = normalizeReportType(searchParams.get('report'));
     const queryClient=useQueryClient();
     const operation=useOperacao();
-    const live=useQuery<PedidoAPI[]>({queryKey:['operacao'],queryFn:async()=>{let page=1,items:PedidoAPI[]=[];for(;;){const {data}=await api.get('/admin/pedidos',{params:{page,limit:100,status:'active'}});items.push(...data.items);if(items.length>=data.total)return items;page++;}},refetchInterval:10000});
-    const mapped=(live.data??[]).map(p=>{const dt=new Date(p.dataEntrega??p.created_at);return {id:String(p.id),customer:p.cliente?.nome||'Cliente',phone:p.cliente?.tel||'',status:p.status as OrderStatus,channel:(p.canal==='entrega'?'delivery':p.canal) as OrderChannel,pickupWindow:dt.toLocaleString('pt-BR'),createdAt:new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),paymentMethod:p.formaPagamento??'',paymentStatus:p.pagamentoStatus as PaymentStatus,total:p.valorFinal,subtotal:p.valorTotalPedido,deliveryFee:(p as any).taxaEntrega??0,address:`${p.endereco?.rua??''}, ${p.endereco?.numero??''} — ${p.endereco?.bairro??''}`,items:p.itens.map(i=>({quantity:i.quantidade,name:i.produto.titulo,note:i.obs})),scheduledDay:(dt.getDay()===6?'saturday':'sunday') as ScheduledOrder['scheduledDay'],scheduledDate:dt.toLocaleDateString('en-CA'),scheduledDateLabel:dt.toLocaleDateString('pt-BR'),scheduledWindow:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),scheduledNote:p.obs,placedAt:new Date(p.created_at).toLocaleString('pt-BR')};});
-    const today=new Date().toLocaleDateString('en-CA');
+    const live=useQuery<PedidoAPI[]>({queryKey:['operacao'],retry:false,queryFn:async({signal})=>{let page=1,items:PedidoAPI[]=[];for(;;){const {data}=await api.get('/admin/pedidos',{params:{page,limit:100,status:'active'},signal});items.push(...data.items);if(items.length>=data.total)return items;page++;}},refetchInterval:10000});
+    const mapped=(live.data??[]).map(p=>{const dt=new Date(p.dataEntrega??p.created_at);return {id:String(p.id),customer:p.cliente?.nome||'Cliente',phone:p.cliente?.tel||'',status:p.status as OrderStatus,channel:(p.canal==='entrega'?'delivery':p.canal) as OrderChannel,pickupWindow:dt.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}),createdAt:new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}),paymentMethod:p.formaPagamento??'',paymentStatus:p.pagamentoStatus as PaymentStatus,total:p.valorFinal,subtotal:p.valorTotalPedido,deliveryFee:(p as any).taxaEntrega??0,address:`${p.endereco?.rua??''}, ${p.endereco?.numero??''} — ${p.endereco?.bairro??''}`,items:p.itens.map(i=>({quantity:i.quantidade,name:i.produto.titulo,note:i.obs})),scheduledDay:(dt.toLocaleDateString('en-US',{weekday:'short',timeZone:'America/Sao_Paulo'})==='Sat'?'saturday':'sunday') as ScheduledOrder['scheduledDay'],scheduledDate:dt.toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'}),scheduledDateLabel:dt.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}),scheduledWindow:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}),scheduledNote:p.obs,placedAt:new Date(p.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})};});
+    const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
     const scheduledOrders:ScheduledOrder[]=mapped.filter(p=>p.status==='analysis'&&p.scheduledDate>today);
     const orders:AdminOrder[]=mapped.filter(p=>!scheduledOrders.some(s=>s.id===p.id));
     const change=(id:string,status:string)=>operation.mutate({id,status});
@@ -1543,6 +1544,9 @@ function AdminOrdersDashboardContent() {
         }
     };
 
+    if (!isReportsView && live.isPending) return <main className="p-6" role="status">Carregando pedidos…</main>;
+    if (!isReportsView && live.isError) return <main className="p-6" role="alert"><Button disabled={live.isFetching} onClick={() => void live.refetch()}>Falha ao carregar pedidos. Tentar novamente</Button></main>;
+
     if (isScheduledView) {
         return (
             <>
@@ -1551,7 +1555,7 @@ function AdminOrdersDashboardContent() {
                     searchTerm={scheduledSearchTerm}
                     selectedDay={selectedScheduledDay}
                     selectedDate={selectedScheduledDate}
-                    selectedOrder={selectedScheduledOrder}
+                    selectedOrder={scheduledOrders.find(order => order.id === selectedScheduledOrder?.id) ?? null}
                     onSearchChange={setScheduledSearchTerm}
                     onDayChange={handleScheduledDayChange}
                     onDateChange={handleScheduledDateChange}
@@ -1565,8 +1569,6 @@ function AdminOrdersDashboardContent() {
     }
 
     if (isReportsView) return <AdminReports type={reportType}/>;
-    if(live.isPending)return <main className="p-6">Carregando pedidos…</main>;
-    if(live.isError)return <main className="p-6"><button onClick={()=>live.refetch()}>Falha ao carregar pedidos. Tentar novamente</button></main>;
 
     return (
         <main className="min-h-[calc(100vh-61px)] p-3">

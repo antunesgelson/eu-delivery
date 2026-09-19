@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { refreshRecusado } from "@/lib/session";
 import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
@@ -76,7 +77,11 @@ async function proxy(
         data,
       );
     const result = NextResponse.json(data, { status: response.status });
-    if (path === "auth/logout" || (path === "auth/refresh" && !response.ok))
+    if (
+      path === "auth/logout" ||
+      (path === "auth/redefinir-senha" && response.ok) ||
+      (path === "auth/refresh" && refreshRecusado(response.status))
+    )
       return limparSessao(result);
     return result;
   } catch {

@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/service/api";
+import { isAxiosError } from "axios";
+import { refreshRecusado } from "@/lib/session";
 type Usuario = {
   id: number;
   nome: string;
@@ -13,11 +15,15 @@ const AuthContext = createContext<{
   user?: Usuario;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
   atualizar: () => Promise<unknown>;
   sair: () => Promise<void>;
 }>({
   isAuthenticated: false,
   isLoading: true,
+  isError: false,
+  isFetching: false,
   atualizar: async () => {},
   sair: async () => {},
 });
@@ -25,8 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const client = useQueryClient();
   const query = useQuery<Usuario | null>({
     queryKey: ["sessao"],
-    queryFn: async () => {
-      return (await api.get("/auth/me")).data;
+    queryFn: async ({ signal }) => {
+      try {
+        return (await api.get("/auth/me", { signal })).data;
+      } catch (error) {
+        if (isAxiosError(error) && refreshRecusado(error.response?.status))
+          return null;
+        throw error;
+      }
     },
     retry: false,
     staleTime: 60000,
@@ -59,6 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: query.data ?? undefined,
         isAuthenticated: !!query.data,
         isLoading: query.isPending,
+        isError: query.isError,
+        isFetching: query.isFetching,
         atualizar: () => query.refetch(),
         sair,
       }}

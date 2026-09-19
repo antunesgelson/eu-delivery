@@ -6,6 +6,7 @@ import useAuth from "./useAuth";
 export type PedidoAPI = CartDTO & {
   valorFinal: number;
   descontoCupom: number;
+  taxaEntrega: number;
   pagamentoStatus: string;
   pagamentoExpiraEm?: string | null;
   cancelamentoMotivo?: string;
@@ -22,14 +23,15 @@ export const statusPedido: Record<string, string> = {
   completed: "Finalizado",
   cancelled: "Cancelado",
 };
-export function usePedidos(admin = false, page = 1) {
+export function usePedidos(admin = false, page = 1, limit = 50) {
   const { isAuthenticated } = useAuth();
   return useQuery<{ items: PedidoAPI[]; total: number }>({
-    queryKey: ["pedidos", admin, page],
-    queryFn: async () =>
+    queryKey: ["pedidos", admin, page, limit],
+    queryFn: async ({ signal }) =>
       (
         await api.get(admin ? "/admin/pedidos" : "/pedido", {
-          params: { page, limit: 50 },
+          params: { page, limit },
+          signal,
         })
       ).data,
     enabled: isAuthenticated,

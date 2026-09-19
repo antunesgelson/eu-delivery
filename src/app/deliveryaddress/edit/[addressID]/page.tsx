@@ -2,9 +2,11 @@
 import {useParams} from 'next/navigation';
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { toast } from "sonner";
 
+import { useRetornoEndereco } from "@/hook/useRetornoEndereco";
+import Link from "next/link";
 import { enderecoSchema } from '@/lib/endereco';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,7 @@ export type CompleteAddressForm = z.infer<typeof CompleteAddressSchema>
 const CompleteAddress = () => {
  const params=useParams<{addressID:string}>();
     const router = useRouter();
+    const { returnTo, addressLink } = useRetornoEndereco();
     const client = useQueryClient();
     const { handleSubmit, register, reset, formState: { errors } } = useForm<CompleteAddressForm>({
         resolver: zodResolver(CompleteAddressSchema)
@@ -54,10 +57,11 @@ const CompleteAddress = () => {
                 referencia: referencia,
             })
             return data
-        }, onSuccess() {
+        }, onSuccess(data) {
+            client.setQueryData(["deliveryaddress-ID", params.addressID], data);
             void client.invalidateQueries({ queryKey: ['deliveryaddress-list'] });
             toast.success('Endereço editado com sucesso!')
-            router.push(`/deliveryaddress`);
+            router.push(addressLink("/deliveryaddress"));
         }, onError: mostrarErro,
 
     })
@@ -67,6 +71,7 @@ const CompleteAddress = () => {
         queryKey: ['deliveryaddress-ID', params.addressID],
         queryFn: async () => (await api.get(`/endereco/${params.addressID}`)).data,
         enabled: !!params.addressID,
+        refetchOnWindowFocus: false,
     });
     useEffect(() => {
         if (query.data) reset(query.data);
@@ -81,7 +86,7 @@ const CompleteAddress = () => {
             animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}>
             <div className='p-4 leading-3'>
                 <h1 className="uppercase text-2xl font-bold flex items-center gap-1"><MdEditLocationAlt size={25} />edite o seu endereço</h1>
-                <span className='text-[12px]'>Preencha todos os detalhes do seu endereço para garantir que seu pedido chegue rapidinho!</span>
+                <span className='text-[12px]'>{returnTo ? "Após salvar, selecione o endereço para atualizar a entrega deste pedido." : "Preencha todos os detalhes do seu endereço."}</span>
             </div>
 
             <section className="bg-white p-4">
@@ -165,11 +170,14 @@ const CompleteAddress = () => {
                         Salvar alterações
                         <BsSave />
                     </Button>
+                    <Button asChild variant="outline" className="w-full"><Link href={addressLink("/deliveryaddress")}>Voltar aos endereços</Link></Button>
                 </form>
             </section>
         </motion.main >
     )
 }
 
-export default CompleteAddress;
+export default function EditAddress() {
+    return <Suspense fallback={<main className="mt-16 p-4" role="status">Carregando endereço…</main>}><CompleteAddress /></Suspense>;
+}
 

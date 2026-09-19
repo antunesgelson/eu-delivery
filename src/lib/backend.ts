@@ -29,13 +29,4 @@ export function limparSessao(response: NextResponse) {
   response.cookies.delete("@eu:token");
   return response;
 }
-export function destinoSeguro(value: string | null) {
-  if (
-    !value ||
-    !value.startsWith("/") ||
-    value.startsWith("//") ||
-    value.includes("\\")
-  )
-    return "/";
-  return value;
-}
+export { destinoSeguro } from "./navigation";

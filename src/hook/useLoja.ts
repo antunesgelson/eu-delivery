@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/service/api";
 import { CardapioDTO } from "@/dto/cardapioDTO";
 import { CupomDTO } from "@/dto/cupomDTO";
+import { BeneficiosDTO } from "@/dto/beneficiosDTO";
 import useAuth from "./useAuth";
 export function useCardapio() {
   return useQuery<CardapioDTO[]>({
@@ -13,9 +14,10 @@ export function useCardapio() {
 }
 export function useBeneficios() {
   const { isAuthenticated } = useAuth();
-  const q = useQuery({
+  const q = useQuery<BeneficiosDTO>({
     queryKey: ["beneficios"],
-    queryFn: async () => (await api.get("/usuario/beneficios")).data,
+    queryFn: async ({ signal }) =>
+      (await api.get("/usuario/beneficios", { signal })).data,
     enabled: isAuthenticated,
     retry: false,
   });
@@ -29,6 +31,10 @@ export function useBeneficios() {
     ...q.data,
     isLoading: q.isPending,
     isError: q.isError,
+    isFetching: q.isFetching,
+    hasData: !!q.data,
+    premios: q.data?.premios ?? [],
+    movimentos: q.data?.movimentos ?? [],
     refetch: q.refetch,
     cashbackExpiration: q.data?.cashbackExpiration ?? "Sem expiração",
   };
@@ -36,6 +42,8 @@ export function useBeneficios() {
 export function useCuponsPublicos() {
   return useQuery<CupomDTO[]>({
     queryKey: ["cupons-publicos"],
-    queryFn: async () => (await api.get("/cupom/publicos")).data,
+    queryFn: async ({ signal }) =>
+      (await api.get("/cupom/publicos", { signal })).data,
+    retry: false,
   });
 }

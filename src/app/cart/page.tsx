@@ -13,7 +13,6 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { getCouponDiscount } from "@/data/coupons";
 import { useCardapio } from "@/hook/useLoja";
 import {useBeneficios} from "@/hook/useLoja";
 import { ProdutosDTO } from "@/dto/productDTO";
@@ -79,11 +78,7 @@ export default function CartPage() {
         void setCashbackUsage(checked ? maxCashbackForOrder : 0).catch(()=>{});
     };
 
-    const handleChooseCoupon = async () => {
-        if (isUsingCashback) {
-            try { await setCashbackUsage(0); } catch { return; }
-        }
-
+    const handleChooseCoupon = () => {
         router.push('/cupom');
     };
 
@@ -263,6 +258,7 @@ export default function CartPage() {
                                             try { await removeCoupon(); toast.success('Cupom removido.'); } catch {}
                                         }}
                                         aria-label="Remover cupom"
+                                        disabled={isPending}
                                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7f7f7] text-dark-700"
                                     >
                                         <IoClose size={21} />
@@ -272,6 +268,7 @@ export default function CartPage() {
                                         type="button"
                                         variant="outline"
                                         onClick={handleChooseCoupon}
+                                        disabled={isPending}
                                         className="h-9 shrink-0 px-3 text-[12px] font-extrabold"
                                     >
                                         {isUsingCashback ? 'Trocar' : 'Escolher'}
@@ -306,7 +303,7 @@ export default function CartPage() {
                                         <Switch
                                             aria-label="Utilizar cashback"
                                             checked={isUsingCashback}
-                                            disabled={hasCoupon || maxCashbackForOrder <= 0}
+                                            disabled={isPending || hasCoupon || maxCashbackForOrder <= 0}
                                             onCheckedChange={handleCashbackToggle}
                                         />
                                         <span className="text-[10px] font-bold uppercase text-dark-500">Usar</span>

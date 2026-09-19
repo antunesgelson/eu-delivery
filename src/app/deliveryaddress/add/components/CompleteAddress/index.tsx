@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { useRetornoEndereco } from "@/hook/useRetornoEndereco";
+import Link from "next/link";
 import { enderecoSchema } from '@/lib/endereco';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,7 @@ type Props = {
 const CompleteAddress = ({ location }: Props) => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY as string;
     const router = useRouter();
+    const { returnTo, addressLink } = useRetornoEndereco();
     const client = useQueryClient();
     const [address, setAddress] = useState('');
     const { handleSubmit, register, reset, formState: { errors } } = useForm<CompleteAddressForm>({
@@ -56,7 +59,7 @@ const CompleteAddress = ({ location }: Props) => {
         }, onSuccess() {
             void client.invalidateQueries({ queryKey: ['deliveryaddress-list'] });
             toast.success('Endereço cadastrado com sucesso!')
-            router.push(`/deliveryaddress`);
+            router.push(addressLink("/deliveryaddress"));
         }, onError: mostrarErro,
 
     })
@@ -131,7 +134,7 @@ const CompleteAddress = ({ location }: Props) => {
             <div className='p-4 leading-3'>
                 <h2 className="uppercase text-xl font-bold flex items-center gap-1 "><MdEditLocationAlt size={25} />complete o seu endereço</h2>
                 <span className='text-[12px] '>
-                    Complete o endereço com informações adicionais.
+                    {returnTo ? "Cadastre o endereço para selecioná-lo no seu pedido." : "Complete o endereço com informações adicionais."}
                 </span>
             </div>
 
@@ -216,6 +219,7 @@ const CompleteAddress = ({ location }: Props) => {
                         Continuar
                         <IoIosArrowRoundForward size={18} />
                     </Button>
+                    <Button asChild variant="outline" className="w-full"><Link href={addressLink("/deliveryaddress")}>Voltar aos endereços</Link></Button>
                 </form>
             </section>
         </motion.main >

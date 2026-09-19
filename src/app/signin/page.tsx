@@ -28,28 +28,24 @@ import { toast } from "sonner";
 
 import useFormatters from "@/hook/useFormatters";
 import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 
-function getSafeCallbackUrl(callbackUrl?: string) {
-    if (!callbackUrl || !callbackUrl.startsWith('/') || callbackUrl.startsWith('//')) {
-        return null;
-    }
-
-    return callbackUrl;
-}
-
-function isAdminCallback(callbackUrl: string | null) {
-    return callbackUrl === '/admin' || Boolean(callbackUrl?.startsWith('/admin/'));
-}
+import { destinoSeguro, destinoAdmin } from "@/lib/navigation";
 
 const schemaSignIn = z.object({
-    cellPhone: z.string().min(8, { message: 'Telefone inválido' }).max(11, { message: 'Telefone inválido' })
+    cellPhone: z.string().transform(value => value.replace(/\D/g, '')).pipe(z.string().regex(/^\d{10,11}$/, 'Informe o telefone com DDD.'))
 })
 type SignInForm = z.infer<typeof schemaSignIn>
 
+const adminSchema = z.object({
+    email: z.string().trim().email("Informe um e-mail válido.").max(255),
+    senha: z.string().min(8, "Informe uma senha com pelo menos 8 caracteres.").max(128),
+});
+type AdminForm = z.infer<typeof adminSchema>;
 type AdminLoginProps = {
-    onAdminSignIn: (event: React.FormEvent<HTMLFormElement>) => void;
+    callbackUrl: string;
+    onAdminSignIn: (values: AdminForm) => void;
+    isPending: boolean;
 }
 
 const adminSummaryCards = [
@@ -65,7 +61,8 @@ const adminMenuPreview = [
     'Relatórios',
 ];
 
-function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
+function AdminLogin({ onAdminSignIn, isPending, callbackUrl }: AdminLoginProps) {
+    const { register, handleSubmit, formState: { errors } } = useForm<AdminForm>({ resolver: zodResolver(adminSchema), defaultValues: { email: "", senha: "" } });
     return (
         <motion.section
             className="grid min-h-screen bg-[#f3f5f8] text-dark-900 lg:grid-cols-[minmax(0,1fr)_440px]"
@@ -196,10 +193,13 @@ function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
                         Use seu e-mail e senha para abrir o dashboard administrativo da loja.
                     </p>
 
-                    <form className="mt-6 space-y-4" noValidate onSubmit={onAdminSignIn}>
+                    <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit(onAdminSignIn)}>
                         <Input
                             label="E-mail"
-                            name="email"
+                            aria-label="E-mail"
+                            {...register("email")}
+                            error={errors.email?.message}
+                            disabled={isPending}
                             type="email"
                             autoComplete="email"
                             className="h-11 rounded-md bg-[#f8fafc] text-[15px]"
@@ -208,7 +208,10 @@ function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
 
                         <Input
                             label="Senha"
-                            name="password"
+                            aria-label="Senha"
+                            {...register("senha")}
+                            error={errors.senha?.message}
+                            disabled={isPending}
                             type="password"
                             autoComplete="current-password"
                             className="h-11 rounded-md bg-[#f8fafc] text-[15px]"
@@ -217,12 +220,13 @@ function AdminLogin({ onAdminSignIn }: AdminLoginProps) {
 
                         <Button
                             type="submit"
+                            disabled={isPending}
                             className="flex h-11 w-full items-center gap-2 bg-[#f97316] text-[13px] font-extrabold uppercase text-white hover:bg-[#ea6409]"
                         >
                             <FaLock size={14} />
-                            Entrar
+                            {isPending ? "Entrando…" : "Entrar"}
                         </Button>
-                    </form><Link href="/signin/redefinir" className="mt-3 block text-center text-sm text-orange-600">Esqueci minha senha</Link>
+                    </form><Link href={`/signin/redefinir?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="mt-3 block text-center text-sm text-orange-600">Esqueci minha senha</Link>
 
                     <div className="mt-5 border-l-2 border-[#f97316] pl-3">
                         <div className="flex items-center gap-2 text-[12px] font-extrabold text-dark-800">
@@ -253,65 +257,60 @@ type Props = {
 }
 function SigninContent() {
  const search=useSearchParams();const searchParams=React.useMemo(()=>Object.fromEntries(search.entries()),[search]);
-    const { watch, setValue, register, formState: { errors } } = useForm<SignInForm>({
-        resolver: zodResolver(schemaSignIn)
+    const { watch, setValue, register, handleSubmit, formState: { errors } } = useForm<SignInForm>({
+        resolver: zodResolver(schemaSignIn),
+        defaultValues: { cellPhone: "" }
     })
     const router = useRouter()
     const { cellPhoneFormat } = useFormatters()
     const cellPhone = watch('cellPhone');
-    const callbackUrl = getSafeCallbackUrl(searchParams?.callbackUrl);
-    const isAdminAccess = isAdminCallback(callbackUrl);
-    const adminDestination = callbackUrl === '/admin' ? '/admin/dashboard' : callbackUrl ?? '/admin/dashboard';
+    const callbackUrl = destinoSeguro(searchParams?.callbackUrl ?? "/?firstLogin=true");
+    const isAdminAccess = destinoAdmin(callbackUrl);
+    const adminDestination = callbackUrl === '/admin' ? '/admin/dashboard' : callbackUrl;
     const handleGoogleSignIn = React.useCallback(() => {
-        if (!callbackUrl) {
+        if (!searchParams?.callbackUrl) {
             window.location.href='/api/auth/google';
             return;
         }
 
         window.location.href=`/api/auth/google?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-    }, [callbackUrl]);
+    }, [callbackUrl, searchParams?.callbackUrl]);
     const { atualizar } = useAuth();
     const adminLogin = useMutation({mutationFn: async (data: {email:string;senha:string}) => (await api.post('/auth/login',data)).data});
-    const handleAdminSignIn = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const formData = new FormData(event.currentTarget);
+    const adminLock = React.useRef(false);
+    const handleAdminSignIn = React.useCallback(async (values: AdminForm) => {
+        if (adminLock.current) return;
+        adminLock.current = true;
         try {
-            const data = await adminLogin.mutateAsync({email:String(formData.get('email')??'').trim(),senha:String(formData.get('password')??formData.get('senha')??'')});
+            const data = await adminLogin.mutateAsync(values);
             await atualizar();
-            if(!data.user.isAdmin){toast.error('Sua conta não tem acesso administrativo.');return;}
+            if (!data.user.isAdmin) { toast.error('Sua conta não tem acesso administrativo.'); return; }
             router.replace(adminDestination);
-        } catch(error) { mostrarErro(error); }
+        } catch (error) { mostrarErro(error); }
+        finally { adminLock.current = false; }
     }, [adminDestination, router, atualizar, adminLogin]);
 
-
-
-    const { mutateAsync: handleGetCodeWP, isPending } = useMutation({
+    const phoneLock = React.useRef(false);
+    const { mutate: handleGetCodeWP, isPending } = useMutation({
         mutationKey: ['auth-wp'],
-        mutationFn: async () => {
-            const tel = cellPhone.replace(/\D/g, '');
+        mutationFn: async ({ cellPhone: tel }: SignInForm) => {
             const { data } = await api.post('/auth/wp', {
                 tel: `55${tel}`
             })
             return data
         },
-        onSuccess: (data) => {
+        onSuccess: (data, values) => {
             toast.success(data.message); if(data.developmentCode) toast.info(`Código de desenvolvimento: ${data.developmentCode}`,{duration:20000})
             const getCodeParams = new URLSearchParams({
-                tel: cellPhone.replace(/\D/g, ''), desafioId: data.desafioId
+                tel: values.cellPhone, desafioId: data.desafioId, reenviarEm: String(Date.now() + 60000)
             });
 
             if (callbackUrl) getCodeParams.set('callbackUrl', callbackUrl);
 
             router.push(`/signin/getcode?${getCodeParams.toString()}`);
         },
-        onError(error: unknown) {
-            console.log(error)
-            if (error instanceof AxiosError && error.response) {
-                toast.error(error.response.data.message)
-            } else {
-                toast.error('An unexpected error occurred')
-            }
-        }
+        onError: mostrarErro,
+        onSettled: () => { phoneLock.current = false; },
     })
 
 
@@ -320,6 +319,8 @@ function SigninContent() {
     }, [cellPhone, setValue, cellPhoneFormat]);
 
     useEffect(() => {
+        if (searchParams?.error === 'google-unavailable') toast.error('O login com Google ainda não está disponível. Entre pelo telefone.');
+        if (searchParams?.error === 'google') toast.error('Não foi possível entrar com Google. Tente novamente ou entre pelo telefone.');
         if (searchParams?.error === 'permissions') {
             setTimeout(() => {
                 toast.warning("Conexão Necessária!", {
@@ -339,7 +340,9 @@ function SigninContent() {
     if (isAdminAccess) {
         return (
             <AdminLogin
+                callbackUrl={adminDestination}
                 onAdminSignIn={handleAdminSignIn}
+                isPending={adminLogin.isPending}
             />
         );
     }
@@ -371,10 +374,19 @@ function SigninContent() {
                 <Separator className="col-span-2" />
             </div>
 
+            <form noValidate onSubmit={handleSubmit(values => {
+                if (phoneLock.current) return;
+                phoneLock.current = true;
+                handleGetCodeWP(values);
+            })}>
             <div className="px-4 py-6">
                 <Input
                     className="bg-white h-10 rounded-md "
+                    disabled={isPending}
                     maxLength={15}
+                    aria-label="Telefone com DDD"
+                    autoComplete="tel-national"
+                    inputMode="tel"
                     placeholder="Digite seu telefone."
                     {...register('cellPhone')}
                     error={errors.cellPhone?.message}
@@ -383,7 +395,7 @@ function SigninContent() {
 
 
             <AnimatePresence>
-                {cellPhone?.length == 15 &&
+                {
                     <motion.div
                         className="px-4"
                         initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
@@ -391,14 +403,14 @@ function SigninContent() {
                         exit={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
                         transition={{ duration: 0.4 }}>
                         <h3 className="text-[10px] text-muted-foreground text-center">
-                            Escola a melhor forma para você receber o código de autenticação.
+                            Escolha a melhor forma para você receber o código de autenticação.
                         </h3>
                         <div className="flex gap-2 items-center justify-center  py-2">
                             <Button
                                 variant={'success'}
                                 loading={isPending}
                                 className="w-full flex gap-1 items-center uppercase"
-                                onClick={() => handleGetCodeWP()}>
+                                type="submit">
                                 <BsWhatsapp size={15} />
                                 whatsapp
                             </Button>
@@ -406,6 +418,7 @@ function SigninContent() {
                     </motion.div>
                 }
             </AnimatePresence>
+            </form>
         </motion.div>
     )
 }

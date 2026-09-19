@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
+import { refreshRecusado } from "@/lib/session";
 export const api = axios.create({ baseURL: "/api/backend", timeout: 20000 });
 let refresh: Promise<unknown> | null = null;
 api.interceptors.response.use(
@@ -21,9 +22,15 @@ api.interceptors.response.use(
         });
         await refresh;
         return api(config);
-      } catch {
-        if (typeof window !== "undefined")
+      } catch (refreshError) {
+        if (
+          axios.isAxiosError(refreshError) &&
+          refreshRecusado(refreshError.response?.status) &&
+          typeof window !== "undefined"
+        )
           window.dispatchEvent(new Event("zanini:signout"));
+        // O chamador precisa distinguir API indisponível de credencial inválida.
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);

@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {useQuery} from "@tanstack/react-query";
 import {api} from "@/service/api";
 import {AddressDTO} from "@/dto/addressDTO";
@@ -26,6 +27,9 @@ type Props = {
 }
 
 export function ModalChooseAdress({ open, onClose }: Props) {
+    const pathname = usePathname();
+    const returnTo = pathname === "/cart" ? "/cart" : "/checkout";
+    const addressLink = (path: string) => `${path}?returnTo=${encodeURIComponent(returnTo)}`;
     const { choosePickupLocation,chooseDeliveryAddress,configData,isPending,cart } = useCart();
     const addresses=useQuery<AddressDTO[]>({queryKey:['deliveryaddress-list'],queryFn:async()=>(await api.get('/endereco/todos')).data,enabled:open});
     const pickupAddress = lerConfiguracao(configData, 'ENDERECO', STORE_PICKUP_ADDRESS);
@@ -72,7 +76,7 @@ export function ModalChooseAdress({ open, onClose }: Props) {
                     </div>
                 </button>
 
-                {delivery.habilitada&&<section className="space-y-2"><h3 className="font-bold">Entrega — {Number(delivery.taxa).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</h3><p className="text-xs">CEPs: {delivery.faixasCep?.map((f:any)=>f.inicio===f.fim?f.inicio:`${f.inicio} a ${f.fim}`).join(', ')}{delivery.bairros?.join(', ')}</p>{addresses.isPending&&<p>Carregando endereços…</p>}{addresses.isError&&<button onClick={()=>addresses.refetch()}>Tentar carregar endereços novamente</button>}<div className="max-h-40 space-y-2 overflow-y-auto">{addresses.data?.map(a=><button disabled={isPending} key={a.id} className="w-full rounded border p-3 text-left text-sm" onClick={async()=>{try{await chooseDeliveryAddress(a.id);onClose();toast.success('Endereço de entrega selecionado.');}catch{}}}>{a.apelido}: {a.rua}, {a.numero} — {a.cep}</button>)}</div><Link href="/deliveryaddress/add" className="block text-sm font-bold text-orange-600">Cadastrar endereço</Link></section>}
+                {delivery.habilitada&&<section className="space-y-2"><h3 className="font-bold">Entrega — {Number(delivery.taxa).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</h3><p className="text-xs">CEPs: {delivery.faixasCep?.map((f:any)=>f.inicio===f.fim?f.inicio:`${f.inicio} a ${f.fim}`).join(', ')}{delivery.bairros?.join(', ')}</p>{addresses.isPending&&<p>Carregando endereços…</p>}{addresses.isError&&<button onClick={()=>addresses.refetch()}>Tentar carregar endereços novamente</button>}<div className="max-h-40 space-y-2 overflow-y-auto">{addresses.data?.map(a=><button disabled={isPending} key={a.id} className="w-full rounded border p-3 text-left text-sm" onClick={async()=>{try{await chooseDeliveryAddress(a.id);onClose();toast.success('Endereço de entrega selecionado.');}catch{}}}>{a.apelido}: {a.rua}, {a.numero} — {a.cep}</button>)}</div><Link href={addressLink("/deliveryaddress/add")} className="block text-sm font-bold text-orange-600">Cadastrar endereço</Link><Link href={addressLink("/deliveryaddress")} className="block text-sm font-bold text-orange-600">Gerenciar endereços</Link></section>}
                 <DialogFooter>
                     <Button
                         type="button"

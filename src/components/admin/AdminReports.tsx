@@ -1,49 +1,47 @@
 "use client";
 import React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, mostrarErro } from "@/service/api";
 import { usePedidos, statusPedido } from "@/hook/usePedidos";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import EditarCliente from "./EditarCliente";
+import { ClienteCadastro } from "@/hook/useClientesAdmin";
 const money = (v: number) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export default function AdminReports({ type }: { type: string }) {
   const [page, setPage] = React.useState(1),
     [search, setSearch] = React.useState(""),
-    [edit, setEdit] = React.useState<any>(null),
+    [edit, setEdit] = React.useState<ClienteCadastro | null>(null),
     [benefits, setBenefits] = React.useState<any>(null);
-  const client = useQueryClient();
+  const customerView = ["customers", "loyalty", "cashback"].includes(type);
+  const [term, setTerm] = React.useState("");
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setTerm(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const report = useQuery<any>({
     queryKey: ["relatorios"],
-    queryFn: async () => (await api.get("/admin/relatorios")).data,
+    queryFn: async ({ signal }) =>
+      (await api.get("/admin/relatorios", { signal })).data,
+    retry: false,
   });
-  const customers = useQuery<any>({
-    queryKey: ["clientes", page, search],
-    queryFn: async () =>
+  const customers = useQuery<{ items: ClienteCadastro[]; total: number }>({
+    queryKey: ["clientes", page, term],
+    queryFn: async ({ signal }) =>
       (
         await api.get("/admin/clientes", {
-          params: { page, limit: 50, search },
+          params: { page, limit: 50, search: term },
+          signal,
         })
       ).data,
-    enabled: ["customers", "loyalty", "cashback"].includes(type),
+    enabled: customerView,
+    retry: false,
   });
   const orders = usePedidos(true, page);
-  const save = useMutation({
-    mutationFn: async (d: any) =>
-      api.put(`/admin/clientes/${d.id}`, {
-        nome: d.nome,
-        email: d.email || undefined,
-        tel: d.tel || undefined,
-        cpf: d.cpf || undefined,
-        dataDeNascimento: d.dataDeNascimento || undefined,
-      }),
-    onSuccess: () => {
-      setEdit(null);
-      void client.invalidateQueries({ queryKey: ["clientes"] });
-      toast.success("Cliente atualizado.");
-    },
-    onError: mostrarErro,
-  });
   const redeem = useMutation({
     mutationFn: async (id: number) =>
       api.post(`/admin/clientes/${benefits.id}/premios/${id}/resgatar`),
@@ -64,9 +62,9 @@ export default function AdminReports({ type }: { type: string }) {
     }
   };
   const data = report.data;
-  if (report.isPending)
+  if (!customerView && report.isPending)
     return <main className="p-6">Carregando relatório…</main>;
-  if (report.isError)
+  if (!customerView && report.isError)
     return (
       <main className="p-6">
         <Button onClick={() => report.refetch()}>
@@ -74,7 +72,6 @@ export default function AdminReports({ type }: { type: string }) {
         </Button>
       </main>
     );
-  const customerView = ["customers", "loyalty", "cashback"].includes(type);
   const rows: any[] = customerView
     ? (customers.data?.items ?? [])
     : type === "orders"
@@ -91,26 +88,39 @@ export default function AdminReports({ type }: { type: string }) {
         Faturamento considera pedidos finalizados e pagos. Os valores dos itens
         são anteriores aos descontos do pedido.
       </p>
-      <section className="my-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          ["Faturamento", money(data.faturamento)],
-          ["Pedidos finalizados", data.pedidos],
-          ["Clientes", data.clientes],
-          ["Cashback creditado", money(data.cashback)],
-        ].map(([title, value]) => (
-          <article key={title} className="rounded-md bg-white p-4 shadow-sm">
-            <p className="text-xs uppercase text-neutral-500">{title}</p>
-            <strong className="mt-2 block text-xl">{value}</strong>
-          </article>
-        ))}
-      </section>
+      {customerView && report.isError && (
+        <div role="alert" className="my-4">
+          <p>Não foi possível carregar os indicadores.</p>
+          <Button
+            disabled={report.isFetching}
+            onClick={() => void report.refetch()}
+          >
+            Atualizar indicadores
+          </Button>
+        </div>
+      )}
+      {data && (
+        <section className="my-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            ["Faturamento", money(data.faturamento)],
+            ["Pedidos finalizados", data.pedidos],
+            ["Clientes", data.clientes],
+            ["Cashback creditado", money(data.cashback)],
+          ].map(([title, value]) => (
+            <article key={title} className="rounded-md bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase text-neutral-500">{title}</p>
+              <strong className="mt-2 block text-xl">{value}</strong>
+            </article>
+          ))}
+        </section>
+      )}
       {customerView && (
         <input
           aria-label="Buscar cliente"
+          maxLength={100}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
-            setPage(1);
           }}
           placeholder="Buscar por nome, telefone ou e-mail"
           className="mb-4 w-full rounded border p-3"
@@ -121,12 +131,15 @@ export default function AdminReports({ type }: { type: string }) {
       {((customerView && customers.isError) ||
         (type === "orders" && orders.isError)) && (
         <Button
+          disabled={customerView ? customers.isFetching : orders.isFetching}
           onClick={() => {
-            void customers.refetch();
-            void orders.refetch();
+            if (customerView) void customers.refetch();
+            else void orders.refetch();
           }}
         >
-          Falha ao carregar. Tentar novamente
+          {customerView
+            ? "Falha ao carregar clientes. Tentar novamente"
+            : "Falha ao carregar. Tentar novamente"}
         </Button>
       )}
       <section className="overflow-x-auto rounded-md bg-white p-4 shadow-sm">
@@ -142,7 +155,14 @@ export default function AdminReports({ type }: { type: string }) {
                     "Ações",
                   ]
                 : type === "orders"
-                  ? ["Pedido", "Cliente", "Agendamento", "Status", "Pagamento", "Total"]
+                  ? [
+                      "Pedido",
+                      "Cliente",
+                      "Agendamento",
+                      "Status",
+                      "Pagamento",
+                      "Total",
+                    ]
                   : type === "items"
                     ? ["Produto", "Quantidade", "Total bruto"]
                     : type === "coupons"
@@ -184,8 +204,16 @@ export default function AdminReports({ type }: { type: string }) {
                         `#${row.id}`,
                         row.cliente?.nome || "Cliente",
                         new Date(row.dataEntrega).toLocaleString("pt-BR"),
-                        row.cancelamentoMotivo === 'pagamento_expirado' ? 'Prazo de pagamento encerrado' : statusPedido[row.status] ?? row.status,
-                        row.pagamentoStatus === 'refund_pending' ? 'Estorno pendente' : row.pagamentoStatus === 'refunded' ? 'Estornado' : row.pagamentoStatus === 'paid' ? 'Pago' : 'Pendente',
+                        row.cancelamentoMotivo === "pagamento_expirado"
+                          ? "Prazo de pagamento encerrado"
+                          : (statusPedido[row.status] ?? row.status),
+                        row.pagamentoStatus === "refund_pending"
+                          ? "Estorno pendente"
+                          : row.pagamentoStatus === "refunded"
+                            ? "Estornado"
+                            : row.pagamentoStatus === "paid"
+                              ? "Pago"
+                              : "Pendente",
                         money(row.valorFinal),
                       ]
                     : type === "items"
@@ -202,24 +230,35 @@ export default function AdminReports({ type }: { type: string }) {
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && (
-          <p className="p-5 text-neutral-500">
-            Nenhum registro para este relatório.
-          </p>
-        )}
+        {rows.length === 0 &&
+          !(customerView && (customers.isPending || customers.isError)) &&
+          !(type === "orders" && (orders.isPending || orders.isError)) && (
+            <p className="p-5 text-neutral-500">
+              Nenhum registro para este relatório.
+            </p>
+          )}
       </section>
       {(customerView || type === "orders") && (
         <div className="my-4 flex items-center justify-between">
-          <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+          <Button
+            disabled={
+              page === 1 ||
+              (customerView ? customers.isFetching : orders.isFetching)
+            }
+            onClick={() => setPage((p) => p - 1)}
+          >
             Anterior
           </Button>
           <span>Página {page}</span>
           <Button
             disabled={
-              page * 50 >=
               (customerView
-                ? (customers.data?.total ?? 0)
-                : (orders.data?.total ?? 0))
+                ? customers.isFetching || customers.isError
+                : orders.isFetching || orders.isError) ||
+              page * 50 >=
+                (customerView
+                  ? (customers.data?.total ?? 0)
+                  : (orders.data?.total ?? 0))
             }
             onClick={() => setPage((p) => p + 1)}
           >
@@ -228,54 +267,11 @@ export default function AdminReports({ type }: { type: string }) {
         </div>
       )}
       {edit && (
-        <div
-          role="dialog"
-          aria-label="Editar cliente"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-        >
-          <form
-            className="w-full max-w-md space-y-3 rounded-md bg-white p-5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save.mutate(edit);
-            }}
-          >
-            <h2 className="text-lg font-bold">Editar cliente</h2>
-            {[
-              ["nome", "Nome"],
-              ["email", "E-mail"],
-              ["tel", "Telefone com 55"],
-              ["cpf", "CPF sem pontuação"],
-              ["dataDeNascimento", "Nascimento"],
-            ].map(([key, label]) => (
-              <label key={key} className="block text-sm">
-                {label}
-                <input
-                  className="mt-1 w-full rounded border p-2"
-                  type={
-                    key === "dataDeNascimento"
-                      ? "date"
-                      : key === "email"
-                        ? "email"
-                        : "text"
-                  }
-                  value={edit[key] ?? ""}
-                  onChange={(e) => setEdit({ ...edit, [key]: e.target.value })}
-                />
-              </label>
-            ))}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEdit(null)}
-              >
-                Cancelar
-              </Button>
-              <Button disabled={save.isPending}>Salvar</Button>
-            </div>
-          </form>
-        </div>
+        <EditarCliente
+          key={edit.id}
+          cliente={edit}
+          onClose={() => setEdit(null)}
+        />
       )}
       {benefits && (
         <div

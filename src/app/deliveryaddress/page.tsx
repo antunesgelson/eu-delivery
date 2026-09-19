@@ -15,10 +15,32 @@ import { TiEdit } from "react-icons/ti";
 import { AddressDTO } from "@/dto/addressDTO";
 import { api, mostrarErro } from "@/service/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import useCart from "@/hook/useCart";
+import { useRetornoEndereco } from "@/hook/useRetornoEndereco";
+import { useRouter } from "next/navigation";
 import React from "react";
 
-export default function DeliveryAddress() {
+function DeliveryAddressContent() {
+    const { returnTo, addressLink } = useRetornoEndereco();
+    const router = useRouter();
+    const { chooseDeliveryAddress, isPending: isSelecting } = useCart();
+    const selecting = React.useRef(false);
+    const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
+    async function selectAddress(id: number) {
+        if (!returnTo || selecting.current) return;
+        selecting.current = true;
+        setSelectedAddress(id);
+        try {
+            await chooseDeliveryAddress(id);
+            toast.success("Endereço de entrega selecionado.");
+            router.push(returnTo);
+        } catch {
+            // O contexto do carrinho apresenta o erro retornado pela API.
+        } finally {
+            selecting.current = false;
+            setSelectedAddress(null);
+        }
+    }
     const client = useQueryClient();
     const [openModal, setOpenModal] = useState(false);
     const [address, setAddress] = React.useState<AddressDTO>({} as AddressDTO);
@@ -65,22 +87,23 @@ export default function DeliveryAddress() {
                 <span className='text-xs'>Quando a fome bater, o seu pedido vai ser ainda mais rapido!</span>
             </div>
 
+            {returnTo && <div className="p-4 space-y-2"><p>Selecione onde deseja receber este pedido. A disponibilidade e a taxa serão verificadas ao escolher.</p><Button asChild variant="outline"><Link href={returnTo}>Voltar ao pedido</Link></Button></div>}
             <section className="bg-white p-4 h-full flex flex-col justify-between">
                 {isLoading && <p role="status">Carregando endereços…</p>}
                 {isError && <div role="alert">Não foi possível carregar os endereços. <Button onClick={() => refetch()}>Tentar novamente</Button></div>}
                 {addressList?.length == 0 && <span className="text-center my-auto text-sm text-muted-foreground">Nenhum endereço cadastrado.</span>}
                 {addressList && addressList?.length > 0 && addressList.map((address: AddressDTO) => (
-                    <div key={address.id} >
+                    <article key={address.id} aria-label={`Endereço ${address.apelido}`} >
                         <div className="flex justify-between items-center">
                             <h2 className="uppercase font-bold">{address.apelido}</h2>
                             <div className="flex items-center ">
                                 {/* Editar */}
-                                <Link aria-label={`Editar ${address.apelido}`} href={`/deliveryaddress/edit/${address.id}`}>
+                                <Link aria-label={`Editar ${address.apelido}`} href={addressLink(`/deliveryaddress/edit/${address.id}`)}>
                                     <TiEdit size={20} />
                                 </Link>
                                 {/* Remover */}
                                 <Button
-                                    aria-label={`Excluir ${address.apelido}`} variant={'icon'}
+                                    disabled={isSelecting} aria-label={`Excluir ${address.apelido}`} variant={'icon'}
                                     onClick={() => handleRemoveAddress(address)}>
                                     <FaRegTrashCan />
                                 </Button>
@@ -96,13 +119,14 @@ export default function DeliveryAddress() {
                         <p className="italic text-muted-foreground">{address.complemento}</p>
                         <p className="italic text-muted-foreground">{address.referencia}</p>
 
+                        {returnTo && <Button className="mt-3 w-full" variant="success" disabled={isSelecting || selectedAddress !== null} onClick={() => void selectAddress(address.id)}>{selectedAddress === address.id ? "Verificando entrega…" : "Entregar aqui"}</Button>}
                         <Separator className="my-4" />
-                    </div>
+                    </article>
                 ))}
 
                 <div className="flex justify-center my-4">
                     <Button asChild className="flex  items-center gap-1 w-full" variant={'success'}>
-                        <Link href={'/deliveryaddress/add'}>
+                        <Link href={addressLink('/deliveryaddress/add')}>
                             <MdAddLocation size={18} />
                             Adicionar novo endereço
                         </Link>
@@ -118,4 +142,7 @@ export default function DeliveryAddress() {
             />
         </motion.main>
     )
+}
+export default function DeliveryAddress() {
+    return <React.Suspense fallback={<main className="mt-16 p-4" role="status">Carregando endereços…</main>}><DeliveryAddressContent /></React.Suspense>;
 }

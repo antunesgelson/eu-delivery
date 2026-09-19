@@ -2,6 +2,9 @@
 import { dataDaLoja, datasAtendimento, useHorarios } from '@/hook/useAgendamento';
 
 import Image from "next/image";
+import { ClientePdv } from "@/components/admin/ClientePdv";
+import { ClienteAdmin, useClienteAdmin, useBeneficiosCliente, useEnderecosCliente } from "@/hook/useClientesAdmin";
+import { AddressDTO } from "@/dto/addressDTO";
 import React from "react";
 import { toast } from "sonner";
 
@@ -126,24 +129,6 @@ function formatPickupDate(date: Date) {
         day: '2-digit',
         month: '2-digit',
     }).format(date);
-}
-
-function formatPhoneInput(value: string) {
-    const digits = value.replace(/\D/g, '').slice(0, 11);
-
-    if (digits.length <= 2) {
-        return digits ? `(${digits}` : '';
-    }
-
-    if (digits.length <= 3) {
-        return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    }
-
-    if (digits.length <= 7) {
-        return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3)}`;
-    }
-
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
 function getUpcomingWeekendDates() {
@@ -551,19 +536,37 @@ export default function PedidosPdvPage() {
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
     const [clientPhone, setClientPhone] = React.useState('');
     const [clientName, setClientName] = React.useState('');
+    const [clientId, setClientId] = React.useState<number | null>(null);
+    const customerQuery = useClienteAdmin(clientId);
+    const benefitsQuery = useBeneficiosCliente(clientId);
     const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod | null>(null);
     const [paymentStatus, setPaymentStatus] = React.useState<PaymentStatus>('pending');
     const [fulfillmentMethod, setFulfillmentMethod] = React.useState<FulfillmentMethod>('retirada');
     const [pickupScheduled, setPickupScheduled] = React.useState(false);
     const [scheduledDay, setScheduledDay] = React.useState('');
     const [scheduledTime, setScheduledTime] = React.useState('');
-    const [priceAdjustment, setPriceAdjustment] = React.useState(0);
+    const [appliedAdjustment, setAppliedAdjustment] = React.useState<{type: AdjustmentType; direction: AdjustmentDirection; amount: string} | null>(null);
     const [adjustmentDirection, setAdjustmentDirection] = React.useState<AdjustmentDirection>('discount');
     const [adjustmentType, setAdjustmentType] = React.useState<AdjustmentType>('fixed');
     const [adjustmentAmount, setAdjustmentAmount] = React.useState('');
     const [activeModal, setActiveModal] = React.useState<PdvModal>(null);
     const [paymentSheetOpen, setPaymentSheetOpen] = React.useState(false);
     const drafts=draftQuery.data?.length??0;
+    const addressesQuery = useEnderecosCliente(clientId, fulfillmentMethod === 'entrega');
+    function selectCustomer(customer: ClienteAdmin) {
+        setClientId(customer.id);
+        queryClient.setQueryData(['admin-cliente', customer.id], customer);
+        setClientName(customer.nome);
+        setClientPhone(customer.tel ?? '');
+        setDeliveryAddress({apelido:'Entrega PDV',rua:'',numero:'',bairro:'',cep:'',complemento:'',referencia:''});
+        setAppliedAdjustment(null);
+        setAdjustmentAmount('');
+        orderKey.current = crypto.randomUUID();
+    }
+    function selectAddress(address: AddressDTO) {
+        const { apelido, rua, numero, bairro, cep, complemento, referencia } = address;
+        setDeliveryAddress({ apelido, rua, numero, bairro, cep, complemento, referencia });
+    }
 
     const selectedProduct = React.useMemo(
         () => products.find((product) => product.id === selectedProductId) ?? null,
@@ -598,6 +601,9 @@ export default function PedidosPdvPage() {
 
     const subtotal = orderItems.reduce((totalValue, item) => totalValue + item.price * item.quantity, 0);
     const deliveryFee=fulfillmentMethod==='entrega'?Number(deliveryConfig.taxa??0):0;
+    const adjustmentValue = Number(appliedAdjustment?.amount.replace(',', '.') ?? 0);
+    const priceAdjustment = !appliedAdjustment || appliedAdjustment.type === 'coupon' ? 0
+        : (appliedAdjustment.direction === 'discount' ? -1 : 1) * (appliedAdjustment.type === 'percent' ? Math.round(subtotal * adjustmentValue) / 100 : adjustmentValue);
     const total = Math.max(0, subtotal + deliveryFee + priceAdjustment);
     const paymentLabel = paymentMethod ? paymentLabels[paymentMethod] : 'Pagamento';
     const paymentButtonLabel = paymentMethod
@@ -670,22 +676,23 @@ export default function PedidosPdvPage() {
         ));
     }
 
-    function draftData(){return {orderItems,clientPhone,clientName,orderNote,paymentMethod,paymentStatus,fulfillmentMethod,pickupScheduled,scheduledDay,scheduledTime,priceAdjustment,adjustmentDirection,adjustmentType,adjustmentAmount,split,deliveryAddress};}
-    function restoreDraft(d:any){setOrderItems(d.orderItems??[]);setClientPhone(d.clientPhone??'');setClientName(d.clientName??'');setOrderNote(d.orderNote??'');setPaymentMethod(d.paymentMethod??null);setPaymentStatus(d.paymentStatus??'pending');setFulfillmentMethod(d.fulfillmentMethod??'retirada');setPickupScheduled(d.pickupScheduled??false);setScheduledDay(d.scheduledDay??'');setScheduledTime(d.scheduledTime??'');setPriceAdjustment(d.priceAdjustment??0);setAdjustmentDirection(d.adjustmentDirection??'discount');setAdjustmentType(d.adjustmentType??'fixed');setAdjustmentAmount(d.adjustmentAmount??'');setSplit(d.split??{cash:'',card:'',pix:''});orderKey.current=crypto.randomUUID();setDeliveryAddress(d.deliveryAddress??{apelido:'Entrega PDV',rua:'',numero:'',bairro:'',cep:'',complemento:'',referencia:''});setDraftOpen(false);}
+    function draftData(){return {clientId,appliedAdjustment,orderItems,clientPhone,clientName,orderNote,paymentMethod,paymentStatus,fulfillmentMethod,pickupScheduled,scheduledDay,scheduledTime,priceAdjustment,adjustmentDirection,adjustmentType,adjustmentAmount,split,deliveryAddress};}
+    function restoreDraft(d:any){setClientId(d.clientId??null);setOrderItems(d.orderItems??[]);setClientPhone(d.clientPhone??'');setClientName(d.clientName??'');setOrderNote(d.orderNote??'');setPaymentMethod(d.paymentMethod??null);setPaymentStatus(d.paymentStatus??'pending');setFulfillmentMethod(d.fulfillmentMethod??'retirada');setPickupScheduled(d.pickupScheduled??false);setScheduledDay(d.scheduledDay??'');setScheduledTime(d.scheduledTime??'');setAppliedAdjustment(d.appliedAdjustment !== undefined ? d.appliedAdjustment : (d.priceAdjustment||d.adjustmentType==='coupon'?{type:d.adjustmentType??'fixed',direction:d.adjustmentDirection??'discount',amount:d.adjustmentAmount??''}:null));setAdjustmentDirection(d.adjustmentDirection??'discount');setAdjustmentType(d.adjustmentType??'fixed');setAdjustmentAmount(d.adjustmentAmount??'');setSplit(d.split??{cash:'',card:'',pix:''});orderKey.current=crypto.randomUUID();setDeliveryAddress(d.deliveryAddress??{apelido:'Entrega PDV',rua:'',numero:'',bairro:'',cep:'',complemento:'',referencia:''});setDraftOpen(false);}
     async function handleGenerateOrder(){
       if(generatingRef.current)return;
-      if(!orderItems.length||!clientName.trim()||clientPhone.replace(/\D/g,'').length<10||!paymentMethod){toast.error('Preencha cliente, telefone, itens e pagamento.');return;}
+      if(!orderItems.length||!clientId||!paymentMethod){toast.error('Selecione um cliente, adicione itens e escolha o pagamento.');return;}
       generatingRef.current=true;setGenerating(true);
       try{
-       const customer=(await api.post('/admin/clientes',{nome:clientName.trim(),tel:'55'+clientPhone.replace(/\D/g,'')})).data;
+       const customer = await customerQuery.refetch();
+       if (!customer.data || customer.isError) { toast.error('Não foi possível confirmar o cliente. Selecione um cadastro válido.'); return; }
        if(pickupScheduled && (!scheduledDay || !scheduledTime)){toast.error('Escolha dia e horário.');return;}
        const day=pickupScheduled?scheduledDay:dataDaLoja();
        const slots=(await api.get(`/pedido/horarios/${day}`)).data;
        const slot=slots.find((s:any)=>s.disponivel&&(!pickupScheduled||s.horario===scheduledTime));
        if(!slot){toast.error('Não há horário disponível. Agende a retirada para outro dia.');return;}
        const payments=paymentMethod==='split'?Object.entries(split).filter(([,v])=>Number(v)>0).map(([method,v])=>({metodo:method,valor:Number(v)})):undefined;
-       const payload={clienteId:customer.id,itens:orderItems.map(i=>({produtoId:i.productId,quantidade:i.quantity,obs:i.note})),dataEntrega:slot.data,canal:fulfillmentMethod,formaPagamento:paymentMethod==='cash'?'Pagamento na Entrega - Dinheiro':paymentMethod==='pix'?'Pagamento na Entrega - Pix':paymentMethod==='split'?'Pagamento na Entrega - Dividido':'Pagamento na Entrega - Cartão',pagamentoStatus:paymentStatus,obs:orderNote,ajuste:['fixed','percent'].includes(adjustmentType)?Math.round(priceAdjustment*100)/100:0,cupom:adjustmentType==='coupon'?adjustmentAmount.trim().toUpperCase():undefined,cashBack:adjustmentType==='cashback'?Number(adjustmentAmount.replace(',','.')):undefined,pagamentos:payments,endereco:fulfillmentMethod==='entrega'?{...deliveryAddress,cep:deliveryAddress.cep.replace(/\D/g,'')}:undefined};
-       const order=await createOrder.mutateAsync(payload);orderKey.current=crypto.randomUUID();toast.success(`Pedido #${order.id} criado — ${formatCurrency(order.valorFinal)}.`);setOrderItems([]);setPriceAdjustment(0);setAdjustmentAmount('');await Promise.all(['operacao','pedidos','cardapio'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
+       const payload={clienteId:customer.data.id,itens:orderItems.map(i=>({produtoId:i.productId,quantidade:i.quantity,obs:i.note})),dataEntrega:slot.data,canal:fulfillmentMethod,formaPagamento:paymentMethod==='cash'?'Pagamento na Entrega - Dinheiro':paymentMethod==='pix'?'Pagamento na Entrega - Pix':paymentMethod==='split'?'Pagamento na Entrega - Dividido':'Pagamento na Entrega - Cartão',pagamentoStatus:paymentStatus,obs:orderNote,ajuste:appliedAdjustment&&['fixed','percent'].includes(appliedAdjustment.type)?Math.round(priceAdjustment*100)/100:0,cupom:appliedAdjustment?.type==='coupon'?appliedAdjustment.amount:undefined,cashBack:appliedAdjustment?.type==='cashback'?adjustmentValue:undefined,pagamentos:payments,endereco:fulfillmentMethod==='entrega'?{...deliveryAddress,cep:deliveryAddress.cep.replace(/\D/g,'')}:undefined};
+       const order=await createOrder.mutateAsync(payload);orderKey.current=crypto.randomUUID();toast.success(`Pedido #${order.id} criado — ${formatCurrency(order.valorFinal)}.`);setOrderItems([]);setAppliedAdjustment(null);setAdjustmentAmount('');await Promise.all(['operacao','pedidos','cardapio','admin-cliente-beneficios','admin-clientes','relatorios'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
       }catch(e){mostrarErro(e);}finally{generatingRef.current=false;setGenerating(false);}
     }
     function handleSaveDraft(){if(!orderItems.length){setDraftOpen(true);return;}saveDraft.mutate(draftData());}
@@ -700,25 +707,28 @@ export default function PedidosPdvPage() {
         setOrderNoteModalOpen(false);
     }
 
-    function handleApplyAdjustment() {
-        if(adjustmentType==='coupon'){setPriceAdjustment(0);setActiveModal(null);toast.info('O cupom será validado e calculado ao gerar o pedido.');return;}
-        const parsedAmount = Number(adjustmentAmount.replace(',', '.'));
-
-        if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-            setPriceAdjustment(0);
-            setAdjustmentAmount('');
+    async function handleApplyAdjustment() {
+        if (adjustmentType === 'coupon') {
+            const code = adjustmentAmount.trim().toUpperCase();
+            if (!/^[A-Z0-9_-]{2,60}$/.test(code)) { toast.error('Informe um código de cupom válido.'); return; }
+            setAppliedAdjustment({ type: 'coupon', direction: 'discount', amount: code });
             setActiveModal(null);
+            toast.info('O cupom será validado e calculado ao gerar o pedido.');
             return;
         }
-
-        const normalizedAmount = adjustmentType === 'percent'
-            ? subtotal * (parsedAmount / 100)
-            : parsedAmount;
-        const signedAdjustment = adjustmentDirection === 'discount'
-            ? -Math.abs(normalizedAmount)
-            : Math.abs(normalizedAmount);
-
-        setPriceAdjustment(signedAdjustment);
+        const amount = Number(adjustmentAmount.replace(',', '.'));
+        if (!Number.isFinite(amount) || amount < 0 || amount > 100000 || (adjustmentType === 'percent' && amount > 100)) {
+            toast.error('Informe um valor de ajuste válido.'); return;
+        }
+        if (adjustmentType === 'cashback') {
+            if (!clientId) { toast.error('Selecione um cliente para utilizar cashback.'); return; }
+            const result = await benefitsQuery.refetch();
+            if (result.isError || !result.data) { toast.error('Não foi possível consultar o saldo de cashback.'); return; }
+            if (amount > Math.max(0, result.data.cashbackBalance) || amount > subtotal) {
+                toast.error('Cashback acima do saldo disponível ou do subtotal.'); return;
+            }
+        }
+        setAppliedAdjustment(amount ? { type: adjustmentType, direction: adjustmentDirection, amount: String(Math.round(amount * 100) / 100) } : null);
         setActiveModal(null);
     }
 
@@ -743,6 +753,7 @@ export default function PedidosPdvPage() {
                 || activeModal
                 || paymentSheetOpen
                 || orderNoteModalOpen
+                || document.querySelector('[role="dialog"]')
             ) {
                 return;
             }
@@ -767,6 +778,9 @@ export default function PedidosPdvPage() {
 
             if (shortcut === 'f') {
                 event.preventDefault();
+                setAdjustmentType(appliedAdjustment?.type ?? 'fixed');
+                setAdjustmentDirection(appliedAdjustment?.direction ?? 'discount');
+                setAdjustmentAmount(appliedAdjustment?.amount ?? '');
                 setActiveModal('adjustment');
             }
         }
@@ -774,7 +788,7 @@ export default function PedidosPdvPage() {
         window.addEventListener('keydown', handleKeyDown);
 
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [activeModal, openOrderNoteModal, orderNoteModalOpen, paymentSheetOpen]);
+    }, [activeModal, appliedAdjustment, openOrderNoteModal, orderNoteModalOpen, paymentSheetOpen]);
 
     return (
         <main className="min-h-[calc(100vh-57px)] bg-[#f3f5f8] p-3 pr-12">
@@ -1028,6 +1042,9 @@ export default function PedidosPdvPage() {
                                     <span>Subtotal</span>
                                     <strong>{formatCurrency(subtotal)}</strong>
                                 </div>
+                                {deliveryFee > 0 && <div className="mt-1 flex justify-between"><span>Entrega</span><span>{formatCurrency(deliveryFee)}</span></div>}
+                                {priceAdjustment !== 0 && <div className="mt-1 flex justify-between"><span>{appliedAdjustment?.type === 'cashback' ? 'Cashback' : 'Ajuste'}</span><span>{formatCurrency(priceAdjustment)}</span></div>}
+                                {appliedAdjustment?.type === 'coupon' && <p className="mt-1 text-xs">Cupom {appliedAdjustment.amount}: desconto calculado ao gerar o pedido.</p>}
                                 {pickupScheduled && scheduledDayLabel && scheduledDateLabel && (
                                     <div className="mt-1 flex items-center justify-between gap-3 text-[10px] font-bold text-[#8a94a2]">
                                         <span>Agendado</span>
@@ -1040,64 +1057,18 @@ export default function PedidosPdvPage() {
                             </div>
 
                             <div className="flex h-12 items-center justify-between bg-[#dcdcdc] px-3 text-[13px] font-extrabold text-[#555d66]">
-                                <span>Total</span>
+                                <span>{appliedAdjustment?.type === 'coupon' ? 'Total antes do cupom' : 'Total'}</span>
                                 <strong>{formatCurrency(total)}</strong>
                             </div>
                         </div>
 
                         <div className="space-y-2 px-3 py-2.5">
-                            {fulfillmentMethod === 'balcao' ? (
-                                <div className="rounded-md border border-[#0b98f6] bg-[#eff8ff] p-2.5">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <strong className="block text-[12px] font-extrabold uppercase text-[#0b86df]">
-                                                Cliente balcão
-                                            </strong>
-                                            <span className="mt-0.5 block text-[11px] font-semibold text-[#5f6670]">
-                                                Venda imediata, telefone não necessário.
-                                            </span>
-                                        </div>
-                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-[#0b86df]">
-                                            <FaStore size={15} />
-                                        </span>
-                                    </div>
-                                    <label className="relative mt-2 block min-w-0 overflow-hidden rounded-md border border-[#0b98f6] bg-white">
-                                        <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-[#98a2b3]" size={13} />
-                                        <input
-                                            value={clientName}
-                                            onChange={(event) => setClientName(event.target.value)}
-                                            placeholder="Nome ou apelido (opcional)"
-                                            className="h-10 w-full bg-white pl-9 pr-3 text-[13px] font-bold capitalize text-[#303740] outline-none placeholder:text-[#a8b1bb]"
-                                            aria-label="Nome ou apelido do cliente de balcão"
-                                        />
-                                    </label>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 overflow-hidden rounded-md border border-[#0b98f6] bg-white">
-                                    <label className="relative min-w-0 border-r border-[#0b98f6]">
-                                        <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-[#98a2b3]" size={13} />
-                                        <input
-                                            value={clientName}
-                                            onChange={(event) => setClientName(event.target.value)}
-                                            placeholder="Nome do cliente"
-                                            className="h-10 w-full bg-white pl-9 pr-3 text-[13px] font-bold capitalize text-[#303740] outline-none placeholder:text-[#a8b1bb]"
-                                            aria-label="Nome ou apelido do cliente"
-                                        />
-                                    </label>
-                                    <label className="relative min-w-0">
-                                        <FaPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-[#98a2b3]" size={13} />
-                                        <input
-                                            value={clientPhone}
-                                            onChange={(event) => setClientPhone(formatPhoneInput(event.target.value))}
-                                            placeholder="(XX) X XXXX-XXXX"
-                                            inputMode="tel"
-                                            autoComplete="tel"
-                                            className="h-10 w-full bg-white pl-9 pr-3 text-[13px] font-bold text-[#303740] outline-none placeholder:text-[#a8b1bb]"
-                                            aria-label="Telefone"
-                                        />
-                                    </label>
-                                </div>
-                            )}
+                            <ClientePdv cliente={customerQuery.data} initialSearch={clientPhone || clientName} disabled={generating} onSelect={selectCustomer} />
+                            {clientId && customerQuery.isPending && <p role="status" className="text-xs">Carregando cliente…</p>}
+                            {customerQuery.isError && <p role="alert" className="text-xs text-red-600">Não foi possível confirmar o cliente. Selecione o cadastro novamente.</p>}
+                            {clientId && benefitsQuery.isPending && <p role="status" className="text-xs">Consultando benefícios…</p>}
+                            {clientId && benefitsQuery.isError && <button type="button" className="text-xs text-red-600" onClick={() => benefitsQuery.refetch()}>Erro ao consultar benefícios. Tentar novamente</button>}
+                            {benefitsQuery.data && <p className="text-xs text-[#5f6670]">Cashback: {formatCurrency(benefitsQuery.data.cashbackBalance)} · Fidelidade: {benefitsQuery.data.loyaltyCurrentOrders}/{benefitsQuery.data.loyaltyGoalOrders}</p>}
 
                             <div className="grid grid-cols-1 gap-1.5">
                                 <PanelActionButton
@@ -1118,8 +1089,8 @@ export default function PedidosPdvPage() {
                                 <PanelActionButton
                                     icon={<FaMoneyBillWave size={13} />}
                                     label="[ F ] Ajustar R$"
-                                    active={priceAdjustment !== 0}
-                                    onClick={() => setActiveModal('adjustment')}
+                                    active={Boolean(appliedAdjustment)}
+                                    onClick={() => { setAdjustmentType(appliedAdjustment?.type ?? 'fixed'); setAdjustmentDirection(appliedAdjustment?.direction ?? 'discount'); setAdjustmentAmount(appliedAdjustment?.amount ?? ''); setActiveModal('adjustment'); }}
                                 />
                             </div>
 
@@ -1312,7 +1283,7 @@ export default function PedidosPdvPage() {
                         "border-[#d8dde3] bg-white",
                         activeModal === 'adjustment'
                             ? "max-w-[680px] gap-0 overflow-hidden p-0"
-                            : "max-w-[420px] p-5"
+                            : "max-h-[90vh] max-w-[520px] overflow-y-auto p-5"
                     )}
                 >
                     {activeModal === 'adjustment' ? (
@@ -1321,6 +1292,7 @@ export default function PedidosPdvPage() {
                                 <DialogTitle className="text-[24px] font-extrabold leading-8 text-[#2d3137]">
                                     Ajustar valor do pedido
                                 </DialogTitle>
+                                <DialogDescription>Escolha um desconto ou acréscimo para este pedido.</DialogDescription>
                             </DialogHeader>
 
                             <div className="px-8 py-8">
@@ -1366,21 +1338,21 @@ export default function PedidosPdvPage() {
                                     <div className="grid h-20 grid-cols-[1fr_80px] overflow-hidden rounded-md border-2 border-[#0b98f6] bg-white">
                                         <div className="flex items-center gap-2 px-7">
                                             <span className="text-[22px] font-extrabold text-[#3d4147]">
-                                                {adjustmentType === 'percent' ? '%' : 'R$'}
+                                                {adjustmentType === 'coupon' ? 'Código' : adjustmentType === 'percent' ? '%' : 'R$'}
                                             </span>
                                             <input
-                                                type="number"
+                                                type={adjustmentType === 'coupon' ? 'text' : 'number'}
                                                 step="0.01"
                                                 min="0"
                                                 value={adjustmentAmount}
                                                 onChange={(event) => setAdjustmentAmount(event.target.value)}
-                                                placeholder="0,00"
+                                                placeholder={adjustmentType === 'coupon' ? 'EX: ZANINI10' : '0,00'}
                                                 className="h-full min-w-0 flex-1 bg-transparent text-[22px] font-semibold text-[#3d4147] outline-none placeholder:text-[#3d4147]"
                                                 aria-label="Valor do ajuste"
                                             />
                                         </div>
                                         <div className="flex items-center justify-center border-l-2 border-[#0b98f6] text-[32px] font-semibold text-[#5f6670]">
-                                            {adjustmentType === 'percent' ? '%' : '$'}
+                                            {adjustmentType === 'coupon' ? '#' : adjustmentType === 'percent' ? '%' : '$'}
                                         </div>
                                     </div>
                                 </label>
@@ -1442,7 +1414,6 @@ export default function PedidosPdvPage() {
                                             type="button"
                                             onClick={() => {
                                                 setFulfillmentMethod('balcao');
-                                                setClientPhone('');
                                                 setPickupScheduled(false);
                                                 setScheduledDay('');
                                                 setScheduledTime('');
@@ -1489,13 +1460,28 @@ export default function PedidosPdvPage() {
                                         </button>
                                     </div>
 
+                                    {fulfillmentMethod === 'entrega' && <section className="space-y-2 rounded-md border p-3">
+                                        <h2 className="font-bold">Endereço de entrega</h2>
+                                        <p className="text-xs">Taxa: {formatCurrency(deliveryFee)}</p>
+                                        {addressesQuery.isFetching && <p role="status">Carregando endereços…</p>}
+                                        {addressesQuery.isError && <button type="button" onClick={() => addressesQuery.refetch()}>Erro ao carregar endereços. Tentar novamente</button>}
+                                        {!!addressesQuery.data?.length && <label className="block text-xs">Usar endereço cadastrado
+                                            <select aria-label="Endereço cadastrado" className="mt-1 w-full rounded border p-2" value="" onChange={event => { const address = addressesQuery.data?.find(item => item.id === Number(event.target.value)); if (address) selectAddress(address); }}>
+                                                <option value="">Selecionar endereço</option>
+                                                {addressesQuery.data.map(address => <option key={address.id} value={address.id}>{address.apelido} — {address.rua}, {address.numero}</option>)}
+                                            </select>
+                                        </label>}
+                                        {clientId && addressesQuery.isSuccess && !addressesQuery.data.length && <p className="text-xs">Cliente sem endereços cadastrados. Preencha abaixo.</p>}
+                                        <div className="grid grid-cols-2 gap-2">{(['rua','numero','bairro','cep','complemento','referencia'] as const).map(key => <label key={key} className="block text-xs capitalize">{key}<input aria-label={`Entrega: ${key}`} className="block w-full rounded border p-2" value={deliveryAddress[key]} onChange={event => setDeliveryAddress({...deliveryAddress,[key]:event.target.value})}/></label>)}</div>
+                                    </section>}
+
                                     {fulfillmentMethod === 'balcao' && (
                                         <div className="rounded-md border border-[#b8e3ff] bg-[#eff8ff] p-3">
                                             <strong className="block text-[12px] font-extrabold uppercase text-[#0b86df]">
                                                 Retirada balcão
                                             </strong>
                                             <span className="mt-1 block text-[11px] font-semibold leading-4 text-[#5f6670]">
-                                                Use quando o cliente compra no estabelecimento e já leva o pedido. O telefone fica dispensado, e o nome/apelido é opcional para identificar o pedido.
+                                                Selecione o cliente cadastrado também para vendas no balcão. O pedido e os benefícios ficam vinculados a esse cadastro.
                                             </span>
                                         </div>
                                     )}
@@ -1512,6 +1498,7 @@ export default function PedidosPdvPage() {
                                                     </span>
                                                 </div>
                                                 <Switch
+                                                    aria-label="Agendar pedido"
                                                     checked={pickupScheduled}
                                                     onCheckedChange={(checked) => {
                                                         setPickupScheduled(checked);
@@ -1520,7 +1507,6 @@ export default function PedidosPdvPage() {
                                                             setScheduledTime('');
                                                         }
                                                     }}
-                                                    aria-label="Pedido para agendamento"
                                                 />
                                             </div>
 
@@ -1631,7 +1617,7 @@ export default function PedidosPdvPage() {
             >
                 <span className="-rotate-90 whitespace-nowrap text-[13px] font-extrabold">Enviar sugestão</span>
             </button>
-        {fulfillmentMethod==='entrega'&&<section className="fixed bottom-4 left-4 z-30 w-80 rounded-md border bg-white p-4 shadow-xl"><h2 className="font-bold">Endereço de entrega</h2><p className="text-xs">Taxa: {formatCurrency(deliveryFee)}</p>{(['rua','numero','bairro','cep','complemento','referencia'] as const).map(key=><label key={key} className="mt-1 block text-xs capitalize">{key}<input className="block w-full rounded border p-1" value={deliveryAddress[key]} onChange={e=>setDeliveryAddress({...deliveryAddress,[key]:e.target.value})}/></label>)}</section>}
+
         <Dialog open={draftOpen} onOpenChange={setDraftOpen}><DialogContent><DialogHeader><DialogTitle>Rascunhos do PDV</DialogTitle><DialogDescription>Rascunhos não reservam estoque. Preços e disponibilidade serão validados ao gerar o pedido.</DialogDescription></DialogHeader><div className="max-h-80 space-y-2 overflow-y-auto">{!drafts&&<p>Nenhum rascunho salvo.</p>}{draftQuery.data?.map(d=><div key={d.id} className="flex items-center gap-2 rounded border p-2"><span className="flex-1">#{d.id} — {d.dados.clientName||'Sem cliente'}</span><button onClick={()=>restoreDraft(d.dados)}>Abrir</button><button onClick={()=>deleteDraft.mutate(d.id)}>Excluir</button></div>)}</div></DialogContent></Dialog>
         </main>
     );

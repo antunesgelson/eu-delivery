@@ -4,7 +4,9 @@ import {
   REFRESH_COOKIE,
   BACKEND_URL,
   cookiesSessao,
+  limparSessao,
 } from "@/lib/backend";
+import { refreshRecusado } from "@/lib/session";
 export async function middleware(req: NextRequest) {
   const signin = new URL("/signin", req.url);
   signin.searchParams.set(
@@ -38,7 +40,14 @@ export async function middleware(req: NextRequest) {
         cache: "no-store",
         signal: AbortSignal.timeout(5000),
       });
-      if (!response.ok) return NextResponse.redirect(signin);
+      if (!response.ok) {
+        if (refreshRecusado(response.status))
+          return limparSessao(NextResponse.redirect(signin));
+        return new NextResponse(
+          "Não foi possível renovar a sessão. A API está temporariamente indisponível. Tente novamente.",
+          { status: 503 },
+        );
+      }
       session = await response.json();
       user = session.user;
       req.cookies.set(ACCESS_COOKIE, session.token);

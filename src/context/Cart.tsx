@@ -36,6 +36,7 @@ type Contexto = {
       substituicoes?: Array<{ removerId: string; adicionarId: string }>;
     },
   ) => Promise<void>;
+  repeatOrder: (id: number, idempotencyKey: string) => Promise<void>;
   increaseItemQuantity: (id: number) => Promise<void>;
   removeItemFromCart: (id: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -57,7 +58,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
   const cartQuery = useQuery<Carrinho>({
     queryKey: ["carrinho"],
-    queryFn: async ({ signal }) => (await api.get("/pedido/carrinho", { signal })).data,
+    queryFn: async ({ signal }) =>
+      (await api.get("/pedido/carrinho", { signal })).data,
     enabled: isAuthenticated,
     retry: false,
   });
@@ -73,11 +75,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       method,
       path,
       data,
+      idempotencyKey,
     }: {
       method: "post" | "put" | "patch" | "delete";
       path: string;
       data?: unknown;
-    }) => (await api.request({ method, url: path, data })).data,
+      idempotencyKey?: string;
+    }) =>
+      (
+        await api.request({
+          method,
+          url: path,
+          data,
+          headers: idempotencyKey
+            ? { "Idempotency-Key": idempotencyKey }
+            : undefined,
+        })
+      ).data,
     onSuccess: (cart) => client.setQueryData(["carrinho"], cart),
   });
   const executar = useCallback(
@@ -85,17 +99,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       method: "post" | "put" | "patch" | "delete",
       path: string,
       data?: unknown,
+      idempotencyKey?: string,
     ) => {
       if (!isAuthenticated) {
         window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
         throw new Error("Entre na sua conta para continuar.");
       }
-      setQueuedWrites(count => count + 1);
+      setQueuedWrites((count) => count + 1);
       const result = queue.current
         .catch(() => {})
         .then(async () => {
-          await client.cancelQueries({ queryKey: ['carrinho'] });
-          return mutation.mutateAsync({ method, path, data: typeof data === 'function' ? data() : data });
+          await client.cancelQueries({ queryKey: ["carrinho"] });
+          return mutation.mutateAsync({
+            method,
+            path,
+            data: typeof data === "function" ? data() : data,
+            idempotencyKey,
+          });
         });
       // A falha é exibida ao chamador sem bloquear operações futuras ou o checkout.
       queue.current = result.catch(() => {});
@@ -105,7 +125,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         mostrarErro(e);
         throw e;
       } finally {
-        setQueuedWrites(count => count - 1);
+        setQueuedWrites((count) => count - 1);
       }
     },
     [isAuthenticated, mutation, client],
@@ -136,6 +156,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const result = await finalizeMutation.mutateAsync(cart.id);
       await client.invalidateQueries({ queryKey: ["carrinho"] });
       await client.invalidateQueries({ queryKey: ["beneficios"] });
+      await client.invalidateQueries({ queryKey: ["cupons-publicos"] });
       await client.invalidateQueries({ queryKey: ["pedido-ativo"] });
       await client.invalidateQueries({ queryKey: ["pedidos"] });
       return { ok: true, errors: [], id: result.id };
@@ -176,11 +197,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             obs,
             ...opcoes,
           }),
+        repeatOrder: (id, idempotencyKey) =>
+          executar("post", `/pedido/${id}/repetir`, undefined, idempotencyKey),
         increaseItemQuantity: (id) =>
           executar("patch", `/pedido/carrinho/item/${id}`, () => ({
             quantidade:
-              (client.getQueryData<Carrinho>(["carrinho"])?.itens.find((i) => i.id === id)?.quantidade ??
-                0) + 1,
+              (client
+                .getQueryData<Carrinho>(["carrinho"])
+                ?.itens.find((i) => i.id === id)?.quantidade ?? 0) + 1,
           })),
         removeItemFromCart: (id) =>
           executar("delete", `/pedido/carrinho/item/${id}`),

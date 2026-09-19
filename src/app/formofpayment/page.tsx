@@ -1,5 +1,6 @@
 'use client'
 import {useQuery} from '@tanstack/react-query';
+import { Button } from "@/components/ui/button";
 import {api} from '@/service/api';
 import useCart from "@/hook/useCart";
 import { motion } from "framer-motion";
@@ -50,13 +51,14 @@ const PAYMENT_GROUPS = {
 }>;
 
 export default function FormOfPayment() {
-    const methods=useQuery({queryKey:['pagamento-metodos'],queryFn:async()=>(await api.get('/pagamento/metodos')).data});
+    const methods=useQuery<{online:boolean;retirada:boolean}>({retry:false,queryKey:['pagamento-metodos'],queryFn:async()=>(await api.get('/pagamento/metodos')).data});
     const [activeTab, setActiveTab] = useState<PaymentTab>('delivery');
     const [checked, setChecked] = useState<string | null>(null);
     const router = useRouter();
     const { setPaymentMethod, isPending } = useCart();
 
-    const currentGroup = PAYMENT_GROUPS[activeTab];
+    const selectedTab = activeTab === 'online' && !methods.data?.online ? 'delivery' : activeTab;
+    const currentGroup = PAYMENT_GROUPS[selectedTab];
 
     const handleChoosePayment = async (paymentTitle: string) => {
         const paymentLabel = `${currentGroup.label} - ${paymentTitle}`;
@@ -73,12 +75,14 @@ export default function FormOfPayment() {
 
             <div className='p-4 leading-3 mt-3 text-center'>
                 <h1 className="uppercase text-base font-bold ">qual a forma de pagamento?</h1>
-                <span className="text-[11px] text-muted-foreground">O pedido só é confirmado mediante pagamento.</span>
+                <span className="text-[11px] text-muted-foreground">Escolha como deseja pagar seu pedido.</span>
             </div>
 
-            <section className="px-4 pb-4">
+            {methods.isPending && <p className="p-4" role="status">Carregando formas de pagamento…</p>}
+            {methods.isError && <div className="space-y-3 p-4" role="alert"><p>Não foi possível consultar as formas de pagamento.</p><Button disabled={methods.isFetching} onClick={() => void methods.refetch()}>Tentar novamente</Button></div>}
+            {methods.isSuccess && <><section className="px-4 pb-4">
                 <div className="grid grid-cols-2 rounded-md border bg-white p-1 text-[12px] font-extrabold">
-                    {(Object.keys(PAYMENT_GROUPS) as PaymentTab[]).filter(tab=>tab==='delivery'||methods.data?.online).map((tab) => (
+                    {(Object.keys(PAYMENT_GROUPS) as PaymentTab[]).filter(tab=>tab==='delivery'?methods.data?.retirada:methods.data?.online).map((tab) => (
                         <button
                             type="button"
                             key={tab}
@@ -86,7 +90,7 @@ export default function FormOfPayment() {
                                 setActiveTab(tab);
                                 setChecked(null);
                             }}
-                            className={`h-10 rounded-md px-2 leading-4 duration-200 ${activeTab === tab ? 'bg-[#f97316] text-white shadow-sm' : 'text-dark-500'}`}>
+                            className={`h-10 rounded-md px-2 leading-4 duration-200 ${selectedTab === tab ? 'bg-[#f97316] text-white shadow-sm' : 'text-dark-500'}`}>
                             {PAYMENT_GROUPS[tab].label}
                         </button>
                     ))}
@@ -107,7 +111,7 @@ export default function FormOfPayment() {
                         return (
                             <button
                                 type="button"
-                                key={paymentLabel} disabled={isPending}
+                                key={paymentLabel} disabled={isPending || methods.isError}
                                 className={`flex h-[64px] w-full items-center justify-between rounded-lg border bg-white p-4 text-left duration-300 ${isSelected ? 'border-2 border-emerald-500' : 'border-neutral-200'}`}
                                 onClick={() => handleChoosePayment(item.title)}>
                                 <div className="flex min-w-0 items-center gap-3">
@@ -115,7 +119,7 @@ export default function FormOfPayment() {
                                     <div className="min-w-0 leading-4">
                                         <span className="font-semibold uppercase">{item.title}</span>
                                         <span className="block text-[11px] normal-case text-muted-foreground">
-                                            {activeTab === 'delivery' ? 'Pague ao receber seu pedido' : 'Pagamento antecipado'}
+                                            {selectedTab === 'delivery' ? 'Pague ao receber seu pedido' : 'Pagamento antecipado'}
                                         </span>
                                     </div>
                                 </div>
@@ -127,7 +131,7 @@ export default function FormOfPayment() {
                         );
                     })}
                 </div>
-            </section>
+            </section></>}
         </motion.div>
     )
 }

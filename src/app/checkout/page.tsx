@@ -168,7 +168,7 @@ export default function Checkout() {
                             <div className="ml-3 flex min-w-0 flex-col items-start leading-4">
                                 <span className="font-semibold">Recebimento:</span>
                                 {!pickupAddress
-                                    ? <span className="text-muted-foreground text-sm">Escolha a retirada no local</span>
+                                    ? <span className="text-muted-foreground text-sm">Escolha retirada ou entrega</span>
                                     : <>
                                         <span className="text-muted-foreground text-sm font-semibold">{cart?.tipoRecebimento==='delivery'?'Entrega no endereço':'Retirada no local'}</span>
                                         <span className="text-muted-foreground text-sm">{pickupAddress.rua}, {pickupAddress.numero}</span>
