@@ -65,6 +65,7 @@ import { HiTicket } from "react-icons/hi2";
 import { IoCheckmarkCircle, IoSearch, IoSettingsSharp } from "react-icons/io5";
 
 type OrderStatus = 'analysis' | 'production' | 'ready';
+type OrderActionStatus = OrderStatus | 'completed' | 'cancelled';
 type OrderChannel = 'retirada' | 'delivery' | 'balcao';
 type PaymentStatus = 'paid' | 'pending';
 type ProductFilter = 'all' | 'frango-recheado' | 'frango-sem-recheio' | 'costelinha-bbq';
@@ -283,7 +284,7 @@ function getChannelIcon(channel: OrderChannel) {
     return FaStore;
 }
 
-function getNextStatus(status: OrderStatus): OrderStatus | null {
+function getNextStatus(status: OrderStatus): OrderActionStatus {
     if (status === 'analysis') {
         return 'production';
     }
@@ -292,7 +293,7 @@ function getNextStatus(status: OrderStatus): OrderStatus | null {
         return 'ready';
     }
 
-    return null;
+    return 'completed';
 }
 
 function getActionLabel(status: OrderStatus) {
@@ -370,14 +371,18 @@ function AutoAcceptSwitch({
 function PaymentStatusSwitch({
     checked,
     onCheckedChange,
+    disabled,
 }: {
     checked: boolean;
+    disabled: boolean;
     onCheckedChange: (checked: boolean) => void;
 }) {
     return (
         <button
             type="button"
             role="switch"
+            aria-label="Confirmar pagamento no recebimento"
+            disabled={disabled}
             aria-checked={checked}
             onClick={() => onCheckedChange(!checked)}
             className={cn(
@@ -572,7 +577,7 @@ function OrderDetailsModal({
                                         {paymentIsPaid ? 'Pagamento confirmado' : 'Marcar pedido como pago'}
                                     </h3>
                                     <p className="mt-1 max-w-[620px] text-[12px] font-semibold leading-5 text-dark-600">
-                                        Use este campo quando o cliente escolheu pagar na entrega, mas enviou Pix pelo WhatsApp ou deixou pago no estabelecimento.
+                                        {order.paymentMethod.startsWith("Pagamento online") ? "O pagamento online é confirmado automaticamente pelo provedor." : "Confirme somente após receber o pagamento do cliente. A confirmação não pode ser desfeita por este controle."}
                                     </p>
                                     <div className="mt-3 flex flex-wrap items-center gap-2">
                                         <span className="rounded-full bg-white px-3 py-1 text-[11px] font-extrabold text-dark-600 shadow-sm">
@@ -591,6 +596,7 @@ function OrderDetailsModal({
                             <div className="flex shrink-0 flex-col items-end gap-2">
                                 <PaymentStatusSwitch
                                     checked={paymentIsPaid}
+                                    disabled={paymentIsPaid || order.paymentMethod.startsWith("Pagamento online")}
                                     onCheckedChange={(checked) => (
                                         onPaymentStatusChange(order.id, checked ? 'paid' : 'pending')
                                     )}
@@ -686,8 +692,8 @@ function OrderDetailsModal({
                             </Button>
                             <Button
                                 type="button"
-                                disabled={order.status!=='ready'}
-                                onClick={()=>onStatusChange(order.id,'completed' as OrderStatus)}
+                                disabled={order.status!=='ready' || !paymentIsPaid}
+                                onClick={()=>onStatusChange(order.id,'completed')}
                                 className="h-10 gap-2 bg-[#f97316] px-4 text-[13px] font-extrabold text-white shadow-sm hover:bg-[#ea6409]"
                             >
                                 <FaPenToSquare size={13} />
@@ -1229,7 +1235,7 @@ function OrderCard({
     onDragEnd,
 }: {
     order: AdminOrder;
-    onMove: (orderId: string, status: OrderStatus) => void;
+    onMove: (orderId: string, status: OrderActionStatus) => void;
     onOpenDetails: (order: AdminOrder) => void;
     isDragging: boolean;
     onDragStart: (event: React.DragEvent<HTMLElement>, orderId: string) => void;
@@ -1324,7 +1330,7 @@ function OrderCard({
             <div className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
                 <Button
                     type="button"
-                    disabled={!nextStatus}
+                    disabled={(order.status === "ready" && order.paymentStatus !== "paid") || (order.paymentMethod.startsWith("Pagamento online") && order.paymentStatus !== "paid")}
                     onClick={() => nextStatus && onMove(order.id, nextStatus)}
                     className={cn(
                         "h-7 justify-start gap-1.5 px-2 text-[10px] font-extrabold",
@@ -1365,7 +1371,7 @@ function KanbanColumn({
 }: {
     column: KanbanColumn;
     orders: AdminOrder[];
-    onMove: (orderId: string, status: OrderStatus) => void;
+    onMove: (orderId: string, status: OrderActionStatus) => void;
     onOpenDetails: (order: AdminOrder) => void;
     autoAcceptOrders: boolean;
     onAutoAcceptChange: (checked: boolean) => void;
@@ -1464,7 +1470,25 @@ function AdminOrdersDashboardContent() {
     const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
     const scheduledOrders:ScheduledOrder[]=mapped.filter(p=>p.status==='analysis'&&p.scheduledDate>today);
     const orders:AdminOrder[]=mapped.filter(p=>!scheduledOrders.some(s=>s.id===p.id));
-    const change=(id:string,status:string)=>operation.mutate({id,status});
+    const sending = React.useRef(false);
+    const [busy, setBusy] = React.useState(false);
+    const runOperations = async (actions: Array<{id: string; status?: string; payment?: boolean}>) => {
+        if (sending.current || live.isError) return;
+        sending.current = true;
+        setBusy(true);
+        try {
+            for (const action of actions) {
+                await operation.mutateAsync(action);
+                if (queryClient.getQueryState(['operacao'])?.status === 'error') break;
+            }
+        } catch {
+            // O hook apresenta o erro e reconsulta o estado confirmado pela API.
+        } finally {
+            sending.current = false;
+            setBusy(false);
+        }
+    };
+    const change=(id:string,status:string)=>void runOperations([{id,status}]);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [selectedChannel, setSelectedChannel] = React.useState<'all' | OrderChannel>('all');
     const [selectedProductFilter, setSelectedProductFilter] = React.useState<ProductFilter>('all');
@@ -1507,9 +1531,10 @@ function AdminOrdersDashboardContent() {
         }));
     }, [orders]);
 
-    const moveOrder=(id:string,status:OrderStatus)=>change(id,status);
+    const moveOrder=(id:string,status:OrderActionStatus)=>change(id,status);
     const resetOrders=()=>{void live.refetch();setSelectedProductFilter('all');setSearchTerm('');setSelectedChannel('all');};
     const handleCardDragStart = (event: React.DragEvent<HTMLElement>, orderId: string) => {
+        if (sending.current || live.isError) { event.preventDefault(); return; }
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', orderId);
         setDraggedOrderId(orderId);
@@ -1521,11 +1546,11 @@ function AdminOrdersDashboardContent() {
     };
 
     const handleDropOrder=(id:string|null,status:OrderStatus)=>{if(id)change(id,status);handleCardDragEnd();};
-    const handleRemoveOrder=(id:string)=>{change(id,'cancelled');setSelectedOrder(null);};
-    const handlePaymentStatusChange=(id:string,paymentStatus:PaymentStatus)=>{if(paymentStatus==='paid')operation.mutate({id,payment:true});};
-    const handleSendScheduledToProduction=(id:string)=>{change(id,'production');setSelectedScheduledOrder(null);};
-    const handleSendScheduledDayToProduction=(day:ScheduledOrder['scheduledDay'],date?:string)=>{for(const p of scheduledOrders.filter(p=>p.scheduledDay===day&&(!date||p.scheduledDate===date)))change(p.id,'production');};
-    const handleCancelScheduledOrder=(id:string)=>{change(id,'cancelled');setSelectedScheduledOrder(null);};
+    const handleRemoveOrder=(id:string)=>{change(id,'cancelled');};
+    const handlePaymentStatusChange=(id:string,paymentStatus:PaymentStatus)=>{if(paymentStatus==='paid')void runOperations([{id,payment:true}]);};
+    const handleSendScheduledToProduction=(id:string)=>{change(id,'production');};
+    const handleSendScheduledDayToProduction=(day:ScheduledOrder['scheduledDay'],date?:string)=>{void runOperations(scheduledOrders.filter(p=>p.scheduledDay===day&&(!date||p.scheduledDate===date)).map(p=>({id:p.id,status:'production'})));};
+    const handleCancelScheduledOrder=(id:string)=>{change(id,'cancelled');};
 
     const handleScheduledDayChange = (day: ScheduledDay) => {
         setSelectedScheduledDay(day);
@@ -1545,11 +1570,20 @@ function AdminOrdersDashboardContent() {
     };
 
     if (!isReportsView && live.isPending) return <main className="p-6" role="status">Carregando pedidos…</main>;
-    if (!isReportsView && live.isError) return <main className="p-6" role="alert"><Button disabled={live.isFetching} onClick={() => void live.refetch()}>Falha ao carregar pedidos. Tentar novamente</Button></main>;
+    if (!isReportsView && live.isError && !live.data) return <main className="p-6" role="alert"><Button disabled={live.isFetching} onClick={() => void live.refetch()}>Falha ao carregar pedidos. Tentar novamente</Button></main>;
 
+    const operationFeedback = <>
+        {busy && <p role="status" className="p-3">Salvando alteração do pedido…</p>}
+        {live.isError && <div role="alert" className="m-3 rounded border border-amber-300 bg-amber-50 p-3">
+            <p>Não foi possível atualizar os pedidos. Os dados são da última consulta; atualize para continuar.</p>
+            <Button disabled={live.isFetching} onClick={() => void live.refetch()}>Tentar novamente</Button>
+        </div>}
+    </>;
     if (isScheduledView) {
         return (
             <>
+                {operationFeedback}
+                <fieldset disabled={busy || live.isError} className="min-w-0">
                 <ScheduledOrdersView
                     scheduledOrders={scheduledOrders}
                     searchTerm={scheduledSearchTerm}
@@ -1564,6 +1598,7 @@ function AdminOrdersDashboardContent() {
                     onSendDayToProduction={handleSendScheduledDayToProduction}
                     onCancelOrder={handleCancelScheduledOrder}
                 />
+                </fieldset>
             </>
         );
     }
@@ -1574,6 +1609,8 @@ function AdminOrdersDashboardContent() {
         <main className="min-h-[calc(100vh-61px)] p-3">
             <EstornosPendentes />
             <ConciliacoesPendentes />
+            {operationFeedback}
+            <fieldset disabled={busy || live.isError} className="min-w-0">
             <section className="shrink-0 rounded-md bg-white p-2.5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -1723,7 +1760,7 @@ function AdminOrdersDashboardContent() {
                             <FaPlus size={12} />
                             Novo pedido
                         </Button>
-                        <Button type="button" variant="outline" onClick={resetOrders} className="h-8 w-8 border-neutral-200 px-0 shadow-none">
+                        <Button type="button" variant="outline" aria-label="Atualizar pedidos" onClick={resetOrders} className="h-8 w-8 border-neutral-200 px-0 shadow-none">
                             <FaRotateRight size={12} />
                         </Button>
                         <Button type="button" variant="outline" className="h-8 w-8 border-neutral-200 px-0 shadow-none">
@@ -1771,6 +1808,7 @@ function AdminOrdersDashboardContent() {
                 onRemove={handleRemoveOrder}
                 onPaymentStatusChange={handlePaymentStatusChange}
             />
+            </fieldset>
         </main>
     );
 }

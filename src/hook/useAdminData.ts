@@ -5,65 +5,92 @@ import { api, mostrarErro } from "@/service/api";
 import { AdminMenuCategory } from "@/lib/menu-stock";
 import { CupomDTO } from "@/dto/cupomDTO";
 import { toast } from "sonner";
+type CatalogoAdmin = { version: number; categories: AdminMenuCategory[] };
 export function useCatalogoAdmin() {
-  const client = useQueryClient(),
-    [categories, setLocal] = useState<AdminMenuCategory[]>([]),
-    state = useRef(categories),
-    version = useRef(0),
-    queue = useRef<Promise<unknown>>(Promise.resolve());
-  const query = useQuery<{ version: number; categories: AdminMenuCategory[] }>({
+  const client = useQueryClient();
+  const [categories, setLocal] = useState<AdminMenuCategory[]>([]);
+  const [pending, setPending] = useState(0);
+  const state = useRef<AdminMenuCategory[]>([]);
+  const confirmed = useRef<CatalogoAdmin>({ version: 0, categories: [] });
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const count = useRef(0),
+    generation = useRef(0);
+  const query = useQuery<CatalogoAdmin>({
     queryKey: ["admin-catalogo"],
-    queryFn: async () => (await api.get("/admin/catalogo")).data,
+    queryFn: async ({ signal }) =>
+      (await api.get("/admin/catalogo", { signal })).data,
     refetchOnWindowFocus: false,
+    retry: false,
   });
   useEffect(() => {
-    if (query.data) {
-      setLocal(query.data.categories);
+    if (query.data && count.current === 0) {
+      confirmed.current = query.data;
       state.current = query.data.categories;
-      version.current = query.data.version;
+      setLocal(query.data.categories);
     }
   }, [query.data]);
   const mutation = useMutation({
-    mutationFn: async (next: AdminMenuCategory[]) =>
-      (
-        await api.put("/admin/catalogo", {
-          version: version.current,
-          categories: next,
-        })
-      ).data,
+    mutationFn: async (data: CatalogoAdmin) =>
+      (await api.put<CatalogoAdmin>("/admin/catalogo", data)).data,
   });
-  async function saveCategories(next: AdminMenuCategory[]) {
-    try {
-      const data = await mutation.mutateAsync(next);
-      version.current = data.version;
-      state.current = data.categories;
-      setLocal(data.categories);
-      client.setQueryData(["admin-catalogo"], data);
-      void client.invalidateQueries({ queryKey: ["cardapio"] });
-      toast.success("Cardápio salvo.");
-      return true;
-    } catch (e) {
-      mostrarErro(e);
-      await query.refetch();
-      return false;
-    }
-  }
-  function setCategories(update: SetStateAction<AdminMenuCategory[]>) {
-    const next = typeof update === "function" ? update(state.current) : update;
-    state.current = next;
-    setLocal(next);
-    queue.current = queue.current
-      .catch(() => {})
-      .then(() => saveCategories(next));
+  function setCategories(
+    update: SetStateAction<AdminMenuCategory[]>,
+  ): Promise<boolean> {
+    const currentGeneration = generation.current;
+    state.current =
+      typeof update === "function" ? update(state.current) : update;
+    setLocal(state.current);
+    count.current++;
+    setPending(count.current);
+    const task = queue.current
+      .then(async () => {
+        if (currentGeneration !== generation.current) return false;
+        try {
+          await client.cancelQueries({ queryKey: ["admin-catalogo"] });
+          const next =
+            typeof update === "function"
+              ? update(confirmed.current.categories)
+              : update;
+          const data = await mutation.mutateAsync({
+            version: confirmed.current.version,
+            categories: next,
+          });
+          confirmed.current = data;
+          client.setQueryData(["admin-catalogo"], data);
+          await Promise.all(
+            ["cardapio", "produto"].map((key) =>
+              client.invalidateQueries({ queryKey: [key] }),
+            ),
+          );
+          toast.success("Cardápio salvo.");
+          return true;
+        } catch (error) {
+          generation.current++;
+          mostrarErro(error);
+          const fresh = await query.refetch();
+          if (fresh.data) confirmed.current = fresh.data;
+          return false;
+        }
+      })
+      .finally(() => {
+        count.current--;
+        setPending(count.current);
+        if (count.current === 0) {
+          state.current = confirmed.current.categories;
+          setLocal(state.current);
+        }
+      });
+    queue.current = task.catch(() => {});
+    return task;
   }
   return {
     categories,
     setCategories,
-    saveCategories,
+    saveCategories: setCategories,
     isLoading: query.isPending,
     error: query.error,
     refetch: query.refetch,
-    isPending: mutation.isPending,
+    isPending: pending > 0,
   };
 }
 export function useCuponsAdmin() {

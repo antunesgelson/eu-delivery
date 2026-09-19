@@ -1,6 +1,6 @@
 # Plano das próximas etapas
 
-Atualizado em 18/09/2026. O item 1 foi implementado e validado localmente. O item 2 tem cinco testes de navegador do PDV, dois de histórico, dois de endereços/checkout, quatro de login, cinco de sessão, três de pagamentos, três de recuperação de senha, três de perfil, quatro de cupons, três de benefícios, três de agendamento administrativo e três de clientes administrativos; CI e validação Docker continuam pendentes. Os itens 3 a 5 permanecem planejados.
+Atualizado em 19/09/2026. O item 1 foi implementado e validado localmente. O item 2 tem cinco testes de navegador do PDV, dois de histórico, dois de endereços/checkout, quatro de login, cinco de sessão, três de pagamentos, três de recuperação de senha, três de perfil, quatro de cupons, três de benefícios, três de agendamento administrativo, três de clientes administrativos, quatro de cardápio e cinco de operação; workflows de CI, execução isolada e configuração Docker estão preparados; execução remota e dos containers continuam pendentes. Os itens 3 a 5 permanecem planejados.
 
 ## Ponto de partida
 
@@ -8,7 +8,7 @@ Atualizado em 18/09/2026. O item 1 foi implementado e validado localmente. O ite
 - Entrega confirmada: R$ 10,00 exclusivamente para o CEP 88650-000.
 - Pagamento online: prazo confirmado de 15 minutos; verificação periódica a cada 30 segundos, com conciliação antes de liberar a reserva.
 - Aprovação após cancelamento sinalizada como estorno pendente; devolução financeira executada no provedor e confirmada por webhook.
-- Última validação: nove testes de navegador de clientes administrativos, perfil e agendamentos aprovados em 26,2 segundos; build, lint e tipos do frontend aprovados. A suíte contém 40 cenários; os 37 anteriores passaram juntos na etapa de agendamentos. Os 34 testes HTTP/MySQL e o build do backend passaram na etapa de perfil, incluindo preservação de datas civis no fuso de São Paulo. Provedores externos ainda não foram homologados; testes locais não fizeram cobranças nem enviaram mensagens reais.
+- Última validação (19/09): os 49 testes de navegador passaram pela execução isolada, e os 37 testes HTTP/MySQL passaram com Node 22.23.2 e MySQL 9.7.1. Builds e lint dos dois projetos e tipos do frontend aprovados; `npm ci` e build também passaram em cópias limpas sem dependências ou `.env` locais. Workflows e Compose passaram nas verificações estáticas. Docker Engine e execução remota do CI continuam pendentes. Provedores externos ainda não foram homologados; os testes locais não fizeram cobranças nem enviaram mensagens reais.
 - Docker, credenciais externas e importação da base antiga continuam pendentes de validação ou definição.
 
 ## Ordem de execução
@@ -49,7 +49,7 @@ A rotina anterior selecionava até 50 pedidos por vencimento, registrava erros s
 ## 2. Verificações automatizadas e execução reproduzível
 
 - Organizar as alterações dos dois repositórios em versões correspondentes, com referência entre frontend, backend e migrations.
-- Configurar CI para lint, build e testes HTTP/MySQL em banco temporário exclusivo.
+- Workflows de CI preparados nos dois projetos para lint, build e testes HTTP/MySQL em banco temporário exclusivo. O frontend também executa navegador e Docker; falta execução remota e configuração do acesso ao backend quando privado.
 - Cobertura inicial do PDV adicionada em `tests/e2e/pdv.spec.ts` (ver [execução](TESTES-PDV.md)): seleção/cadastro de clientes, endereço, cashback, cupom, rascunho e pedido persistido.
 - Histórico integrado à repetição transacional de pedidos; dois cenários de navegador em `tests/e2e/historico.spec.ts` (ver [contrato e validação](INTEGRACAO-HISTORICO.md)). A suíte do backend passou a 32 testes.
 - Endereços conectados ao checkout, com cadastro, edição, seleção, favoritos e exclusão; dois cenários em `tests/e2e/enderecos.spec.ts` cobrem entrega até finalização e acompanhamento, troca para retirada e recuperação de falhas (ver [contrato e validação](INTEGRACAO-ENDERECOS.md)). A suíte do backend passou a 33 testes.
@@ -62,9 +62,12 @@ A rotina anterior selecionava até 50 pedidos por vencimento, registrava erros s
 - Benefícios com extrato de cashback, prêmios disponíveis/entregues, atualização manual e tratamento de saldo negativo; três cenários em `tests/e2e/beneficios.spec.ts` percorrem crédito, uso, estorno, cancelamento e entrega administrativa (ver [contrato e execução](INTEGRACAO-BENEFICIOS.md)).
 - Agendamentos administrativos com consulta de horários, remarcação, observação e recuperação de falhas; três cenários em `tests/e2e/agendamento-admin.spec.ts` verificam atualização no painel e no cliente, transferência de reserva e preservação do pedido quando falta estoque (ver [contrato e execução](INTEGRACAO-AGENDAMENTO-ADMIN.md)).
 - Clientes administrativos com validação, normalização, limpeza persistida de campos opcionais e edição preservada após falhas; três cenários em `tests/e2e/clientes-admin.spec.ts`, incluindo conflito real de cadastro e consulta independente dos indicadores (ver [contrato e execução](INTEGRACAO-CLIENTES-ADMIN.md)).
-- Validar Docker Compose desde um volume novo, incluindo aplicação de migrations e inicialização da API.
-- Adicionar verificação de disponibilidade da API e do banco, sem retornar dados internos.
-- Documentar os comandos que passaram e as versões efetivamente usadas.
+- Cardápio conectado do cadastro administrativo ao pedido do cliente, incluindo imagem, preço, categoria ativa/rascunho, estoque por data e composição. Quatro cenários em `tests/e2e/cardapio.spec.ts` verificam atualização em sessões separadas, concorrência, resposta perdida e baixa de estoque (ver [contrato e execução](INTEGRACAO-CARDAPIO.md)).
+- Operação administrativa com confirmação de pagamento no recebimento, conclusão pelo cartão, bloqueio de comandos durante envio, recuperação de resposta perdida e envio sequencial em lote. Cinco cenários em `tests/e2e/operacao.spec.ts` verificam painel, cliente, estoque e benefícios (ver [contrato e execução](INTEGRACAO-OPERACAO.md)).
+- `npm run test:integration` executa os 49 cenários em bancos/servidores temporários e registra commits, hashes de lockfiles e migrations em um artefato local.
+- Compose integrado e `npm run test:docker` preparados para volume novo, migrations, reinício e recuperação do banco; configuração validada, execução dos containers ainda pendente.
+- Sondas `/health/live` e `/health/ready` implementadas e testadas, sem dados internos.
+- Comandos, versões e configuração do CI documentados em [validação reproduzível](VALIDACAO-INTEGRACAO.md).
 
 Conclusão: instalação limpa reproduzível, testes críticos executados automaticamente e falhas impedindo a promoção da versão.
 
@@ -116,4 +119,6 @@ Essas melhorias ampliam o escopo. Não são requisitos para repetir a validaçã
 
 ## Próxima unidade de trabalho
 
-Prosseguir com o item 2: tornar os testes de navegador reproduzíveis no repositório, configurar as verificações automatizadas e validar uma instalação limpa. O Docker precisa estar disponível para concluir a validação dos containers; isso não impede a preparação dos demais checks.
+A validação operacional entre cliente e administrativo foi implementada: pagamento no recebimento, avanço até a conclusão, cancelamento, recuperação de falhas e envio em lote estão cobertos. O teste de cardápio também distingue pedidos para hoje dos agendamentos futuros.
+
+Concluir a execução do item 2 em Docker Engine e GitHub Actions: disponibilizar as versões correspondentes dos dois repositórios, configurar a referência/acesso ao backend e confirmar os checks no runner. Os scripts e workflows estão preparados; os testes locais não dependem mais de servidores iniciados manualmente. Depois, avançar para homologação externa com as contas e credenciais de teste correspondentes.

@@ -17,6 +17,7 @@ import { FaCirclePlus, FaPeopleGroup } from 'react-icons/fa6';
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/service/api';
+import { isAxiosError } from 'axios';
 import { AdicionaisDTO, IngredientesDTO, ProdutosDTO } from '@/dto/productDTO';
 import useCart from '@/hook/useCart';
 
@@ -39,13 +40,11 @@ export default function ProductorDetails() {
     const [lastScrollY, setLastScrollY] = useState<number>(0);
     const [ingredientReplacements, setIngredientReplacements] = useState<Record<string, IngredientesDTO | null>>({});
 
-    const [itemValueUnit, setItemValueUnit] = useState(0); //valor de cada unidade do produto
-    const [itemValueFinish, setItemValueFinish] = useState(0); // valor final do produto
-    const [desconto, setDesconto] = useState<number>(0);
+    const sending = React.useRef(false);
     const [obs, setObs] = useState<string>('');
     const router = useRouter();
-    const { addItemToCart } = useCart();
-    const productQuery=useQuery<ProdutosDTO>({queryKey:['produto',params.productID],queryFn:async()=>(await api.get(`/produto/${params.productID}`)).data});
+    const { addItemToCart, isPending: savingCart } = useCart();
+    const productQuery=useQuery<ProdutosDTO>({queryKey:['produto',params.productID],queryFn:async({signal})=>(await api.get(`/produto/${params.productID}`, {signal})).data, retry:false, refetchInterval:10000});
     const baseProductDetails=productQuery.data;
     const productDetails = useMemo(() => {
         if (!baseProductDetails) return undefined;
@@ -73,6 +72,11 @@ export default function ProductorDetails() {
         };
     }, [baseProductDetails, ingredientReplacements]);
     const isPending = productQuery.isPending;
+    const itemValueUnit = Number(productDetails?.valor ?? 0) + (productDetails?.adicionais ?? []).filter(item => addSelectedItems[item.id]).reduce((sum, item) => sum + Number(item.valor), 0);
+    const itemValueFinish = itemValueUnit * countProduct;
+    const desconto = productDetails?.valorPromocional ? (1 - productDetails.valorPromocional / Number(productDetails.valor)) * 100 : 0;
+    const blocked = savingCart || productQuery.isFetching || productQuery.isError || !productDetails;
+
 
 
     function handleRemove(index: number) {
@@ -97,36 +101,25 @@ export default function ProductorDetails() {
         }
 
         setAddSelectedItems(prev => ({ ...prev, [adicionalID]: !prev[adicionalID] }));
-        const valorTotal = item.valor * countProduct;
-        if (checked) {
-            setItemValueUnit(prev => prev - item.valor)
-            setItemValueFinish(prev => prev - valorTotal)
-        } else {
-            setItemValueUnit(prev => prev + item.valor)
-            setItemValueFinish(prev => prev + valorTotal)
-        }
     }
 
     function handleIncrement() {
-        setItemValueFinish(prev => prev + itemValueUnit)
-        setCountProduct(prevState => prevState + 1)
+        if (countProduct < (productDetails?.limitItens ?? 1)) setCountProduct(value => value + 1);
     }
-
-    function handleDecrement() {
-        setItemValueFinish(prev => prev - itemValueUnit)
-        setCountProduct(prevState => countProduct >= 2 ? prevState - 1 : prevState)
-    }
-
-
+    function handleDecrement() { setCountProduct(value => Math.max(1, value - 1)); }
     async function handleAddItem() {
-        if (!productDetails) {
-            toast.error('Produto não encontrado.');
-            return;
-        }
-
-        try{await addItemToCart(productDetails,countProduct,obs,{adicionais:productDetails.adicionais.filter(a=>addSelectedItems[a.id]).map(a=>a.id),ingredientes:productDetails.ingredientes.filter((_,index)=>!removeSelectedItems[index]).map(i=>i.id),substituicoes:productDetails.ingredientes.filter((i,index)=>removeSelectedItems[index]&&i.replace).map(i=>({removerId:i.id,adicionarId:i.replace!.id}))});}catch{return;}
-        toast.success('Item adicionado ao carrinho.');
-        router.push('/');
+        if (blocked || sending.current || !productDetails) return;
+        sending.current = true;
+        try {
+            await addItemToCart(productDetails, countProduct, obs, {
+                adicionais: productDetails.adicionais.filter(a => addSelectedItems[a.id]).map(a => a.id),
+                ingredientes: productDetails.ingredientes.filter((_, index) => !removeSelectedItems[index]).map(i => i.id),
+                substituicoes: productDetails.ingredientes.filter((i, index) => removeSelectedItems[index] && i.replace).map(i => ({ removerId: i.id, adicionarId: i.replace!.id })),
+            });
+            toast.success('Item adicionado ao carrinho.');
+            router.push('/');
+        } catch { /* O contexto apresenta o erro da API e mantém a seleção. */ }
+        finally { sending.current = false; }
     }
 
     function handleReplaceIngredient(removeProductId: string, replacement: IngredientesDTO | null) {
@@ -154,16 +147,6 @@ export default function ProductorDetails() {
     }, [setShowMenu, setLastScrollY, lastScrollY]);
 
     useEffect(() => {
-        if (!productDetails) return
-        const value = parseFloat(productDetails?.valor)
-        const discountPercentage = ((value - productDetails?.valorPromocional) / value) * 100;
-        setDesconto(discountPercentage)
-        const valueItem = parseFloat(productDetails.valor)
-        setItemValueUnit(valueItem)
-        setItemValueFinish(valueItem)
-    }, [productDetails]);
-
-    useEffect(() => {
         if (typeof window !== 'undefined') {
             window.addEventListener('scroll', controlMenu);
             // cleanup function
@@ -172,8 +155,15 @@ export default function ProductorDetails() {
             };
         }
     }, [lastScrollY, controlMenu]);
+    if (isPending) return <main className="mt-16 p-4" role="status">Carregando produto…</main>;
+    if (!productDetails || (isAxiosError(productQuery.error) && productQuery.error.response?.status === 404)) return <main className="mt-16 p-4" role="alert">
+        <p>{isAxiosError(productQuery.error) && productQuery.error.response?.status === 404 ? 'Produto indisponível no momento.' : 'Não foi possível carregar o produto.'}</p>
+        <Button disabled={productQuery.isFetching} onClick={() => void productQuery.refetch()}>Tentar novamente</Button>
+        <Button variant="outline" onClick={() => router.push('/')}>Voltar ao cardápio</Button>
+    </main>;
     return (
         <div className='relative'>
+            {productQuery.isError && <p role="alert" className="mt-16 p-4">Não foi possível atualizar o produto. <button onClick={() => void productQuery.refetch()}>Tentar novamente</button></p>}
             <motion.main
                 className="mt-14 overflow-x-hidden mb-20"
                 initial={{ opacity: 0, y: 100, filter: 'blur(10px)' }}
@@ -310,17 +300,17 @@ export default function ProductorDetails() {
                         <div className='flex justify-center items-center w-32 '>
                             <button
                                 className='disabled:opacity-50 disabled:cursor-not-allowed duration-300'
-                                disabled={countProduct <= 1}
+                                aria-label="Diminuir quantidade" disabled={countProduct <= 1 || savingCart}
                                 onClick={handleDecrement}>
                                 <FaMinusCircle size={30} />
                             </button>
                             <div className=' text-4xl font-bold -mt-1 w-12 flex justify-center items-center '>{countProduct}</div>
-                            <button onClick={handleIncrement}>
+                            <button aria-label="Aumentar quantidade" disabled={countProduct >= productDetails.limitItens || savingCart} onClick={handleIncrement}>
                                 <FaCirclePlus size={30} />
                             </button>
                         </div>
                         <Button
-                            loading={isPending}
+                            loading={savingCart} disabled={blocked}
                             variant={'success'}
                             className='ml-3 w-full flex justify-between p-2 text-lg h-12'
                             onClick={() => handleAddItem()}>

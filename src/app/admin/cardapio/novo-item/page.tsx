@@ -1,5 +1,10 @@
 'use client'
 import {useCatalogoAdmin} from '@/hook/useAdminData';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const productFormSchema = z.object({ title: z.string().trim().min(1, 'Informe o nome do item.').max(200, 'Use até 200 caracteres.'), description: z.string().max(3000, 'Use até 3000 caracteres.'), price: z.number().positive('Informe um preço válido.').max(9999.99) });
 
 import Image from "next/image";
 import Link from "next/link";
@@ -220,7 +225,7 @@ function getTotalStock(stock: ProductStock) {
 }
 
 function createProductId() {
-    return Date.now();
+    return Number.parseInt(crypto.randomUUID().replace(/-/g, '').slice(0, 13), 16);
 }
 
 function PriceInputControl({
@@ -325,9 +330,15 @@ function NewProductPageContent() {
     }, [productIdParam]);
     const isEditingProduct = editingProductId !== null;
     const {categories,saveCategories,isLoading:loadingCatalog,error:catalogError,refetch,isPending:savingCatalog}=useCatalogoAdmin();
-    const [title, setTitle] = React.useState('');
-    const [description, setDescription] = React.useState('');
-    const [price, setPrice] = React.useState(0);
+    const { watch, setValue, trigger, formState: { errors } } = useForm<z.infer<typeof productFormSchema>>({ resolver: zodResolver(productFormSchema), defaultValues: { title: '', description: '', price: 0 } });
+    const title = watch('title'), description = watch('description'), price = watch('price');
+    const setTitle = React.useCallback((value: string) => setValue('title', value), [setValue]);
+    const setDescription = React.useCallback((value: string) => setValue('description', value), [setValue]);
+    const setPrice = React.useCallback((value: number) => setValue('price', value), [setValue]);
+    const initialized = React.useRef<number | null>(null);
+    const newId = React.useRef<number | null>(null);
+    const submitting = React.useRef(false);
+    const [readingImage, setReadingImage] = React.useState(false);
     const [image, setImage] = React.useState('');
     const [imageName, setImageName] = React.useState('');
     const [servingSize, setServingSize] = React.useState(1);
@@ -352,10 +363,11 @@ function NewProductPageContent() {
     }, [editingProductId, selectedCategory]);
 
     React.useEffect(() => {
-        if (!isEditingProduct || !selectedProduct) {
+        if (!isEditingProduct || !selectedProduct || initialized.current === selectedProduct.id) {
             return;
         }
 
+        initialized.current = selectedProduct.id;
         setTitle(selectedProduct.title);
         setDescription(selectedProduct.description);
         setPrice(sanitizePriceValue(selectedProduct.price));
@@ -385,7 +397,7 @@ function NewProductPageContent() {
                 ? selectedProduct.classifications
                 : getDefaultClassifications(selectedProduct.title, selectedCategory?.title ?? categoryTitle ?? '')
         );
-    }, [categoryTitle, isEditingProduct, selectedCategory?.title, selectedProduct]);
+    }, [categoryTitle, isEditingProduct, selectedCategory?.title, selectedProduct, setTitle, setDescription, setPrice]);
 
     const availableComponentProducts = React.useMemo(() => (
         categories
@@ -534,19 +546,21 @@ function NewProductPageContent() {
 
         if (!file) return;
 
-        if (!file.type.startsWith('image/')) {
-            toast.error('Escolha um arquivo de imagem.');
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+            toast.error('Escolha uma imagem PNG, JPG ou WEBP.');
             event.target.value = '';
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error('A imagem deve ter no máximo 2MB para salvar no cardápio.');
+        if (file.size > 1400000) {
+            toast.error('A imagem deve ter no máximo 1,4MB para salvar no cardápio.');
             event.target.value = '';
             return;
         }
 
+        setReadingImage(true);
         const reader = new FileReader();
+        reader.onloadend = () => setReadingImage(false);
 
         reader.onload = () => {
             if (typeof reader.result !== 'string') {
@@ -568,11 +582,12 @@ function NewProductPageContent() {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        if (savingCatalog || submitting.current || readingImage || !(await trigger())) return;
         const safeTitle = title.trim();
         const safeDescription = description.trim();
 
-        if (!categoryId) {
-            toast.error('Categoria não informada.');
+        if (!categoryId || !selectedCategory) {
+            toast.error('Categoria não encontrada. Recarregue o cardápio.');
             return;
         }
 
@@ -601,8 +616,9 @@ function NewProductPageContent() {
             [date.key]: sanitizeStockValue(stock[date.day]),
         }), selectedProduct?.stockByDate ?? {});
 
+        newId.current ??= createProductId();
         const nextProduct: AdminMenuProduct = {
-            id: editingProductId ?? createProductId(),
+            id: editingProductId ?? newId.current,
             title: safeTitle,
             description: safeDescription || 'Item cadastrado pelo painel administrativo.',
             price: sanitizePriceValue(price),
@@ -647,12 +663,14 @@ function NewProductPageContent() {
                         ? category.products.map((product) => (
                             product.id === editingProductId ? nextProduct : product
                         ))
-                        : [...category.products, nextProduct],
+                        : [...category.products.filter(product => product.id !== nextProduct.id), nextProduct],
                 }
                 : category
         ));
 
+        submitting.current = true;
         const saved = await saveCategories(nextCategories);
+        submitting.current = false;
 
         if (!saved) return;
 
@@ -663,11 +681,12 @@ function NewProductPageContent() {
     };
 
     if (loadingCatalog) return <main className="p-6" role="status">Carregando dados…</main>;
-    if (catalogError) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
+    if (catalogError && categories.length === 0) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
 
     return (
         <main className="min-h-[calc(100vh-61px)] bg-[#f3f5f8] p-3">
-            <form onSubmit={handleSubmit} className="grid gap-3">
+            <form onSubmit={handleSubmit} noValidate><fieldset disabled={savingCatalog || readingImage} className="grid gap-3">
+                {catalogError && <p role="alert">Não foi possível atualizar o cardápio. Sua edição foi preservada. <button type="button" onClick={() => refetch()}>Tentar novamente</button></p>}
                 <section className="rounded-md border border-neutral-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
@@ -727,6 +746,7 @@ function NewProductPageContent() {
                                     </Label>
                                     <Input
                                         id="product-title"
+                                        error={errors.title?.message}
                                         value={title}
                                         onChange={(event) => setTitle(event.target.value)}
                                         placeholder="Ex: Frango assado especial"
@@ -746,6 +766,7 @@ function NewProductPageContent() {
                                         placeholder="Detalhe recheio, acompanhamentos, preparo ou observações importantes."
                                         className="min-h-[138px] !rounded-md !border-neutral-200 !bg-white text-[14px] font-semibold !text-dark-900 shadow-none placeholder:!text-dark-300 focus-visible:!ring-2 focus-visible:!ring-[#f97316]/20 dark:!border-neutral-200 dark:!bg-white dark:!text-dark-900"
                                     />
+                                    {errors.description && <p role="alert" className="text-sm text-red-600">{errors.description.message}</p>}
                                 </div>
                             </div>
                         </div>
@@ -1031,7 +1052,7 @@ function NewProductPageContent() {
                             <input
                                 id="product-image"
                                 type="file"
-                                accept="image/*"
+                                accept="image/png,image/jpeg,image/webp"
                                 onChange={handleImageChange}
                                 className="sr-only"
                             />
@@ -1057,7 +1078,7 @@ function NewProductPageContent() {
                                             Escolher imagem do computador
                                         </strong>
                                         <span className="mt-1 text-[12px] font-semibold leading-4 text-dark-400">
-                                            PNG, JPG ou WEBP até 2MB
+                                            PNG, JPG ou WEBP até 1,4MB
                                         </span>
                                     </>
                                 )}
@@ -1089,6 +1110,7 @@ function NewProductPageContent() {
                                 <div className="grid gap-2">
                                     <Label className="text-[12px] font-extrabold uppercase text-dark-500">Preço</Label>
                                     <PriceInputControl value={price} onChange={setPrice} />
+                                    {errors.price && <p role="alert" className="text-sm text-red-600">{errors.price.message}</p>}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -1124,7 +1146,7 @@ function NewProductPageContent() {
                         </div>
                     </aside>
                 </section>
-            </form>
+            </fieldset></form>
         </main>
     );
 }

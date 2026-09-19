@@ -65,6 +65,19 @@ async function proxy(
         signal: AbortSignal.timeout(15000),
       },
     );
+    if (!writing && /^produto\/\d+\/imagem$/.test(path) && response.ok) {
+      const type = response.headers.get("content-type") ?? "";
+      if (/^image\/(png|jpeg|webp)(;|$)/.test(type)) {
+        return new NextResponse(await response.arrayBuffer(), {
+          status: response.status,
+          headers: {
+            "Content-Type": type,
+            "Cache-Control": "public, max-age=60",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      }
+    }
     const data = await response.json();
     if (
       response.ok &&

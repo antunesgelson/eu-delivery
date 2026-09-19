@@ -171,24 +171,15 @@ export function getStockDayFromDateKey(dateKey: string): StockDay | null {
 }
 
 export function getNextServiceDateKeys(reference = new Date()) {
-    const today = new Date(reference);
-    today.setHours(0, 0, 0, 0);
-
+    const key = reference.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    const today = new Date(`${key}T12:00:00Z`);
     const dates: { key: string; day: StockDay; label: string }[] = [];
-
-    for (let offset = 0; offset <= 14 && dates.length < 2; offset += 1) {
+    for (let offset = 0; offset <= 14 && dates.length < 2; offset++) {
         const date = new Date(today);
-        date.setDate(today.getDate() + offset);
-
-        if (date.getDay() === 6) {
-            dates.push({ key: formatStockDateKey(date), day: 'saturday', label: 'Sábado' });
-        }
-
-        if (date.getDay() === 0) {
-            dates.push({ key: formatStockDateKey(date), day: 'sunday', label: 'Domingo' });
-        }
+        date.setUTCDate(today.getUTCDate() + offset);
+        const day = date.getUTCDay();
+        if (day === 6 || day === 0) dates.push({ key: date.toISOString().slice(0, 10), day: day === 6 ? 'saturday' : 'sunday', label: day === 6 ? 'Sábado' : 'Domingo' });
     }
-
     return dates;
 }
 
