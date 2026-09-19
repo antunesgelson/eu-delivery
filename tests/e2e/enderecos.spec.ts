@@ -125,6 +125,8 @@ test("checkout cadastra, edita e seleciona endereço; finaliza entrega e acompan
 
   await page.getByRole("button", { name: /Escolher horário/ }).click();
   const dialog = page.getByRole("dialog");
+  // O dia seguinte continua disponível mesmo quando o CI roda após o fechamento.
+  await dialog.locator("button[aria-pressed]").nth(1).click();
   await dialog
     .getByRole("button", { name: /^Receber entre/ })
     .first()

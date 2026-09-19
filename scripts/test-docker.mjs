@@ -121,6 +121,13 @@ try {
   ]);
   const api = `http://${await compose(["port", "api", "4052"], true)}`;
   const web = `http://${await compose(["port", "web", "4051"], true)}`;
+  // Após descobrir a porta publicada, fixa a origem pública no servidor Next.
+  environment.WEB_PORT = new URL(web).port;
+  environment.FRONTEND_URL = web;
+  await compose([
+    "up", "--detach", "--no-deps", "--force-recreate", "--wait",
+    "--wait-timeout", "120", "web",
+  ]);
   assert.deepEqual(await json(`${api}/health/ready`), { status: "ok" });
   // Seed só neste projeto descartável, nunca automaticamente no startup normal.
   await compose([
@@ -133,6 +140,21 @@ try {
   ]);
   const catalog = await json(`${web}/api/backend/categoria/lista/detalhes`);
   assert.ok(catalog.length > 0);
+  for (const origin of [undefined, "null", "https://outro.example.test"]) {
+    const response = await fetch(`${web}/api/backend/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(origin ? { Origin: origin } : {}),
+        "X-Forwarded-Host": "outro.example.test",
+        "X-Forwarded-Proto": "https",
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(5000),
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).message, "Origem da requisição inválida.");
+  }
   const login = await fetch(`${web}/api/backend/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: web },
@@ -182,6 +204,7 @@ try {
         checks: [
           "migrations em volume vazio",
           "catálogo e login pelo frontend",
+          "origem pública aceita e origens inválidas recusadas",
           "migrations repetidas e reinício",
           "falha e recuperação do banco",
         ],

@@ -27,7 +27,12 @@ async function proxy(
       { status: 404 },
     );
   const writing = !["GET", "HEAD"].includes(request.method);
-  if (writing && request.headers.get("origin") !== request.nextUrl.origin)
+  // Em containers/proxies, a URL interna pode ter host e porta diferentes dos públicos.
+  // A origem permitida vem da configuração do servidor, nunca de headers encaminhados.
+  const expectedOrigin = process.env.FRONTEND_URL
+    ? new URL(process.env.FRONTEND_URL).origin
+    : request.nextUrl.origin;
+  if (writing && request.headers.get("origin") !== expectedOrigin)
     return NextResponse.json(
       { message: "Origem da requisição inválida." },
       { status: 403 },

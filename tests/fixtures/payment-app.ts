@@ -67,6 +67,7 @@ export const test = base.extend<
               ...originalEnv,
               NODE_ENV: "production",
               BACKEND_URL: harness.origin,
+              FRONTEND_URL: origin,
               NEXT_TELEMETRY_DISABLED: "1",
             },
             stdio: "ignore",
