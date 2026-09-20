@@ -110,3 +110,7 @@ As referências efetivamente testadas e as migrations ficam no artefato da integ
 Referências utilizadas: [ordem de inicialização do Compose](https://docs.docker.com/compose/how-tos/startup-order/), [checkout e acesso entre repositórios](https://github.com/actions/checkout), [configuração do Node no Actions](https://github.com/actions/setup-node).
 
 A atualização final desta documentação não altera o código validado. A homologação dos provedores permanece pendente; consulte o [roteiro de preparação](HOMOLOGACAO-INTEGRACOES.md).
+
+## Ensaio de restauração — 20/09/2026
+
+O commit frontend `45f7214e277e5989f1f3e1f276920fc31c9cf692` passou no [CI integrado 35502800119](https://github.com/antunesgelson/eu-delivery/actions/runs/35502800119): lint/build, 37 testes HTTP/MySQL, 49 testes de navegador e Docker com backup/restauração em outro banco. A execução local também passou e registrou 5 migrations, 2 usuários, 2 pedidos, 2 itens, 1 registro de estoque, 1 movimento de benefício e 6 registros de auditoria. O banco restaurado teve estrutura e conteúdo idênticos à origem, seguidos de verificações pela API e frontend.

@@ -1,6 +1,6 @@
 # Plano das próximas etapas
 
-Atualizado em 20/09/2026. O item 1 foi implementado e validado. O item 2 passou em instalação limpa local, Docker e GitHub Actions: 49 testes de navegador e 37 testes HTTP/MySQL. As versões estão nas branches de integração dos dois repositórios; a proteção remota da branch ainda não foi configurada. Os itens 3 a 5 permanecem planejados.
+Atualizado em 20/09/2026. O item 1 foi implementado e validado. O item 2 passou em instalação limpa local, Docker e GitHub Actions: 49 testes de navegador e 37 testes HTTP/MySQL. As versões estão nas branches de integração dos dois repositórios; a proteção remota da branch ainda não foi configurada. O item 3 depende do ambiente e das contas de teste. O item 4 já tem ensaio de restauração e procedimento de atualização; ainda depende das definições operacionais. O item 5 permanece planejado.
 
 ## Ponto de partida
 
@@ -88,7 +88,7 @@ Conclusão: evidências de cada fluxo externo habilitado, sem apresentar simula�
 
 ## 4. Dados e preparação da operação
 
-Avanço em 20/09: ensaio local de backup/restauração aprovado em banco descartável, com dois pedidos, pagamento presencial dividido, estoque, cashback e idempotência. O [procedimento de backup e atualização](BACKUP-ATUALIZACAO.md) documenta a execução e a recuperação. Isso não conclui a preparação operacional: hospedagem, dados reais, retenção dos backups e eventual legado ainda precisam ser definidos.
+Avanço em 20/09: ensaio de backup/restauração aprovado localmente e no CI em banco descartável, com dois pedidos, pagamento presencial dividido, estoque, cashback e idempotência. O [procedimento de backup e atualização](BACKUP-ATUALIZACAO.md) documenta a execução e a recuperação. Isso não conclui a preparação operacional: hospedagem, dados reais, retenção dos backups e eventual legado ainda precisam ser definidos.
 
 ### Se a operação começar com banco novo
 

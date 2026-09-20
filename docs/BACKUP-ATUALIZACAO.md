@@ -21,6 +21,8 @@ Além da instalação e recuperação do banco, a rotina executa `scripts/restor
 
 Os pagamentos desse ensaio são presenciais, persistidos no próprio pedido. A tabela de pagamentos online permanece vazia. O teste não substitui homologação de provedor, restauração em outro servidor ou ensaio com volume de dados operacional.
 
+O ensaio passou localmente e no [CI integrado 35502800119](https://github.com/antunesgelson/eu-delivery/actions/runs/35502800119), no commit `45f7214e277e5989f1f3e1f276920fc31c9cf692`, em 20/09/2026.
+
 ## Backup de um ambiente definido
 
 Antes da execução operacional, registrar os commits/imagens dos dois projetos, versão do MySQL e migrations aplicadas. Reservar uma janela sem alterações de schema; uma transação de leitura consistente não protege o dump contra DDL concorrente. Essa limitação e as opções de exportação estão descritas no [manual do MySQL 8.4](https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html).
