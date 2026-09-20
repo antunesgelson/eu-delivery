@@ -51,6 +51,7 @@ As alterações administrativas exigem autorização também no backend. O carri
 - [Plano das próximas etapas](docs/PLANO-PROXIMAS-ETAPAS.md)
 - [Validação isolada, CI e Docker](docs/VALIDACAO-INTEGRACAO.md)
 - [Preparação da homologação externa](docs/HOMOLOGACAO-INTEGRACOES.md)
+- [Backup, restauração e atualização](docs/BACKUP-ATUALIZACAO.md)
 - [API, migrations, Docker e testes](../eu-delivery-back/README.md)
 - Swagger da API: http://localhost:4052/docs
 

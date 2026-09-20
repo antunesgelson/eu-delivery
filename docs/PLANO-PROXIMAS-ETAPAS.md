@@ -88,6 +88,8 @@ Conclusão: evidências de cada fluxo externo habilitado, sem apresentar simula�
 
 ## 4. Dados e preparação da operação
 
+Avanço em 20/09: ensaio local de backup/restauração aprovado em banco descartável, com dois pedidos, pagamento presencial dividido, estoque, cashback e idempotência. O [procedimento de backup e atualização](BACKUP-ATUALIZACAO.md) documenta a execução e a recuperação. Isso não conclui a preparação operacional: hospedagem, dados reais, retenção dos backups e eventual legado ainda precisam ser definidos.
+
 ### Se a operação começar com banco novo
 
 - Cadastrar catálogo, preços, estoque, horários, contatos e administrador reais.
@@ -104,8 +106,8 @@ Conclusão: evidências de cada fluxo externo habilitado, sem apresentar simula�
 ### Preparação comum
 
 - Definir hospedagem, domínio, configurações e responsável pela operação.
-- Ensaiar backup e restauração; verificar os dados restaurados.
-- Documentar a sequência de atualização e a recuperação em caso de falha. Não presumir que reverter o código reverta alterações no banco.
+- Backup/restauração ensaiados localmente em dados descartáveis; repetir no ambiente e no volume operacional definidos.
+- Sequência de atualização e recuperação documentada. Reverter o código não reverte alterações no banco.
 - Ensaiar um ciclo operacional: pedido, pagamento, produção, entrega, cancelamento e estorno quando aplicável.
 
 Conclusão: ambiente de homologação validado e procedimento revisável para a entrada em operação. A base antiga não recebe as migrations iniciais diretamente.

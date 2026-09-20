@@ -74,6 +74,8 @@ npm run test:docker
 
 Ela verifica migrations, seed, catálogo pelo frontend, login administrativo, repetição das migrations, preservação dos dados após reinício e falha/recuperação do banco. Ao encerrar, remove somente os containers e volumes do projeto exclusivo que criou. O resultado aprovado fica em `artifacts/docker.json`. O script falha se o Docker estiver indisponível; não apresenta a validação de configuração como execução dos containers.
 
+A rotina inclui também um [ensaio de backup e restauração](BACKUP-ATUALIZACAO.md): dois pedidos criados pela API, dump SQL privado, restauração em outro banco vazio, comparação integral e verificação pela API/frontend restaurados. O artefato contém somente hash, tamanho e contagens; o SQL temporário é removido ao encerrar.
+
 ## GitHub Actions
 
 O workflow do backend (`.github/workflows/ci.yml`) instala dependências via `npm ci`, executa lint, build e testes HTTP com MySQL 8.4 temporário e compila a imagem Docker.
