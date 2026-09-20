@@ -119,7 +119,7 @@ try {
     "--wait-timeout",
     "180",
   ]);
-  const api = `http://${await compose(["port", "api", "4052"], true)}`;
+  let api = `http://${await compose(["port", "api", "4052"], true)}`;
   const web = `http://${await compose(["port", "web", "4051"], true)}`;
   // Após descobrir a porta publicada, fixa a origem pública no servidor Next.
   environment.WEB_PORT = new URL(web).port;
@@ -168,7 +168,11 @@ try {
   assert.equal((await login.json()).user.isAdmin, true);
   await compose(["run", "--rm", "migrate"]);
   await compose(["restart", "api"]);
-  await compose(["up", "--detach", "--wait", "--wait-timeout", "120"]);
+  // Preserva os containers ao aguardar o reinício.
+  await compose(["up", "--detach", "--no-recreate", "--wait", "--wait-timeout", "120"]);
+  // O Engine pode atribuir outra porta publicada mesmo ao reiniciar o mesmo container.
+  api = `http://${await compose(["port", "api", "4052"], true)}`;
+  assert.deepEqual(await json(`${api}/health/ready`), { status: "ok" });
   assert.deepEqual(
     await json(`${web}/api/backend/categoria/lista/detalhes`),
     catalog,

@@ -186,6 +186,8 @@ test("categoria e produto cadastrados no painel aparecem na loja aberta e geram 
   await shop.getByRole("button", { name: /Retirar na loja/ }).click();
   await shop.getByRole("button", { name: /Escolher horário/ }).click();
   const schedule = shop.getByRole("dialog");
+  // Uma data futura mantém o cenário válido após o fechamento da loja.
+  await schedule.locator("button[aria-pressed]").nth(1).click();
   await schedule
     .getByRole("button", { name: /^Retirar entre/ })
     .first()
