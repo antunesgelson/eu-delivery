@@ -1,6 +1,8 @@
 # Plano das próximas etapas
 
-Atualizado em 18/09/2026. O item 1 foi implementado e validado localmente. O item 2 tem cinco testes de navegador do PDV, dois de histórico, dois de endereços/checkout, quatro de login, cinco de sessão, três de pagamentos, três de recuperação de senha, três de perfil, quatro de cupons, três de benefícios, três de agendamento administrativo e três de clientes administrativos; CI e validação Docker continuam pendentes. Os itens 3 a 5 permanecem planejados.
+Atualizado em 21/09/2026. **Prioridade atual do usuário: integrar todas as outras funções do sistema, sem trabalhar nos métodos de pagamento.** A revisão está detalhada em [Funções do sistema](FUNCOES-SISTEMA.md); a homologação externa não bloqueia esse trabalho.
+
+Histórico da etapa anterior: O item 1 foi implementado e validado. O item 2 passou em instalação limpa local, Docker e GitHub Actions: 49 testes de navegador e 37 testes HTTP/MySQL. As versões estão nas branches de integração dos dois repositórios; a proteção remota da branch ainda não foi configurada. O item 3 depende do ambiente e das contas de teste. O item 4 já tem ensaio de restauração e procedimento de atualização; ainda depende das definições operacionais. O item 5 permanece planejado.
 
 ## Ponto de partida
 
@@ -8,15 +10,15 @@ Atualizado em 18/09/2026. O item 1 foi implementado e validado localmente. O ite
 - Entrega confirmada: R$ 10,00 exclusivamente para o CEP 88650-000.
 - Pagamento online: prazo confirmado de 15 minutos; verificação periódica a cada 30 segundos, com conciliação antes de liberar a reserva.
 - Aprovação após cancelamento sinalizada como estorno pendente; devolução financeira executada no provedor e confirmada por webhook.
-- Última validação: nove testes de navegador de clientes administrativos, perfil e agendamentos aprovados em 26,2 segundos; build, lint e tipos do frontend aprovados. A suíte contém 40 cenários; os 37 anteriores passaram juntos na etapa de agendamentos. Os 34 testes HTTP/MySQL e o build do backend passaram na etapa de perfil, incluindo preservação de datas civis no fuso de São Paulo. Provedores externos ainda não foram homologados; testes locais não fizeram cobranças nem enviaram mensagens reais.
-- Docker, credenciais externas e importação da base antiga continuam pendentes de validação ou definição.
+- Última validação (20/09): CI integrado aprovado com lint/build, 49 testes de navegador, 37 testes HTTP/MySQL 8.4 e Docker em volume vazio. Localmente, Docker também passou em login, controle de origem, migrations repetidas, reinício e falha/recuperação do banco. Veja as [execuções e commits](VALIDACAO-INTEGRACAO.md).
+- Provedores externos ainda não foram homologados; não houve cobrança nem envio de mensagens reais. Credenciais, gateway de WhatsApp e eventual importação da base antiga continuam pendentes de definição.
 
 ## Ordem de execução
 
 | Ordem | Entrega | Dependência | Critério de conclusão |
 |---|---|---|---|
 | 1 — concluído | Recuperação de falhas de conciliação e avisos no painel | Código e banco local existentes | Falhas ficam visíveis, a fila continua avançando e novas tentativas não duplicam efeitos |
-| 2 | Verificações automatizadas e execução reproduzível | Ambiente de CI e Docker disponíveis para validação | Uma instalação limpa aplica migrations, sobe os serviços e passa nos testes |
+| 2 — validado | Verificações automatizadas e execução reproduzível | Ambiente de CI e Docker disponíveis para validação | Uma instalação limpa aplica migrations, sobe os serviços e passa nos testes |
 | 3 | Homologação das integrações externas | Credenciais de teste, URLs e contas destinadas à homologação | Evidências de ponta a ponta para cada integração habilitada |
 | 4 | Preparação dos dados e da operação | Decidir entre banco novo e importação do legado; definir hospedagem | Restauração e eventual importação ensaiadas; procedimento de atualização documentado |
 | 5 | Relatórios e melhorias operacionais | Conclusão dos fluxos essenciais e definição das necessidades da loja | Totais conciliados por período e tarefas operacionais verificadas com a equipe |
@@ -48,8 +50,8 @@ A rotina anterior selecionava até 50 pedidos por vencimento, registrava erros s
 
 ## 2. Verificações automatizadas e execução reproduzível
 
-- Organizar as alterações dos dois repositórios em versões correspondentes, com referência entre frontend, backend e migrations.
-- Configurar CI para lint, build e testes HTTP/MySQL em banco temporário exclusivo.
+- Versões correspondentes publicadas na branch `codex/integracao-ci-20260919` dos dois repositórios, com backend fixado por commit no workflow e migrations registradas nas evidências.
+- Workflows aprovados nos dois projetos para lint, build e testes HTTP/MySQL em banco temporário exclusivo. O frontend também aprovou navegador e Docker. Os repositórios atuais são públicos; se o backend se tornar privado, será necessária credencial de leitura específica. A configuração dos checks como obrigatórios na proteção da branch permanece pendente.
 - Cobertura inicial do PDV adicionada em `tests/e2e/pdv.spec.ts` (ver [execução](TESTES-PDV.md)): seleção/cadastro de clientes, endereço, cashback, cupom, rascunho e pedido persistido.
 - Histórico integrado à repetição transacional de pedidos; dois cenários de navegador em `tests/e2e/historico.spec.ts` (ver [contrato e validação](INTEGRACAO-HISTORICO.md)). A suíte do backend passou a 32 testes.
 - Endereços conectados ao checkout, com cadastro, edição, seleção, favoritos e exclusão; dois cenários em `tests/e2e/enderecos.spec.ts` cobrem entrega até finalização e acompanhamento, troca para retirada e recuperação de falhas (ver [contrato e validação](INTEGRACAO-ENDERECOS.md)). A suíte do backend passou a 33 testes.
@@ -62,13 +64,18 @@ A rotina anterior selecionava até 50 pedidos por vencimento, registrava erros s
 - Benefícios com extrato de cashback, prêmios disponíveis/entregues, atualização manual e tratamento de saldo negativo; três cenários em `tests/e2e/beneficios.spec.ts` percorrem crédito, uso, estorno, cancelamento e entrega administrativa (ver [contrato e execução](INTEGRACAO-BENEFICIOS.md)).
 - Agendamentos administrativos com consulta de horários, remarcação, observação e recuperação de falhas; três cenários em `tests/e2e/agendamento-admin.spec.ts` verificam atualização no painel e no cliente, transferência de reserva e preservação do pedido quando falta estoque (ver [contrato e execução](INTEGRACAO-AGENDAMENTO-ADMIN.md)).
 - Clientes administrativos com validação, normalização, limpeza persistida de campos opcionais e edição preservada após falhas; três cenários em `tests/e2e/clientes-admin.spec.ts`, incluindo conflito real de cadastro e consulta independente dos indicadores (ver [contrato e execução](INTEGRACAO-CLIENTES-ADMIN.md)).
-- Validar Docker Compose desde um volume novo, incluindo aplicação de migrations e inicialização da API.
-- Adicionar verificação de disponibilidade da API e do banco, sem retornar dados internos.
-- Documentar os comandos que passaram e as versões efetivamente usadas.
+- Cardápio conectado do cadastro administrativo ao pedido do cliente, incluindo imagem, preço, categoria ativa/rascunho, estoque por data e composição. Quatro cenários em `tests/e2e/cardapio.spec.ts` verificam atualização em sessões separadas, concorrência, resposta perdida e baixa de estoque (ver [contrato e execução](INTEGRACAO-CARDAPIO.md)).
+- Operação administrativa com confirmação de pagamento no recebimento, conclusão pelo cartão, bloqueio de comandos durante envio, recuperação de resposta perdida e envio sequencial em lote. Cinco cenários em `tests/e2e/operacao.spec.ts` verificam painel, cliente, estoque e benefícios (ver [contrato e execução](INTEGRACAO-OPERACAO.md)).
+- `npm run test:integration` executa os 49 cenários em bancos/servidores temporários e registra commits, hashes de lockfiles e migrations em um artefato local.
+- Compose integrado e `npm run test:docker` aprovados localmente e no CI em volume novo, migrations, login, controle de origem, reinício e recuperação do banco. O proxy usa a origem pública configurada; os testes de endereços e cardápio escolhem datas futuras para não depender do horário da execução.
+- Sondas `/health/live` e `/health/ready` implementadas e testadas, sem dados internos.
+- Comandos, versões e configuração do CI documentados em [validação reproduzível](VALIDACAO-INTEGRACAO.md).
 
-Conclusão: instalação limpa reproduzível, testes críticos executados automaticamente e falhas impedindo a promoção da versão.
+Verificado: instalação limpa reproduzível e testes críticos executados automaticamente. A exigência desses checks para merge depende da proteção remota da branch; nenhum merge ou deploy foi feito nesta etapa.
 
 ## 3. Homologação das integrações externas
+
+O usuário confirmou em 19/09 que ainda não existe ambiente com credenciais de teste. O [roteiro de preparação](HOMOLOGACAO-INTEGRACOES.md) relaciona as configurações e os contratos implementados; a execução externa permanece pendente.
 
 | Integração | Insumos necessários | Cenários a validar |
 |---|---|---|
@@ -82,6 +89,8 @@ Registrar separadamente resultados de testes de contrato e resultados obtidos co
 Conclusão: evidências de cada fluxo externo habilitado, sem apresentar simulações locais como homologação do provedor. Publicação de ambiente e envio externo serão tratados na etapa de execução correspondente.
 
 ## 4. Dados e preparação da operação
+
+Avanço em 20/09: ensaio de backup/restauração aprovado localmente e no CI em banco descartável, com dois pedidos, pagamento presencial dividido, estoque, cashback e idempotência. O [procedimento de backup e atualização](BACKUP-ATUALIZACAO.md) documenta a execução e a recuperação. Isso não conclui a preparação operacional: hospedagem, dados reais, retenção dos backups e eventual legado ainda precisam ser definidos.
 
 ### Se a operação começar com banco novo
 
@@ -99,8 +108,8 @@ Conclusão: evidências de cada fluxo externo habilitado, sem apresentar simula�
 ### Preparação comum
 
 - Definir hospedagem, domínio, configurações e responsável pela operação.
-- Ensaiar backup e restauração; verificar os dados restaurados.
-- Documentar a sequência de atualização e a recuperação em caso de falha. Não presumir que reverter o código reverta alterações no banco.
+- Backup/restauração ensaiados localmente em dados descartáveis; repetir no ambiente e no volume operacional definidos.
+- Sequência de atualização e recuperação documentada. Reverter o código não reverte alterações no banco.
 - Ensaiar um ciclo operacional: pedido, pagamento, produção, entrega, cancelamento e estorno quando aplicável.
 
 Conclusão: ambiente de homologação validado e procedimento revisável para a entrada em operação. A base antiga não recebe as migrations iniciais diretamente.
@@ -116,4 +125,6 @@ Essas melhorias ampliam o escopo. Não são requisitos para repetir a validaçã
 
 ## Próxima unidade de trabalho
 
-Prosseguir com o item 2: tornar os testes de navegador reproduzíveis no repositório, configurar as verificações automatizadas e validar uma instalação limpa. O Docker precisa estar disponível para concluir a validação dos containers; isso não impede a preparação dos demais checks.
+Concluir a revisão funcional descrita em [Funções do sistema](FUNCOES-SISTEMA.md), incluindo validação das alterações atuais e as pendências de catálogo/estoque identificadas. Configurações, cupons e relatórios avançaram sem depender de credenciais externas.
+
+As branches de integração estão disponíveis para revisão; a tentativa anterior de abrir PR pelo conector GitHub foi recusada por falta de permissão (`403`). Proteção da branch, merge e deploy não foram alterados. WhatsApp/e-mail/Google permanecem pendentes de ambiente de teste, sem interromper as demais funções. Métodos de pagamento ficaram fora do escopo atual a pedido do usuário.

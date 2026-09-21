@@ -8,8 +8,11 @@ import useAuth from "./useAuth";
 export function useCardapio() {
   return useQuery<CardapioDTO[]>({
     queryKey: ["cardapio"],
-    queryFn: async () => (await api.get("/categoria/lista/detalhes")).data,
-    staleTime: 15000,
+    queryFn: async ({ signal }) =>
+      (await api.get("/categoria/lista/detalhes", { signal })).data,
+    staleTime: 10000,
+    refetchInterval: 10000,
+    retry: false,
   });
 }
 export function useBeneficios() {

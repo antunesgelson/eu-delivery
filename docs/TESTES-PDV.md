@@ -10,6 +10,8 @@ Todos os canais do PDV, incluindo balcão, exigem um cliente identificado confor
 
 ## Verificação automatizada
 
+A execução recomendada agora é `npm run test:integration -- pdv.spec.ts`: cria banco, administrador e servidores temporários e encerra os recursos ao finalizar. Veja [requisitos e execução isolada](VALIDACAO-INTEGRACAO.md). As instruções abaixo continuam disponíveis para um ambiente local já iniciado.
+
 Instale o navegador com `npx playwright install chromium`. Suba o frontend na porta 4051 e o backend na porta 4052, com migrations e seed aplicados em um banco local de desenvolvimento. A API deve usar `AUTH_DELIVERY_MODE=development`, pois a preparação consulta o código de teste para cadastrar um endereço sem enviar mensagens externas.
 
 Defina `E2E_ADMIN_EMAIL` e `E2E_ADMIN_PASSWORD` com as credenciais administrativas desse ambiente e execute:

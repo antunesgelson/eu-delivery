@@ -1,5 +1,6 @@
 'use client'
 
+import { observacaoDoItem } from "@/lib/item-observacao";
 import { ModalAgendarEntrega } from "@/components/Modal/AgendarEntrega";
 import { ModalChooseAdress } from '@/components/Modal/ChooseAddress';
 import { Button } from "@/components/ui/button";
@@ -135,9 +136,9 @@ export default function Checkout() {
                                         <strong className="block line-clamp-2 text-[13px] font-extrabold uppercase leading-4 text-dark-900">
                                             {item.produto.titulo}
                                         </strong>
-                                        {item.obs && (
-                                            <span className="mt-1 block line-clamp-2 text-[11px] italic leading-4 text-dark-500">
-                                                Obs: {item.obs}
+                                        {observacaoDoItem(item) && (
+                                            <span className="mt-1 block text-[11px] italic leading-4 text-dark-500">
+                                                {observacaoDoItem(item)}
                                             </span>
                                         )}
                                     </div>

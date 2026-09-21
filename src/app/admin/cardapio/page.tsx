@@ -200,7 +200,7 @@ function createCategoryId(title: string) {
 }
 
 function createProductId() {
-    return Date.now();
+    return Number.parseInt(crypto.randomUUID().replace(/-/g, '').slice(0, 13), 16);
 }
 
 const initialCategories: AdminMenuCategory[] = [
@@ -607,7 +607,7 @@ function MenuCategoryCard({
                         <FaPlus size={12} />
                         Adicionar item
                     </Button>
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                             <Button
                                 type="button"
@@ -902,7 +902,7 @@ function MenuCategoryCard({
 
 export default function MenuManagerPage() {
     const router = useRouter();
-    const {categories,setCategories,isLoading:loadingCatalog,error:catalogError,refetch}=useCatalogoAdmin();
+    const {categories,setCategories,isLoading:loadingCatalog,error:catalogError,refetch,isPending:savingCatalog}=useCatalogoAdmin();
     const [categoriesHydrated, setCategoriesHydrated] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [expandedCategoryIds, setExpandedCategoryIds] = React.useState<string[]>(['promo']);
@@ -1153,7 +1153,7 @@ export default function MenuManagerPage() {
                     if (soldOut) {
                         soldOutByDate[serviceDate.key] = true;
                     } else {
-                        delete soldOutByDate[serviceDate.key];
+                        soldOutByDate[serviceDate.key] = false;
                     }
 
                     return {
@@ -1190,15 +1190,16 @@ export default function MenuManagerPage() {
         setNewCategoryModalOpen(true);
     };
 
-    const handleDuplicateCategory = (category: AdminMenuCategory) => {
+    const handleDuplicateCategory = async (category: AdminMenuCategory) => {
+        const ids = new Map(category.products.map(product => [product.id, createProductId()]));
         const duplicatedCategory: AdminMenuCategory = {
             ...category,
             id: createCategoryId(`${category.title}-copia`),
             title: `${category.title} cópia`,
-            products: category.products.map((product) => ({ ...product })),
+            products: category.products.map((product) => ({ ...product, id: ids.get(product.id)!, components: product.components?.map(component => ({ ...component, productId: ids.get(component.productId) ?? component.productId })) })),
         };
 
-        setCategories((currentCategories) => {
+        const saved = await setCategories((currentCategories) => {
             const categoryIndex = currentCategories.findIndex((currentCategory) => currentCategory.id === category.id);
 
             if (categoryIndex < 0) {
@@ -1209,14 +1210,16 @@ export default function MenuManagerPage() {
             nextCategories.splice(categoryIndex + 1, 0, duplicatedCategory);
             return nextCategories;
         });
+        if (!saved) return;
         setExpandedCategoryIds((currentIds) => [...currentIds, duplicatedCategory.id]);
         toast.success('Categoria duplicada.', {
             description: duplicatedCategory.title,
         });
     };
 
-    const handleDeleteCategory = (category: AdminMenuCategory) => {
-        setCategories((currentCategories) => currentCategories.filter((currentCategory) => currentCategory.id !== category.id));
+    const handleDeleteCategory = async (category: AdminMenuCategory) => {
+        const saved = await setCategories((currentCategories) => currentCategories.filter((currentCategory) => currentCategory.id !== category.id));
+        if (!saved) return;
         setExpandedCategoryIds((currentIds) => currentIds.filter((categoryId) => categoryId !== category.id));
         toast.success('Categoria excluída.', {
             description: category.title,
@@ -1361,8 +1364,9 @@ export default function MenuManagerPage() {
         });
     };
 
-    const handleSubmitCategory = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmitCategory = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (savingCatalog) return;
 
         const title = newCategoryTitle.trim();
         const badge = newCategoryBadge.trim() || 'Itens principais';
@@ -1379,7 +1383,7 @@ export default function MenuManagerPage() {
         }
 
         if (editingCategoryId) {
-            setCategories((currentCategories) => currentCategories.map((category) => (
+            const saved = await setCategories((currentCategories) => currentCategories.map((category) => (
                 category.id === editingCategoryId
                     ? {
                         ...category,
@@ -1390,6 +1394,7 @@ export default function MenuManagerPage() {
                     }
                     : category
             )));
+            if (!saved) return;
             setExpandedCategoryIds((currentIds) => (
                 currentIds.includes(editingCategoryId) ? currentIds : [...currentIds, editingCategoryId]
             ));
@@ -1411,7 +1416,8 @@ export default function MenuManagerPage() {
             products: [],
         };
 
-        setCategories((currentCategories) => [...currentCategories, nextCategory]);
+        const saved = await setCategories((currentCategories) => [...currentCategories, nextCategory]);
+        if (!saved) return;
         setExpandedCategoryIds((currentIds) => [...currentIds, nextCategory.id]);
         setSearchTerm('');
         resetNewCategoryForm();
@@ -1422,10 +1428,12 @@ export default function MenuManagerPage() {
     };
 
     if (loadingCatalog) return <main className="p-6" role="status">Carregando dados…</main>;
-    if (catalogError) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
+    if (catalogError && categories.length === 0) return <main className="p-6" role="alert">Não foi possível carregar os dados. <button onClick={() => refetch()}>Tentar novamente</button></main>;
 
     return (
         <main className="min-h-[calc(100vh-61px)] bg-[#f3f5f8] p-3">
+            {savingCatalog && <p role="status">Salvando cardápio…</p>}
+            {catalogError && <p role="alert">Não foi possível atualizar o cardápio. <button onClick={() => refetch()}>Tentar novamente</button></p>}
             <section className="rounded-md bg-white p-2.5 shadow-sm">
                 <div className="flex items-center gap-2">
                     <div className="relative min-w-[360px] flex-1">
@@ -1530,6 +1538,7 @@ export default function MenuManagerPage() {
             <Dialog
                 open={newCategoryModalOpen}
                 onOpenChange={(open) => {
+                    if (savingCatalog) return;
                     setNewCategoryModalOpen(open);
                     if (!open) {
                         resetNewCategoryForm();
@@ -1555,7 +1564,7 @@ export default function MenuManagerPage() {
                         </div>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmitCategory}>
+                    <form onSubmit={handleSubmitCategory}><fieldset disabled={savingCatalog}>
                         <div className="grid gap-4 px-6 py-5">
                             <div className="grid gap-2">
                                 <Label htmlFor="new-category-title" className="text-[12px] font-extrabold uppercase text-dark-500">
@@ -1665,7 +1674,7 @@ export default function MenuManagerPage() {
                                 {editingCategoryId ? 'Salvar alterações' : 'Criar categoria'}
                             </Button>
                         </DialogFooter>
-                    </form>
+                    </fieldset></form>
                 </DialogContent>
             </Dialog>
 

@@ -1,0 +1,38 @@
+# Ambiente local integrado; migrations terminam antes da API aceitar tráfego.
+services:
+  db:
+    extends:
+      file: ${E2E_BACKEND_DIR:-../eu-delivery-back}/docker-compose.yml
+      service: db
+  migrate:
+    extends:
+      file: ${E2E_BACKEND_DIR:-../eu-delivery-back}/docker-compose.yml
+      service: migrate
+  api:
+    extends:
+      file: ${E2E_BACKEND_DIR:-../eu-delivery-back}/docker-compose.yml
+      service: api
+  web:
+    build: .
+    environment:
+      BACKEND_URL: http://api:4052
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4051}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-4051}:4051"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4051/api/backend/configuracao',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+volumes:
+  zanini_db:

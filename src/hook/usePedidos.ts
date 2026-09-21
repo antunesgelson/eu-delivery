@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, mostrarErro } from "@/service/api";
 import { CartDTO } from "@/dto/cartDTO";
 import useAuth from "./useAuth";
+import { toast } from "sonner";
 export type PedidoAPI = CartDTO & {
   valorFinal: number;
   descontoCupom: number;
@@ -56,14 +57,25 @@ export function useOperacao() {
           payment ? { paymentStatus: "paid" } : { status },
         )
       ).data,
-    onSuccess: async () => {
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.payment ? "Pagamento confirmado." : "Pedido atualizado.",
+      );
+    },
+    // Mesmo sem resposta, a API pode ter persistido a operação.
+    onSettled: async () => {
       await Promise.all(
         [
           "pedidos",
+          "pedido",
           "operacao",
           "beneficios",
           "relatorios",
           "admin-catalogo",
+          "cardapio",
+          "produto",
+          "admin-cliente",
+          "admin-cliente-beneficios",
         ].map((key) => c.invalidateQueries({ queryKey: [key] })),
       );
     },

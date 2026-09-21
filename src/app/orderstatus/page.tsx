@@ -1,5 +1,6 @@
 'use client'
 
+import { observacaoDoItem } from "@/lib/item-observacao";
 import { Button } from "@/components/ui/button";
 import React,{Suspense} from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -90,7 +91,8 @@ function OrderStatusContent() {
         selectedCashback > 0 ? `Cashback usado: ${formatCurrency(selectedCashback)}.` : '',
         `Total: ${formatCurrency(finalTotal)}.`,
     ].filter(Boolean).join('\n');
-    const whatsappLink = `https://wa.me/55${phone}?text=${encodeURIComponent(whatsappMessage)}`;
+    const whatsappNumber = phone.length <= 11 ? `55${phone}` : phone;
+    const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
     if(query.isPending||(query.isError && !cart))return <main className="mt-20 p-6"><p>{query.isPending?'Carregando pedido…':'Não foi possível carregar este pedido.'}</p>{query.isError&&<Button onClick={()=>query.refetch()}>Tentar novamente</Button>}</main>;
     if (!cart || items.length === 0) {
@@ -146,7 +148,7 @@ function OrderStatusContent() {
                         </p>
                     </div>
 
-                    {phone&&<Button asChild variant="success" className="mt-4 h-12 w-full gap-2 bg-[#16bf75] text-[15px] font-extrabold shadow-sm hover:bg-[#13a866]">
+                    {/^55\d{10,11}$/.test(whatsappNumber)&&<Button asChild variant="success" className="mt-4 h-12 w-full gap-2 bg-[#16bf75] text-[15px] font-extrabold shadow-sm hover:bg-[#13a866]">
                         <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
                             <FaWhatsapp size={20} />
                             Acompanhar no WhatsApp
@@ -258,7 +260,7 @@ function OrderStatusContent() {
                         <div className="px-3 py-2">
                             {items.map((item) => (
                                 <div key={item.id} className="flex justify-between gap-3 py-2 text-[13px]">
-                                    <span className="min-w-0 line-clamp-2 text-dark-600">{item.quantidade}x {item.produto.titulo}</span>
+                                    <span className="min-w-0 text-dark-600">{item.quantidade}x {item.produto.titulo}{observacaoDoItem(item) && <small className="block">{observacaoDoItem(item)}</small>}</span>
                                     <strong className="whitespace-nowrap text-dark-900">{formatCurrency(item.valor)}</strong>
                                 </div>
                             ))}

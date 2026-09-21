@@ -15,6 +15,16 @@ type PaymentApp = {
     cashbackCentavos?: number,
   ) => Promise<{ email: string; senha: string }>;
   expireResetLink: (id: string) => Promise<void>;
+  configureProduct: (options: {
+    ingredientes?: Array<{
+      id: string;
+      nome: string;
+      valor: number;
+      removivel: boolean;
+      quantia: number;
+    }>;
+    adicionais?: Array<{ id: string; nome: string; valor: number }>;
+  }) => Promise<void>;
   stockForDate: (date: string) => Promise<number>;
   setStockCapacity: (date: string, capacity: number) => Promise<void>;
   setDeadline: (id: number, timestamp: number) => Promise<void>;
@@ -67,6 +77,7 @@ export const test = base.extend<
               ...originalEnv,
               NODE_ENV: "production",
               BACKEND_URL: harness.origin,
+              FRONTEND_URL: origin,
               NEXT_TELEMETRY_DISABLED: "1",
             },
             stdio: "ignore",

@@ -1,5 +1,6 @@
 'use client'
 
+import { observacaoDoItem } from "@/lib/item-observacao";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -188,9 +189,9 @@ export default function CartPage() {
                                         <p className="mt-1 text-[12px] font-semibold leading-4 text-dark-500">
                                             Quantidade: {item.quantidade}
                                         </p>
-                                        {item.obs && (
-                                            <p className="mt-1 line-clamp-2 text-[11px] italic leading-4 text-dark-500">
-                                                Obs: {item.obs}
+                                        {observacaoDoItem(item) && (
+                                            <p className="mt-1 text-[11px] italic leading-4 text-dark-500">
+                                                {observacaoDoItem(item)}
                                             </p>
                                         )}
                                         <strong className="mt-2 block text-[14px] font-extrabold text-[#f97316]">

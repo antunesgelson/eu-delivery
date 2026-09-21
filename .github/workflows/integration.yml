@@ -1,0 +1,93 @@
+name: Integração da loja
+on:
+  push:
+    branches: [master, "codex/integracao-**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: Commit, tag ou branch compatível do backend
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: integration-only-password
+          MYSQL_ROOT_HOST: "%"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      CI: "true"
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: "3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: integration-only-password
+      E2E_BACKEND_DIR: ${{ github.workspace }}/eu-delivery-back
+      NEXT_TELEMETRY_DISABLED: "1"
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: frontend
+          persist-credentials: false
+      - name: Obter backend compatível
+        uses: actions/checkout@v7
+        with:
+          repository: antunesgelson/eu-delivery-back
+          ref: ${{ inputs.backend_ref || vars.BACKEND_REF || '600837402babde2eaa5f55fbf26604d02939ca4a' }}
+          token: ${{ secrets.BACKEND_READ_TOKEN || github.token }}
+          path: eu-delivery-back
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            eu-delivery-back/package-lock.json
+      - name: Instalar frontend
+        run: npm ci
+      - name: Instalar backend
+        working-directory: eu-delivery-back
+        run: npm ci
+      - name: Verificar backend e HTTP/MySQL
+        working-directory: eu-delivery-back
+        run: |
+          npm run lint
+          npm run build
+          npm run test:e2e
+      - name: Verificar frontend
+        run: |
+          npm run lint
+          npm run build
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Testar integração em bancos temporários
+        run: npm run test:integration
+      - name: Validar instalação Docker em volume novo
+        run: npm run test:docker
+      - name: Guardar evidências
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-${{ github.run_id }}
+          path: |
+            frontend/artifacts/
+            frontend/test-results/
+          retention-days: 7
+          if-no-files-found: warn

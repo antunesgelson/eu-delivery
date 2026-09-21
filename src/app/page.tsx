@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Navegation from "@/components/Navegation";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import OrderSummaryBar from "@/components/OrderSummaryBar";
+import StoreInfo from "@/components/StoreInfo";
 import ProductCard from "@/components/ProductCard";
 import {
   Carousel,
@@ -193,6 +194,7 @@ function HomeContent() {
           </div>
         ))}
       </section>
+      <StoreInfo />
       {cartItemCount > 0 && <OrderSummaryBar />}
       <MobileBottomNav
         activeItem="home"

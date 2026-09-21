@@ -231,7 +231,7 @@ test("conflito e indisponibilidade preservam a edição; envio pendente bloqueia
 test("listagem recupera falhas, distingue busca vazia e permite edição sem os indicadores", async ({
   page,
 }) => {
-  await page.route("**/api/backend/admin/relatorios", (route) =>
+  await page.route("**/api/backend/admin/relatorios?**", (route) =>
     route.fulfill({
       status: 503,
       json: { message: "Relatório indisponível." },
@@ -283,7 +283,7 @@ test("listagem recupera falhas, distingue busca vazia e permite edição sem os 
   await expect(
     page.getByRole("cell", { name: "Cliente sem indicadores", exact: true }),
   ).toBeVisible();
-  await page.unroute("**/api/backend/admin/relatorios");
+  await page.unroute("**/api/backend/admin/relatorios?**");
   await page
     .getByRole("button", { name: "Atualizar indicadores", exact: true })
     .click();

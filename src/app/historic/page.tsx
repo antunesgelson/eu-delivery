@@ -1,5 +1,6 @@
 "use client";
 
+import { observacaoDoItem } from "@/lib/item-observacao";
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { usePedidos, statusPedido } from "@/hook/usePedidos";
@@ -91,7 +92,7 @@ export default function Historic() {
         id: i.id,
         productId: String(i.produto.id),
         quantity: i.quantidade,
-        note: i.obs,
+        note: observacaoDoItem(i),
         product: i.produto,
         total: i.valor,
       })),

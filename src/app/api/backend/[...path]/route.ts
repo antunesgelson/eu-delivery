@@ -27,7 +27,12 @@ async function proxy(
       { status: 404 },
     );
   const writing = !["GET", "HEAD"].includes(request.method);
-  if (writing && request.headers.get("origin") !== request.nextUrl.origin)
+  // Em containers/proxies, a URL interna pode ter host e porta diferentes dos públicos.
+  // A origem permitida vem da configuração do servidor, nunca de headers encaminhados.
+  const expectedOrigin = process.env.FRONTEND_URL
+    ? new URL(process.env.FRONTEND_URL).origin
+    : request.nextUrl.origin;
+  if (writing && request.headers.get("origin") !== expectedOrigin)
     return NextResponse.json(
       { message: "Origem da requisição inválida." },
       { status: 403 },
@@ -65,6 +70,19 @@ async function proxy(
         signal: AbortSignal.timeout(15000),
       },
     );
+    if (!writing && /^produto\/\d+\/imagem$/.test(path) && response.ok) {
+      const type = response.headers.get("content-type") ?? "";
+      if (/^image\/(png|jpeg|webp)(;|$)/.test(type)) {
+        return new NextResponse(await response.arrayBuffer(), {
+          status: response.status,
+          headers: {
+            "Content-Type": type,
+            "Cache-Control": "public, max-age=60",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      }
+    }
     const data = await response.json();
     if (
       response.ok &&

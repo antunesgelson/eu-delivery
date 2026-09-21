@@ -514,7 +514,7 @@ function AdjustmentRadio({
 
 export default function PedidosPdvPage() {
     const menu=useCardapio(),queryClient=useQueryClient();
-    const products:PosProduct[]=React.useMemo(()=>(menu.data??[]).flatMap(c=>c.produtos.map(p=>({id:p.id,title:p.titulo,description:p.descricao,categoryId:String(c.id),categoryTitle:c.titulo,price:Number(p.valor),image:p.imgs?.[0]?.Location??'',soldOut:Boolean((p as any).esgotado),promotional:p.valorPromocional>0}))),[menu.data]);
+    const products:PosProduct[]=React.useMemo(()=>(menu.data??[]).flatMap(c=>c.produtos.map(p=>({id:p.id,title:p.titulo,description:p.descricao,categoryId:String(c.id),categoryTitle:c.titulo,price:Number(p.valorPromocional > 0 ? p.valorPromocional : p.valor),image:p.imgs?.[0]?.Location??'',soldOut:Boolean((p as any).esgotado),promotional:p.valorPromocional>0}))),[menu.data]);
     const menuSections:MenuSection[]=React.useMemo(()=>(menu.data??[]).map(c=>({id:String(c.id),title:c.titulo,productIds:c.produtos.map(p=>p.id)})),[menu.data]);
     const draftQuery=useQuery<any[]>({queryKey:['pdv-rascunhos'],queryFn:async()=>(await api.get('/admin/pdv/rascunhos')).data});
     const [draftOpen,setDraftOpen]=React.useState(false);
@@ -527,6 +527,10 @@ export default function PedidosPdvPage() {
     const saveDraft=useMutation({mutationFn:async(dados:any)=>api.post('/admin/pdv/rascunhos',{dados}),onSuccess:()=>{void draftQuery.refetch();toast.success('Rascunho salvo.');},onError:mostrarErro});
     const deleteDraft=useMutation({mutationFn:async(id:number)=>api.delete(`/admin/pdv/rascunhos/${id}`),onSuccess:()=>{void draftQuery.refetch();},onError:mostrarErro});
     const [search, setSearch] = React.useState('');
+    const searchInput = React.useRef<HTMLInputElement>(null);
+    const [filtersOpen, setFiltersOpen] = React.useState(false);
+    const [productFilter, setProductFilter] = React.useState('all');
+    const [editItems, setEditItems] = React.useState(false);
     const [selectedProductId, setSelectedProductId] = React.useState<number | null>(null);
     const [activeSectionId, setActiveSectionId] = React.useState<string | null>(null);
     const [quantity, setQuantity] = React.useState(1);
@@ -583,12 +587,12 @@ export default function PedidosPdvPage() {
         const normalizedSearch = search.trim().toLowerCase();
 
         return products.filter((product) => (
-            !normalizedSearch
+            (productFilter === "all" || (productFilter === "available" ? !product.soldOut : product.promotional)) && (!normalizedSearch
                 || product.title.toLowerCase().includes(normalizedSearch)
                 || product.description.toLowerCase().includes(normalizedSearch)
-                || product.categoryTitle.toLowerCase().includes(normalizedSearch)
+                || product.categoryTitle.toLowerCase().includes(normalizedSearch))
         ));
-    }, [search,products]);
+    }, [search,products,productFilter]);
 
     const visibleGroups = React.useMemo(() => {
         return menuSections
@@ -695,7 +699,7 @@ export default function PedidosPdvPage() {
        const order=await createOrder.mutateAsync(payload);orderKey.current=crypto.randomUUID();toast.success(`Pedido #${order.id} criado — ${formatCurrency(order.valorFinal)}.`);setOrderItems([]);setAppliedAdjustment(null);setAdjustmentAmount('');await Promise.all(['operacao','pedidos','cardapio','admin-cliente-beneficios','admin-clientes','relatorios'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
       }catch(e){mostrarErro(e);}finally{generatingRef.current=false;setGenerating(false);}
     }
-    function handleSaveDraft(){if(!orderItems.length){setDraftOpen(true);return;}saveDraft.mutate(draftData());}
+    function handleSaveDraft(){if(saveDraft.isPending)return;if(!orderItems.length){setDraftOpen(true);return;}saveDraft.mutate(draftData());}
 
     const openOrderNoteModal = React.useCallback(() => {
         setOrderNoteDraft(orderNote);
@@ -744,6 +748,7 @@ export default function PedidosPdvPage() {
                 );
 
             const shortcut = event.key.toLowerCase();
+            if (!isTyping && event.ctrlKey && shortcut === 'x' && !document.querySelector('[role="dialog"]')) { event.preventDefault(); setDraftOpen(true); return; }
 
             if (
                 isTyping
@@ -758,6 +763,10 @@ export default function PedidosPdvPage() {
                 return;
             }
 
+            if (shortcut === 'p') { event.preventDefault(); searchInput.current?.focus(); return; }
+            if (shortcut === 'q' && orderItems.length) { event.preventDefault(); setEditItems(true); return; }
+            if (shortcut === 'w') { event.preventDefault(); setOrderItems([]); return; }
+            if (shortcut === 'n' && menuSections.length) { event.preventDefault(); handleNavigateSection(menuSections[(menuSections.findIndex(s => s.id === activeSectionId) + 1) % menuSections.length].id); return; }
             if (shortcut === 'o') {
                 event.preventDefault();
                 openOrderNoteModal();
@@ -788,16 +797,16 @@ export default function PedidosPdvPage() {
         window.addEventListener('keydown', handleKeyDown);
 
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [activeModal, appliedAdjustment, openOrderNoteModal, orderNoteModalOpen, paymentSheetOpen]);
+    }, [activeModal, appliedAdjustment, openOrderNoteModal, orderNoteModalOpen, paymentSheetOpen, orderItems.length, menuSections, activeSectionId]);
 
     return (
-        <main className="min-h-[calc(100vh-57px)] bg-[#f3f5f8] p-3 pr-12">
-            <section className="grid h-[calc(100vh-81px)] min-h-[620px] grid-cols-[minmax(0,1fr)_430px] gap-3">
-                <div className="grid min-h-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-md bg-white shadow-sm">
+        <main className="min-h-[calc(100vh-57px)] bg-[#f3f5f8] p-3">
+            <section className="grid min-h-[620px] grid-cols-1 gap-3 xl:h-[calc(100vh-81px)] xl:grid-cols-[minmax(0,1fr)_430px]">
+                <div className="grid min-h-0 grid-rows-[auto_auto_1fr_auto] overflow-hidden rounded-md bg-white shadow-sm">
                     <div className="border-b border-[#e5e8ec] p-2.5">
-                        <div className="grid grid-cols-[180px_minmax(0,1fr)_56px] gap-2.5">
+                        <div className="grid grid-cols-[100px_minmax(0,1fr)_40px] gap-2.5">
                             <button
-                                type="button"
+                                type="button" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}
                                 className="flex h-10 items-center justify-center gap-2 rounded-md border border-[#d5dae1] bg-white text-[13px] font-extrabold text-[#5f6670] shadow-sm hover:bg-[#f8fafc]"
                             >
                                 <FaFilter size={16} />
@@ -805,7 +814,7 @@ export default function PedidosPdvPage() {
                             </button>
                             <label className="relative min-w-0">
                                 <input
-                                    value={search}
+                                    ref={searchInput} aria-label="Pesquisar produtos" value={search}
                                     onChange={(event) => setSearch(event.target.value)}
                                     placeholder="[ P ] Pesquisar"
                                     className="h-10 w-full rounded-md border border-[#d5dae1] bg-white px-4 pr-12 text-[14px] font-semibold text-[#2f353d] outline-none placeholder:text-[#a5acb5] focus:border-[#0b98f6] focus:ring-2 focus:ring-[#0b98f6]/20"
@@ -824,14 +833,20 @@ export default function PedidosPdvPage() {
                             <button
                                 type="button"
                                 className="flex h-10 items-center justify-center rounded-md border border-[#d5dae1] bg-white text-[#5f6670] hover:bg-[#f8fafc]"
-                                aria-label="Pesquisar"
+                                aria-label="Pesquisar" onClick={() => searchInput.current?.focus()}
                             >
                                 <FaMagnifyingGlass size={19} />
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid min-h-0 grid-cols-[158px_minmax(0,1fr)]">
+                    <div>
+                    {filtersOpen && <label className="flex items-center gap-2 border-b p-3 text-sm">Exibir produtos<select aria-label="Filtrar produtos" value={productFilter} onChange={(e) => setProductFilter(e.target.value)} className="rounded border p-2"><option value="all">Todos</option><option value="available">Disponíveis</option><option value="promotion">Em promoção</option></select></label>}
+                    {menu.isPending && <p role="status" className="p-3">Carregando produtos…</p>}
+                    {menu.isError && <p role="alert" className="p-3">Não foi possível carregar produtos. <button onClick={() => void menu.refetch()}>Tentar novamente</button></p>}
+                    {!menu.isPending && !menu.isError && !filteredProducts.length && <p className="p-3">Nenhum produto encontrado.</p>}
+                    </div>
+                    <div className="grid min-h-0 grid-cols-[100px_minmax(0,1fr)] xl:grid-cols-[158px_minmax(0,1fr)]">
                         <nav className="min-h-0 overflow-y-auto border-r border-[#e5e8ec] bg-[#fbfcfd] p-2.5">
                             <div className="mb-2 px-1 text-[11px] font-extrabold text-[#5f6670]">
                                 [ N ] Navegar
@@ -930,7 +945,7 @@ export default function PedidosPdvPage() {
                                 </span>
                             </button>
                             <div className="flex h-9 shrink-0 overflow-hidden rounded-md border border-[#eef1f4] text-[10px] font-extrabold text-[#8a9097]">
-                                <button type="button" className="flex items-center gap-1 px-2 hover:bg-[#f7f9fb]">
+                                <button type="button" disabled={!orderItems.length} onClick={() => setEditItems(true)} className="flex items-center gap-1 px-2 hover:bg-[#f7f9fb] disabled:opacity-50">
                                     <Shortcut>Q</Shortcut>
                                     Editar
                                 </button>
@@ -950,7 +965,7 @@ export default function PedidosPdvPage() {
                             <button
                                 type="button"
                                 className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-[#c7cbd1] bg-white text-[#87909a]"
-                                aria-label="Configurações do pedido"
+                                aria-label="Configurações do pedido" onClick={() => setActiveModal("fulfillment")}
                             >
                                 <FaGear size={18} />
                             </button>
@@ -1610,15 +1625,9 @@ export default function PedidosPdvPage() {
                 </DialogContent>
             </Dialog>
 
-            <button
-                type="button"
-                className="fixed right-0 top-1/2 z-20 flex h-[154px] w-8 -translate-y-1/2 items-center justify-center rounded-l-md bg-[#0b98f6] text-white shadow-md"
-                aria-label="Enviar sugestão"
-            >
-                <span className="-rotate-90 whitespace-nowrap text-[13px] font-extrabold">Enviar sugestão</span>
-            </button>
+            <Dialog open={editItems} onOpenChange={setEditItems}><DialogContent><DialogHeader><DialogTitle>Editar itens do pedido</DialogTitle><DialogDescription>Ajuste as quantidades e observações antes de gerar o pedido.</DialogDescription></DialogHeader><div className="max-h-[60vh] space-y-4 overflow-y-auto">{orderItems.map((item) => <section key={item.id} className="space-y-2 rounded border p-3"><h3 className="font-semibold">{item.title}</h3><div className="flex items-center gap-3"><button aria-label={`Diminuir ${item.title}`} onClick={() => handleChangeItemQuantity(item.id, 'decrease')}>−</button><span>{item.quantity}</span><button aria-label={`Aumentar ${item.title}`} onClick={() => handleChangeItemQuantity(item.id, 'increase')}>+</button></div><label className="block text-sm">Observação de {item.title}<textarea aria-label={`Observação de ${item.title}`} maxLength={1000} value={item.note} onChange={(e) => setOrderItems(items => items.map(i => i.id === item.id ? {...i, note:e.target.value} : i))} className="mt-1 w-full rounded border p-2" /></label></section>)}</div><button onClick={() => setEditItems(false)} className="rounded bg-primary p-2 text-white">Concluir edição</button></DialogContent></Dialog>
 
-        <Dialog open={draftOpen} onOpenChange={setDraftOpen}><DialogContent><DialogHeader><DialogTitle>Rascunhos do PDV</DialogTitle><DialogDescription>Rascunhos não reservam estoque. Preços e disponibilidade serão validados ao gerar o pedido.</DialogDescription></DialogHeader><div className="max-h-80 space-y-2 overflow-y-auto">{!drafts&&<p>Nenhum rascunho salvo.</p>}{draftQuery.data?.map(d=><div key={d.id} className="flex items-center gap-2 rounded border p-2"><span className="flex-1">#{d.id} — {d.dados.clientName||'Sem cliente'}</span><button onClick={()=>restoreDraft(d.dados)}>Abrir</button><button onClick={()=>deleteDraft.mutate(d.id)}>Excluir</button></div>)}</div></DialogContent></Dialog>
+        <Dialog open={draftOpen} onOpenChange={setDraftOpen}><DialogContent><DialogHeader><DialogTitle>Rascunhos do PDV</DialogTitle><DialogDescription>Rascunhos não reservam estoque. Preços e disponibilidade serão validados ao gerar o pedido.</DialogDescription></DialogHeader><div className="max-h-80 space-y-2 overflow-y-auto">{draftQuery.isPending && <p>Carregando rascunhos…</p>}{draftQuery.isError && <p role="alert">Não foi possível carregar rascunhos. <button onClick={() => void draftQuery.refetch()}>Tentar novamente</button></p>}{!draftQuery.isPending && !draftQuery.isError && !drafts&&<p>Nenhum rascunho salvo.</p>}{draftQuery.data?.map(d=><div key={d.id} className="flex items-center gap-2 rounded border p-2"><span className="flex-1">#{d.id} — {d.dados.clientName||'Sem cliente'}</span><button onClick={()=>restoreDraft(d.dados)}>Abrir</button><button disabled={deleteDraft.isPending} onClick={()=>deleteDraft.mutate(d.id)}>Excluir</button></div>)}</div></DialogContent></Dialog>
         </main>
     );
 }

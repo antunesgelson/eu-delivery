@@ -33,4 +33,6 @@ export type ProdutosDTO = {
     servingSize: number,
     ingredientes: IngredientesDTO[],
     adicionais: AdicionaisDTO[]
+    removidos?: Array<{ id: string; nome: string }>
+    substituicoes?: Array<{ removerId: string; adicionarId: string; remover: string; adicionar: string }>
 }

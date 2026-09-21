@@ -93,6 +93,7 @@ export const test = base.extend<{}, { sessionApp: SessionApp }>({
             ...process.env,
             NODE_ENV: "production",
             BACKEND_URL: `http://127.0.0.1:${bridgePort}`,
+            FRONTEND_URL: origin,
             NEXT_TELEMETRY_DISABLED: "1",
           },
           stdio: "ignore",
